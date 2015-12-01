@@ -5,7 +5,8 @@ import re
 import time
 import traceback
 import psana
-from Detector.PyDetector import PyDetector
+import numpy as np
+#from Detector.PyDetector import PyDetector
 
 def live_source(monshmserver='psana', **kwargs):
     """Returns psana source string for live data from shared memory on the current node.
@@ -270,6 +271,8 @@ class DataSourceInfo(object):
                     setattr(self, key, value)
                 else:
                     setattr(self, key, True)
+                    if key in ['idx']:
+                        self.indexed = True
 
         else:
 
@@ -284,7 +287,7 @@ class DataSourceInfo(object):
                     data_source += ":h5"
                 elif self.smd:
                     data_source += ":smd"
-                    self.indexed = True
+                    self.indexed = False 
                 elif self.idx:
                     data_source += ":idx"
                     self.indexed = True
@@ -294,6 +297,16 @@ class DataSourceInfo(object):
                 data_source = live_source(**kwargs)
                 self.monshmserver = data_source
                 self.indexed = False
+
+
+        if not self.instrument and self.exp is not None:
+            self.instrument = self.exp[0:3]
+
+        if self.exp and self.monshmserver:
+            calibDir = '/reg/d/psdm/cxi/{:}/calib'.format(self.exp)
+            print 'setting calibDir', self.exp, calibDir
+            psana.setOption('psana.calib-dir', calibDir)
+
 
         return data_source
 
@@ -313,10 +326,9 @@ class DataSource(object):
        data as well as PyDetector functions to access calibrated data.
     """
 
-    _ds_attrs = ['empty', 'end', 'env', 'liveAvail', 'runs', 'steps']
-    _env_attrs = ['calibDir']
+    _ds_attrs = ['empty', 'end', 'env', 'runs', 'steps']
+    _env_attrs = ['calibDir', 'instrument', 'experiment','expNum']
     _detectors = {}
-    _pbits = 0
     _srcs = {}
 
     def __init__(self, data_source=None, **kwargs):
@@ -347,7 +359,10 @@ class DataSource(object):
         """Initialize psana.Detector classes based on psana env information.
         """
         configStore = self._ds.env().configStore()
-        self.aliasConfig = AliasConfig(configStore) 
+        self.aliasConfig = AliasConfig(configStore)
+        for key in configStore.keys():
+            if key.type() and key.type().__module__ == 'psana.Partition':
+                ipAddrPartition = key.src().ipAddr()
         csPartition = get_config(configStore, 'Partition')
         csEpics = get_config(configStore, 'Epics')
         csEvr = get_config(configStore, 'EvrData', cls='IOConfig')
@@ -355,15 +370,18 @@ class DataSource(object):
         self._partition = {str(s.src()): {'src': s.src(), 'group': s.group(), 'alias': None} \
                          for s in csPartition.sources()}
         self._aliases = {} 
-        for alias, src in self.aliasConfig._aliases.items():
+        for alias, item in self.aliasConfig._aliases.items():
+            src = item['src']
+            ipAddr = item['ipAddr']
             srcstr = str(src)
             alias = re.sub('-|:|\.| ','_', alias)
-            self._aliases[alias] = srcstr
             if srcstr in self._partition:
                 self._partition[srcstr]['alias'] = alias
-            else:
+                self._aliases[alias] = srcstr
+            elif ipAddr != ipAddrPartition or self.data_source.monshmserver:
                 # add data sources not in partition that come from recording nodes
-                self._partition[srcstr] = {'src': src, 'group': None, 'alias': alias}
+                self._partition[srcstr] = {'src': src, 'group': -1, 'alias': alias}
+                self._aliases[alias] = srcstr
 
         self._sources = {}
         for srcstr, item in self._partition.items():
@@ -378,6 +396,8 @@ class DataSource(object):
                 self._aliases[alias] = srcstr
 
             if 'NoDetector' not in srcstr and 'NoDevice' not in srcstr:
+                # sources not recorded have group None
+                # only include these devices for shared memory
                 self._sources[srcstr] = item
 
         self.configStore = TabKeys(configStore)
@@ -569,20 +589,26 @@ class EvtDetectors(object):
     def Evr(self):
         """Master evr from psana evt data.
         """
-        if not self._evr_typ_src:
+        if self._evr_typ is None:
             self._evr_typ, self._evr_src = self._get_evr_typ_src()
 
-        return MasterEvr(self.get(self._evr_typ, self._evr_src))
+        if self._evr_typ:
+            return MasterEvr(self.get(self._evr_typ, self._evr_src))
+        else:
+            return []
 
     @property
     def L3T(self):
         """L3T Level 3 trigger.
         """
-        if not self._evr_typ_src:
+        if self._l3t_typ is None:
             self._l3t_typ, self._l3t_src = self._get_l3t_typ_src()
 
-        return L3Tdata(self.get(self._l3t_typ, self._l3t_src))
-        
+        if self._l3t_typ:
+            return L3Tdata(self.get(self._l3t_typ, self._l3t_src))
+        else:
+            return True
+
     def _get_l3t_typ_src(self):
         """Set the L3T type and source.
         """
@@ -590,6 +616,8 @@ class EvtDetectors(object):
             typ = key.type()
             if typ and typ.__module__ == 'psana.L3T':
                 return (typ, key.src())
+                
+        return (False, False)
 
     def _get_evr_typ_src(self):
         """Set the maste evr. By default automated as there should only be one in the evt keys.
@@ -597,6 +625,8 @@ class EvtDetectors(object):
         for key in self._ds._current_evt.keys():
             if hasattr(key.src(),'devName') and getattr(key.src(),'devName')() == 'Evr':
                 return (key.type(), key.src())
+        
+        return (False, False)
 
     def __str__(self):
         return  '{:}, Run {:}, Event {:}, {:}, {:}'.format(self._ds.data_source.exp, 
@@ -624,20 +654,28 @@ class EvtDetectors(object):
 class AliasConfig(object):
     """Tab Accessible configStore Alias information.
     """
-
     def __init__(self, configStore):
 
         self._aliases = {}
+        csPartition = get_config(configStore, 'Partition')
+        partition = {str(s.src()): {'src': s.src(), 'group': s.group(), 'alias': None} \
+                                    for s in csPartition.sources()}
         for key in configStore.keys():
             if key.type() and key.type().__module__ == 'psana.Alias':
                 a = configStore.get(key.type(),key.src())
                 for alias in a.srcAlias():
-                    self._aliases[alias.aliasName()] = alias.src()
+                    self._aliases[alias.aliasName()] = {'src': alias.src(),
+                                                        'ipAddr': key.src().ipAddr()}
+
+# to convert ipAddr int to address 
+# import socket, struct
+# s = key.src()
+# socket.inet_ntoa(struct.pack('!L',s.ipAddr()))
 
     def show_info(self):
         print '< '+str(self)+' >'
-        for alias, src in self._aliases.items():
-            print '{:18s} {:}'.format(alias, src)
+        for alias, item in self._aliases.items():
+            print '{:18s} {:}'.format(alias, item['src'])
 
     def __str__(self):
         return '{:}: {:}'.format(self.__class__.__name__, str(self))
@@ -648,7 +686,7 @@ class AliasConfig(object):
 
     def __getattr__(self, attr):
         if attr in self._aliases:
-            return self._aliases.get(attr)
+            return self._aliases.get(attr)['alias']
 
     def __dir__(self):
         all_attrs =  set(self._aliases.keys() +
@@ -778,6 +816,10 @@ class EventId(object):
 
         self._EventId = evt.get(psana.EventId)
 
+    @property
+    def timef64(self):
+        return np.float64(self.time[0])+np.float64(self.time[1])/1.e9 
+
     def show_info(self):
         print self.__repr__()
         for attr in self._attrs:
@@ -816,22 +858,30 @@ class Detector(object):
     
     _ds_attrs = ['configStore', 'evrConfig', 'epicsStore']
 
-    def __init__(self, ds, alias, pbits=0, **kwargs):
+    def __init__(self, ds, alias, **kwargs):
         """Initialize a psana Detector class for a given detector alias.
            Provides the attributes of the PyDetector functions for the current 
            event if applicable.  Otherwise provides the attributes from the
            raw data in the psana event keys for the given detector.
         """
 
-        self._pbits = pbits
         self._alias = alias
         self._ds = ds
         self.src = ds._aliases.get(alias)
 
         print 'Adding Detector: {:20} {:40}'.format(alias, psana.Source(self.src))
-        self._pydet = PyDetector(psana.Source(self.src), ds._ds.env(), self._pbits)
         
-        if self._pydet.dettype in [16, 17]:
+        srcname = str(self.src).split('(')[1].split(')')[0]
+       
+        try:
+            self._pydet = psana.Detector(srcname, ds._ds.env())
+        except:
+            self._pydet = None
+
+        if not hasattr(self._pydet, 'dettype'):
+            self._det_class = None
+            self._tabclass = 'evtData'
+        elif self._pydet.dettype in [16, 17]:
             self._det_class = WaveformDict
             self._tabclass = 'detector'
         elif self._pydet.dettype:
@@ -843,10 +893,12 @@ class Detector(object):
 
     @property
     def _attrs(self):
-        """Attributes of PyDetector functions if relevant, and otherwise
+        """Attributes of psana.Detector functions if relevant, and otherwise
            attributes of raw psana event keys for the given detector.
         """
-        attrs = getattr(self, self._tabclass)._attrs
+        if self._tabclass:
+            attrs = getattr(self, self._tabclass)._attrs
+        
         return attrs
 
     def monitor(self, nevents=-1):
@@ -879,9 +931,12 @@ class Detector(object):
 
     @property
     def detector(self):
-        """Tab accessible PyDetector class
+        """Tab accessible psana.Detector class
         """
-        return self._det_class(self._pydet, self._ds._current_evt)
+        if self._pydet:
+            return self._det_class(self._pydet, self._ds._current_evt)
+        else:
+            return None
 
     def __str__(self):
         return '{:} {:}'.format(self._alias, self.src)
@@ -904,9 +959,9 @@ class Detector(object):
 
 
 class WaveformDict(object):
-    """Tab accessibile dictified psana PyDetector object.
+    """Tab accessibile dictified psana.Detector object.
        
-       Attributes come from Detector.PyDetector in psana 
+       Attributes come from psana.Detector 
        with low level implementation done in C++ or python.  
        Boost is used for the C++.
     """
@@ -928,11 +983,6 @@ class WaveformDict(object):
         """Instrument to which this detector belongs.
         """
         return self._det.instrument()
-
-    def set_print_bits(self, pbits):
-        """Set the level of printing.
-        """
-        self._det.set_print_bits(pbits)
 
     def print_attributes(self):
         """Print detector attributes.
@@ -989,9 +1039,9 @@ class WaveformDict(object):
 
 
 class ImageDict(object):
-    """Tab accessibile dictified psana PyDetector object.
+    """Tab accessibile dictified psana Detector object.
        
-       Attributes come from Detector.PyDetector in psana 
+       Attributes come from psana.Detector  
        with low level implementation done in C++ or python.  
        Boost is used for the C++.
     """
@@ -1100,11 +1150,6 @@ class ImageDict(object):
         """
         return self._det.mask_geo(self._evt, mbits=mbits)
 
-    def set_print_bits(self, pbits):
-        """Set the level of printing.
-        """
-        self._det.set_print_bits(pbits)
-
     def print_attributes(self):
         """Print detector attributes.
         """
@@ -1198,6 +1243,11 @@ class TabDet(object):
 
         self._ddict = ddict
         self._attrs = ddict['attrs'].keys()
+
+    @property
+    def _func_dict(self):
+        return {attr: func_dict(getattr(func, attr), attr=attr) \
+                for attr, func in self._ddict.get('attrs').items()}
 
     def show_info(self):
 #        print '-'*80
@@ -1402,10 +1452,10 @@ class EvrDictify(object):
         except:
             pass
 
-        for key, src in self._evr_dict.items():
+        for key, item in self._evr_dict.items():
             alias = self._alias_dict.get(key)
             if alias:
-                setattr(self, alias, src)
+                setattr(self, alias, item)
 
 
 class EpicsDictify(object):
