@@ -8,6 +8,10 @@ import psana
 import numpy as np
 from DataSourceInfo import *
 
+psana_omit_list = ['logging', 'os', 'setConfigFile', 'setOption', 'setOptions']
+psana_dict = {a: {} for a in dir(psana) if not a.startswith('_') \
+              and not a.startswith('ndarray') and a not in psana_omit_list}
+
 def evt_dict(self):
     """Used in TabEvent and TabKeys Classes.
     """
@@ -53,6 +57,7 @@ def evt_dict(self):
             evt_dict[alias]['attrs'].update({attr: evt_funcs for attr in attrs})
 
     return evt_dict
+
 
 def get_unit_from_doc(doc):
     """Parse the unit from the doc string.
@@ -155,6 +160,29 @@ def func_value(func):
 
     return func
 
+for mod_name in psana_dict:
+    mod = getattr(psana,mod_name)
+    psana_dict[mod_name] = {a: {} for a in dir(mod) if not a.startswith('_')}
+    for typ_name in psana_dict[mod_name]:
+        typ = getattr(mod, typ_name)
+        psana_dict[mod_name][typ_name] = {a: {} for a in dir(typ) if not a.startswith('_') }
+        for attr in psana_dict[mod_name][typ_name]:
+            if attr in ['TypeId','Version']:
+                info = {'doc': '', 'unit': '', 'type': ''}
+            else:
+                func = getattr(typ, attr)
+                doc = func.__doc__
+                if doc:
+                    doc = doc.split('\n')[-1].lstrip(' ')
+                    if doc.startswith(attr):
+                        doc = ''
+
+                info = {'doc': doc, 
+                        'unit': get_unit_from_doc(func.__doc__), 
+                        'type': get_type_from_doc(func.__doc__)}
+            
+            psana_dict[mod_name][typ_name][attr] = info 
+
 def get_config(configStore, attr, cls='Config'):
     configs = getattr(getattr(psana, attr),cls)
     configs.reverse()
@@ -163,6 +191,104 @@ def get_config(configStore, attr, cls='Config'):
         if obj:
             return obj
 
+def get_dicts(configStore):
+    src_dict = {}
+    for key in configStore.keys():
+        if key.type():
+            srcstr = str(key.src())
+            if srcstr not in src_dict:
+                src_dict[srcstr] = {}
+            func = configStore.get(key.type(), key.src(), key.key()) 
+            type_name = func.__class__.__name__
+            if hasattr(func, '__module'):
+                module = func.__module__.lstrip('psana.')
+            else:
+                module = None
+
+            src_dict[srcstr][(type_name, module)] = get_key_dict(func) 
+
+    return src_dict
+
+def get_key_info(psana_obj):
+    """Get a dictionary of the (type, src, key) for the data types of each src.
+    """
+    key_info = {}
+    for key in psana_obj.keys():
+        typ = key.type()
+        src = key.src()
+        if typ:
+            srcstr = str(src)
+            if srcstr not in key_info:
+                key_info[srcstr] = {}
+            key_info[srcstr][typ.__name__] = (typ, src, key.key())
+
+    return key_info
+
+def get_key_dict(func):
+    """Return a dictionary of a psana evt key.
+    """
+    if hasattr(func, '__module'):
+        m = func.__module__.lstrip('psana.')
+        n = func.__class__.__name__
+        attrs = psana_dict[m][n]
+    else:
+        attrs = [attr for attr in dir(func) if not attr.startswith('_')]
+    
+    return {attr: get_func_value(getattr(func,attr)) for attr in attrs}
+
+def _repr_value(value):
+    if isinstance(value,str):
+        return value
+    else:
+        if isinstance(value, list):
+            return 'list'
+        elif hasattr(value,'mean'):
+            return '<{:.4}>'.format(value.mean())
+        else:
+            try:
+                return '{:10.5g}'.format(value)
+            except:
+                try:
+                    return value.__str__()
+                except:
+                    return value
+
+def get_func_value(func):
+    """Return the value of a psana object.
+    """
+    try:
+        func = func()
+    except:
+        pass
+
+    if isinstance(func, list):
+        func = [func_redict(f) for f in func]
+    else:
+        try:
+            func = func_redict(func)
+        except:
+            pass
+
+    return func
+
+def func_redict(f):
+    """Resolve the full function.
+    """
+    if hasattr(f, '__module__') and f.__module__.startswith('psana'):
+        m = f.__module__.lstrip('psana.')
+        n = f.__class__.__name__
+        if n in psana_dict[m]:
+            return {attr: get_func_value(getattr(f,attr)) for attr in psana_dict[m][n]}
+
+        else:
+            attrs = [attr for attr in dir(f) if not attr.startswith('_')]
+            try:
+                return {attrs: getattr(f,attr) for attrs in attrs}
+            except:
+                return f
+    
+    else:
+        return f
 
 class DataSource(object):
     """Python version of psana.DataSource with support for event and config
@@ -182,7 +308,7 @@ class DataSource(object):
     def load_run(self, initialize=None, **kwargs):
         self._evtData = None
         self._current_evt = None
-        self._current_aliases = {}
+        self._evt_keys = {}
         self.data_source = DataSourceInfo(**kwargs)
         self._ds = psana.DataSource(str(self.data_source))
         self.epicsStore = EpicsDictify(self._ds) 
@@ -202,12 +328,15 @@ class DataSource(object):
         """Initialize psana.Detector classes based on psana env information.
         """
         configStore = self._ds.env().configStore()
+        self._config_keys = get_key_info(configStore)
+        self._configStore = configStore
+        self._configData = get_dicts(configStore) 
         self.aliasConfig = AliasConfig(configStore)
         for key in configStore.keys():
             if key.type() and key.type().__module__ == 'psana.Partition':
                 ipAddrPartition = key.src().ipAddr()
         csPartition = get_config(configStore, 'Partition')
-        csEpics = get_config(configStore, 'Epics')
+        #csEpics = get_config(configStore, 'Epics')
         csEvr = get_config(configStore, 'EvrData', cls='IOConfig')
         self._evrConfig = csEvr
         self._bldMask = csPartition.bldMask()
@@ -263,18 +392,6 @@ class DataSource(object):
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
 
-    # This can be made more efficient
-    def _get_evtData(self, alias):
-        """Get the event data for the current event.
-        """
-        if not self._evtData:
-            self._evtData = TabKeys(self._current_evt)
-    
-        if hasattr(self._evtData, alias):
-            return getattr(self._evtData, alias)
-        else:
-            return None
- 
     @property
     def _current_dets(self):
         """Current detectors from _detector dictionary.
@@ -346,7 +463,6 @@ class RunEvents(object):
         """Optionally pass either an integer for the event number in the data_source
            or a psana.EventTime time stamp to jump to an event.
         """
-        self._ds._evtData = None
         if evt_time is not None:
             if isinstance(evt_time, int):
                 self._ds._ievent = evt_time
@@ -359,9 +475,7 @@ class RunEvents(object):
             print 'No more events in run.'
         else:
             evt = self._ds_run.event(self.times[self._ds._ievent]) 
-            srcstrs = [str(key.src()) for key in evt.keys()]
-            self._ds._current_aliases = [alias for alias, srcstr in self._ds._aliases.items() \
-                                         if srcstr in srcstrs]
+            self._ds._evt_keys = get_key_info(evt)
             self._ds._current_evt = evt
 
         return EvtDetectors(self._ds)
@@ -380,11 +494,8 @@ class Events(object):
 
     def next(self):
         self._ds._ievent += 1
-        self._ds._evtData = None
         evt = self._ds._ds.events().next()
-        srcstrs = [str(key.src()) for key in evt.keys()]
-        self._ds._current_aliases = [alias for alias, srcstr in self._ds._aliases.items() \
-                                     if srcstr in srcstrs]
+        self._ds._evt_keys = get_key_info(evt)
         self._ds._current_evt = evt 
 
         return EvtDetectors(self._ds)
@@ -414,7 +525,8 @@ class EvtDetectors(object):
     def _attrs(self):
         """List of detector names in current evt data.
         """
-        return self._ds._current_aliases
+        return [alias for alias, srcstr in self._ds._aliases.items() \
+                                        if srcstr in self._ds._evt_keys]
 
     @property
     def _dets(self):
@@ -566,6 +678,8 @@ class EpicsConfig(object):
 
 
 class L3Tdata(object):
+    """L3 Trigger.
+    """
 
     _attrs = ['accept', 'bias', 'result']
     _properties = ['TypeId', 'Version']
@@ -648,6 +762,7 @@ class EventId(object):
     """
 
     _attrs = ['fiducials', 'idxtime', 'run', 'ticks', 'time', 'vector']
+    _properties = ['timef64']
 
     def __init__(self, evt):
 
@@ -693,7 +808,7 @@ class Detector(object):
        an event basis.
     """
     
-    _ds_attrs = ['configStore', 'evrConfig', 'epicsStore']
+    _ds_attrs = ['evrConfig', 'epicsStore']
 
     def __init__(self, ds, alias, **kwargs):
         """Initialize a psana Detector class for a given detector alias.
@@ -714,6 +829,14 @@ class Detector(object):
             self._pydet = psana.Detector(srcname, ds._ds.env())
         except:
             self._pydet = None
+
+        self.configStore = KeyDict(ds, str(self.src), 'config')
+
+#        try:
+#            cskey = ds._ds.env().configStore.get(
+#           self._configStore = 
+#        else:
+#            self._configStore = {}
 
         if not hasattr(self._pydet, 'dettype'):
             self._det_class = None
@@ -764,7 +887,7 @@ class Detector(object):
     def evtData(self):
         """Tab accessible raw data from psana event keys.
         """
-        return self._ds._get_evtData(self._alias)
+        return KeyDict(self._ds, str(self.src))
 
     @property
     def detector(self):
@@ -916,21 +1039,17 @@ class ImageDict(object):
         self._evt = evt
         self._det = det
 
-    @property
-    def configStore(self):
-        return self._det.configStore
-
-    @property
-    def evrConfig(self):
-        return self._det.evrConfig
-    
-    @property
-    def epicsStore(self):
-        return self._det.epicsStore
-    
-    @property
-    def evtData(self):
-        return self._det.evtData
+#    @property
+#    def configStore(self):
+#        return self._det.configStore
+#
+#    @property
+#    def evrConfig(self):
+#        return self._det.evrConfig
+#    
+#    @property
+#    def epicsStore(self):
+#        return self._det.epicsStore
     
     @property
     def instrument(self):
@@ -992,11 +1111,6 @@ class ImageDict(object):
         """
         self._det.print_attributes()
 
-#    def print_config(self):
-#        """Print detector configuration.
-#        """
-#        self._det.print_config(self._evt)
-
     def show_info(self):
         """Show information for relevant detector attributes.
         """
@@ -1035,6 +1149,99 @@ class ImageDict(object):
         all_attrs =  set(self._attrs +
                          self.__dict__.keys() + dir(ImageDict))
         
+        return list(sorted(all_attrs))
+
+class ConfigStore(object):
+    """ConfigStore
+    """
+    def __init__(self, ds):
+        alias_dict = {val: key for key, val in ds._aliases.items()}
+        for attr in ds._config_keys:
+            alias = alias_dict.get(attr)
+            if alias:
+                setattr(self, alias, KeyDict(ds, attr, 'config'))
+
+class KeyDict(object):
+    """Dictify psana data for a given detector source.
+       data_type: 'evt' or 'config' (default = 'evt')
+    """
+    def __init__(self, ds, srcstr, data_type='evt'):
+        _keys_obj  = { 'evt':    ('_evt_keys', '_current_evt'),
+                       'config': ('_config_keys', '_configStore')}
+        self._values = {}
+        self._types = {}
+        self._srcstr = srcstr
+        _keys = getattr(ds, _keys_obj[data_type][0])
+        self._obj = getattr(ds, _keys_obj[data_type][1])
+
+        if self._srcstr in _keys:
+            for type_name, item in _keys[self._srcstr].items():
+                typ = item[0]
+                src = item[1]
+                key = item[2]
+                if key:
+                    typ_func = self._obj.get(*item)
+                else:
+                    typ_func = self._obj.get(typ, src)
+
+                typ_data = get_key_dict(typ_func)
+                self._values.update(typ_data)
+                
+                self._types.update({type_name: {'typ': typ, 'src': src, 'key': key, 
+                                                'attrs': typ_data.keys(),
+                                                'module': typ.__module__.lstrip('psana.'),
+                                                'func': typ_func}})
+
+        self._attrs = self._values.keys()
+
+    @property
+    def _attr_info(self):
+        _info = {}
+        for type_name, item in self._types.items():
+            _info[type_name] = {}
+            for attr, item in psana_dict[item['module']][type_name].items():
+                value = self._values[attr]
+                if isinstance(value, dict):
+                    try:
+                        for a,b in psana_dict[item['module']][attr].items():
+                            val = value.get(a)
+                            name =  '__'.join([attr,a])
+                            b['attr'] = name
+                            b['value'] = val
+                            b['str'] = _repr_value(val)
+                            _info[type_name][name] = b
+                    except:
+                        for a,val in value.items():
+                            b = {'unit': '', 'doc': ''}
+                            name =  '__'.join([attr,a])
+                            b['attr'] = name
+                            b['value'] = val
+                            b['str'] = _repr_value(val)
+                            _info[type_name][name] = b
+
+                else:
+                    item['attr'] = attr
+                    item['value'] = value
+                    item['str'] = _repr_value(value)
+                    _info[type_name][attr] = item
+        
+        return _info
+
+    def show_info(self):
+        for type_name, type_info in self._attr_info.items():
+            type_attrs = sorted(type_info)
+            for attr in type_attrs:
+                if not attr[0].isupper() or attr in ['TypeId','Version']:
+                    item = type_info.get(attr)
+                    print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
+
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            return self._values[attr]
+        
+    def __dir__(self):
+        all_attrs = set(self._attrs +
+                        self.__dict__.keys() + dir(KeyDict))
         return list(sorted(all_attrs))
 
 
@@ -1239,6 +1446,58 @@ class SrcDictify(ReDictify):
         self.add_property(_src_attrs=src_attrs, show=False)
         self._show_attrs.remove('Device')
         self._show_attrs.remove('Detector')
+
+
+class EvrConfig(object):
+    """Psana Evr Information Dictified from Alias.AliasConfig, EvrData.EvrDataIOConfig and
+       the evr modules in the configStore, which have the psana type EvrDataConfig.
+
+    """
+
+    def __init__(self, ds):
+        
+        self._evr_dict = {}
+        self._src_dict = {}
+        self._output_maps = {}
+        alias_dict = {val: key for key, val in ds._aliases.items()}
+        self._evr_keys = [attr for attr,item in configStore._evt_dict.items() \
+                          if 'EvrDataConfig' in item['type']]
+
+        for evr_key in self._evr_keys:
+            evr_module = getattr(configStore, evr_key)
+            for output_map in evr_module.output_maps:
+                map_key = 'module{:}_conn{:02}'.format(output_map.module, output_map.conn_id)
+                if str(output_map.source) == 'Pulse':
+                    pulse_id = output_map.source_id
+                    pulse=evr_module.pulses[pulse_id]
+                else:
+                    pulse_id = None
+                    pulse = None
+
+                output_map.add_property(evr=pulse)
+                self._output_maps[map_key] = output_map
+        try:
+            for ch in configStore.EvrData.channels:
+                output_map = ReDictify(ch.output)
+                map_key = 'module{:}_conn{:02}'.format(output_map.module, output_map.conn_id)
+                for i in range(ch.ninfo):
+                    src = SrcDictify(ch.infos[i])
+                    src.add_property(alias=alias_dict.get(src.src))
+                    src.add_property(evr=self._output_maps[map_key].evr)
+    #                src.add_property(output=output_map)
+    #                src.add_property(map_key=map_key)
+    #                src.add_property(output_map=self._output_maps[map_key])
+                    self._evr_dict[src.src] = src
+                    self._src_dict[src.src] = src.det_key
+        except:
+            pass
+
+        for key, item in self._evr_dict.items():
+            alias = alias_dict.get(key)
+            if alias:
+                setattr(self, alias, item)
+
+
 
 
 class EvrDictify(object):
