@@ -104,7 +104,7 @@ class DataSource(object):
         self._evt_time_last = (0,0)
         self._ievent = -1
 
-    def load_run(self, initialize=None, **kwargs):
+    def load_run(self, **kwargs):
         self._evtData = None
         self._current_evt = None
         self._evt_keys = {}
@@ -117,11 +117,7 @@ class DataSource(object):
         else:
             self._Events = Events(self, **kwargs)
 
-        if not self._detectors.get(str(self.data_source)):
-            initialize = True
-        
-        if initialize: 
-            self._init_detectors()
+        self._init_detectors()
 
     def _init_detectors(self):
         """Initialize psana.Detector classes based on psana env information.
@@ -133,26 +129,17 @@ class DataSource(object):
             self._add_dets(**{alias: srcstr})
 
     def _add_dets(self, **kwargs):
-        if str(self.data_source) not in self._detectors:
-            self._detectors.update({str(self.data_source): {}})
-
         for alias, srcstr in kwargs.items():
             try:
                 det = Detector(self, alias)
-                self._detectors[str(self.data_source)].update({alias: det})
+                self._detectors.update({alias: det})
             except Exception as err:
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
-
-    @property
-    def _current_dets(self):
-        """Current detectors from _detector dictionary.
-        """
-        return self._detectors.get(str(self.data_source), {})
-
+    
     def show_info(self):
         print self.__repr__()
-        for item in self._current_dets.values():
+        for item in self._detectors.values():
             print item.__repr__()
 
     @property
@@ -455,7 +442,7 @@ class EvtDetectors(object):
     def _dets(self):
         """Dictionary of detectors.
         """
-        return self._ds._current_dets
+        return self._ds._detectors
 
     @property
     def Evr(self):
@@ -509,11 +496,11 @@ class EvtDetectors(object):
         return '< '+repr_str+' >'
 
     def __getattr__(self, attr):
-        if attr in self._init_attrs:
-            return getattr(self._ds._current_evt, attr)
-        
         if attr in self._dets:
             return self._dets[attr]
+        
+        if attr in self._init_attrs:
+            return getattr(self._ds._current_evt, attr)
 
     def __dir__(self):
         all_attrs =  set(self._attrs +
