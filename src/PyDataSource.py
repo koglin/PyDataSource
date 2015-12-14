@@ -62,7 +62,7 @@ def evt_dict(self):
 def get_unit_from_doc(doc):
     """Parse the unit from the doc string.
     """
-    invalid_units = ['this', 'long', 'all', 'setup', 'given', 'a']
+    invalid_units = ['this', 'long', 'all', 'setup', 'given', 'a', 'the']
     try:
         usplit = doc.rsplit(' in ')
         if 'Value' in doc and 'converted to' in doc:
@@ -183,6 +183,9 @@ for mod_name in psana_dict:
             
             psana_dict[mod_name][typ_name][attr] = info 
 
+# Updates to psana_dict info
+psana_dict['Bld']['BldDataEBeamV7']['ebeamDumpCharge']['unit'] = 'e-'
+
 def get_config(configStore, attr, cls='Config'):
     configs = getattr(getattr(psana, attr),cls)
     configs.reverse()
@@ -200,7 +203,7 @@ def get_dicts(configStore):
                 src_dict[srcstr] = {}
             func = configStore.get(key.type(), key.src(), key.key()) 
             type_name = func.__class__.__name__
-            if hasattr(func, '__module'):
+            if hasattr(func, '__module__'):
                 module = func.__module__.lstrip('psana.')
             else:
                 module = None
@@ -219,8 +222,8 @@ def get_key_info(psana_obj):
         if typ:
             srcstr = str(src)
             if srcstr not in key_info:
-                key_info[srcstr] = {}
-            key_info[srcstr][typ.__name__] = (typ, src, key.key())
+                key_info[srcstr] = [] 
+            key_info[srcstr].append((typ, src, key.key()))
 
     return key_info
 
@@ -242,7 +245,7 @@ def _repr_value(value):
     else:
         if isinstance(value, list):
             return 'list'
-        elif hasattr(value,'mean'):
+        elif hasattr(value, 'mean'):
             return '<{:.4}>'.format(value.mean())
         else:
             try:
@@ -323,12 +326,19 @@ class DataSource(object):
         
         if initialize: 
             self._init_detectors()
- 
+
     def _init_detectors(self):
         """Initialize psana.Detector classes based on psana env information.
         """
+        self.configStore = ConfigStore(self)
+        self._aliases = self.configStore._aliases
+        for srcstr, item in self.configStore._sources.items():
+            alias = item.get('alias')
+            self._add_dets(**{alias: srcstr})
+
+    def _old_config_init(self):
         configStore = self._ds.env().configStore()
-        self._config_keys = get_key_info(configStore)
+        self._key_info = get_key_info(configStore)
         self._configStore = configStore
         self._configData = get_dicts(configStore) 
         self.aliasConfig = AliasConfig(configStore)
@@ -375,10 +385,6 @@ class DataSource(object):
 
         self.configStore = TabKeys(configStore)
         self.evrConfig = EvrDictify(self)
-
-        for srcstr, item in self._sources.items():
-            alias = item.get('alias')
-            self._add_dets(**{alias: srcstr})
 
     def _add_dets(self, **kwargs):
         if str(self.data_source) not in self._detectors:
@@ -435,6 +441,177 @@ class DataSource(object):
                          self._env_attrs +
                          self.__dict__.keys() + dir(DataSource))
         
+        return list(sorted(all_attrs))
+
+
+class ConfigStore(object):
+    """ConfigStore
+    """
+    _configStore_attrs = ['get','put','keys']
+    
+    def __init__(self, ds):
+        configStore = ds.env().configStore()
+        self._ds = ds
+        self._configStore = configStore
+        self._key_info = get_key_info(configStore)
+
+        # Build _config dictionary for each source
+        self._config = {}
+        self._modules = {}
+        for attr, keys in self._key_info.items():
+            config = KeyDict(self._configStore, attr, key_info=self._key_info)
+            self._config[attr] = config
+            for typ, src, key in keys:
+                type_name = typ.__name__
+                module = typ.__module__.lstrip('psana.')
+                if module:
+                    if module not in self._modules:
+                        self._modules[module] = {}
+                    
+                    if type_name not in self._modules[module]:
+                        self._modules[module][type_name] = []
+
+                    self._modules[module][type_name].append((typ, src, key))
+
+        #Setup Partition
+        if not self._modules.get('Partition'):
+            print 'ERROR:  No Partition module in configStore data.'
+            return 
+        elif len(self._modules['Partition']) != 1:
+            print 'ERROR:  More than one Partition config type in configStore data.'
+            return 
+        
+        type_name = self._modules.get('Partition').keys()[0]
+        if len(self._modules['Partition'][type_name]) == 1:
+            typ, src, key = self._modules['Partition'][type_name][0]
+            srcstr = str(src)
+            config = self._config[srcstr]
+        else:
+            print 'ERROR:  More that one Partition module in configStore data.'
+            print '       ', self._modules['Partition'][type_name]
+            return
+
+        self._ipAddrPartition = src.ipAddr()
+        self._bldMask = config.bldMask
+        self._partition = {str(item['src']): item for item in config.sources}
+
+        # Find Aliases and update Partition
+        self._srcAlias = {}
+        if self._modules.get('Alias'):
+            for type_name, keys in self._modules['Alias'].items():
+                for typ, src, key in keys:
+                    srcstr = str(src)
+                    config = self._config[srcstr]
+                    for item in config.srcAlias:
+                        self._srcAlias[item['aliasName']] = (item['src'], src.ipAddr())
+
+        self._aliases = {}
+        for alias, item in self._srcAlias.items():
+            src = item[0]
+            ipAddr = item[1]
+            srcstr = str(src)
+            alias = re.sub('-|:|\.| ','_', alias)
+            if srcstr in self._partition:
+                self._partition[srcstr]['alias'] = alias
+                self._aliases[alias] = srcstr
+            elif ipAddr != self._ipAddrPartition or self._ds.data_source.monshmserver:
+                # add data sources not in partition that come from recording nodes
+                self._partition[srcstr] = {'src': src, 'group': -1, 'alias': alias}
+                self._aliases[alias] = srcstr
+
+        # Determine data sources and update aliases
+        self._sources = {}
+        for srcstr, item in self._partition.items():
+            if not item.get('alias'):
+                try:
+                    alias = srcstr.split('Info(')[1].rstrip(')')
+                except:
+                    alias = srcstr
+                
+                alias = re.sub('-|:|\.| ','_',alias)
+                item['alias'] = alias
+                self._aliases[alias] = srcstr
+
+            if 'NoDetector' not in srcstr and 'NoDevice' not in srcstr:
+                # sources not recorded have group None
+                # only include these devices for shared memory
+                self._sources[srcstr] = item
+
+        # Make dictionary of src: alias for sources with config objects 
+        self._config_srcs = {}
+        for attr, item in self._sources.items():
+            config = self._config.get(attr)
+            if config:
+                self._config_srcs[item['alias']] = attr
+    
+        self._output_maps = {}
+        self._evr_pulses = {}
+        self._eventcodes = {}
+        self._readoutGroup = {}
+
+        for type_name in self._modules['EvrData'].keys():
+            if type_name.startswith('IOConfig'):
+                IOCconfig_type = type_name
+            elif type_name.startswith('Config'):
+                config_type = type_name
+
+        # get eventcodes and combine output_map info from all EvrData config keys
+        map_attrs = ['map', 'conn_id', 'module', 'value', 'source_id']
+        for typ, src, key in self._modules['EvrData'][config_type]:
+            srcstr = str(src)
+            config = self._config[srcstr]
+            for eventcode in config.eventcodes:
+                self._eventcodes.update({eventcode['code']: eventcode})
+                self._readoutGroup.update({eventcode['readoutGroup']: eventcode})
+
+            for output_map in config.output_maps:
+                map_key = (output_map['module'],output_map['conn_id'])
+                if output_map['source'].get('Pulse'):
+                    pulse_id = output_map['source_id']
+                    pulse = config.pulses[pulse_id]
+                    evr_info = { 'evr_width': pulse['width']*pulse['prescale']/119.e6, 
+                                 'evr_delay': pulse['delay']*pulse['prescale']/119.e6, 
+                                 'evr_polarity': pulse['polarity']}
+                else:
+                    pulse_id = None
+                    pulse = None
+                    evr_info = {'evr_width': None, 'evr_delay': None, 'evr_polarity': None}
+
+                self._output_maps[map_key] = {attr: output_map[attr] for attr in map_attrs} 
+                self._output_maps[map_key].update(**evr_info) 
+
+        # Assign evr info to the appropriate sources
+        if len(self._modules['EvrData'][IOCconfig_type]) > 1:
+            print 'WARNING: More than one EvrData.{:} objects'.format(IOCconfig_type)
+
+        typ, src, key = self._modules['EvrData'][IOCconfig_type][0]
+        srcstr = str(src)
+        config = self._config[srcstr]
+        for ch in config.channels:
+            map_key = (ch['output']['module'], ch['output']['conn_id'])
+            for i in range(ch['ninfo']):
+                src = ch['infos'][i]
+                srcstr = str(src)
+                self._sources[srcstr].update(**self._output_maps[map_key]) 
+
+        for srcstr, item in self._sources.items():
+            group = item.get('group')
+            if group and group > 1:
+                item['eventCode'] = self._readoutGroup[group]
+            else:
+                item['eventCode'] = 0
+
+    def __getattr__(self, attr):
+        if attr in self._config_srcs:
+            return self._config[self._config_srcs[attr]]
+
+        if attr in self._configStore_attrs:
+            return getattr(self._configStore, attr)
+        
+    def __dir__(self):
+        all_attrs = set(self._configStore_attrs +
+                        self._config_srcs.keys() + 
+                        self.__dict__.keys() + dir(ConfigStore))
         return list(sorted(all_attrs))
 
 
@@ -600,83 +777,6 @@ class EvtDetectors(object):
         return list(sorted(all_attrs))
 
 
-class AliasConfig(object):
-    """Tab Accessible configStore Alias information.
-    """
-    def __init__(self, configStore):
-
-        self._aliases = {}
-        csPartition = get_config(configStore, 'Partition')
-        partition = {str(s.src()): {'src': s.src(), 'group': s.group(), 'alias': None} \
-                                    for s in csPartition.sources()}
-        for key in configStore.keys():
-            if key.type() and key.type().__module__ == 'psana.Alias':
-                a = configStore.get(key.type(),key.src())
-                for alias in a.srcAlias():
-                    self._aliases[alias.aliasName()] = {'src': alias.src(),
-                                                        'ipAddr': key.src().ipAddr()}
-
-# to convert ipAddr int to address 
-# import socket, struct
-# s = key.src()
-# socket.inet_ntoa(struct.pack('!L',s.ipAddr()))
-
-    def show_info(self):
-        print '< '+str(self)+' >'
-        for alias, item in self._aliases.items():
-            print '{:18s} {:}'.format(alias, item['src'])
-
-    def __str__(self):
-        return '{:}'.format(self.__class__.__name__)
-    
-    def __repr__(self):
-        self.show_info()
-        return '< '+str(self)+' >'
-
-    def __getattr__(self, attr):
-        if attr in self._aliases:
-            return self._aliases.get(attr)['alias']
-
-    def __dir__(self):
-        all_attrs =  set(self._aliases.keys() +
-                         self.__dict__.keys() + dir(AliasConfig))
-        
-        return list(sorted(all_attrs))
-
-
-class EpicsConfig(object):
-    """Tab Accessible configStore Epics information.
-       Currently relatively simple, but expect this to be expanded
-       at some point with more PV config info with daq update.
-    """
-
-    _pv_attrs = ['description', 'interval', 'pvId']
-
-    def __init__(self, configStore):
-
-        self._pvs = {}
-        for key in configStore.keys():
-            if key.type() and key.type().__module__ == 'psana.Epics':
-                a = configStore.get(key.type(),key.src())
-                for pv in a.getPvConfig():
-                    pvdict = {attr: getattr(pv, attr)() for attr in self._pv_attrs} 
-                    self._pvs[pv.description()] = pvdict
-
-    def show_info(self):
-        for alias, items in self._pvs.items():
-            print '{:18s} {:}'.format(alias, item.pvId)
-
-    def __getattr__(self, attr):
-        if attr in self._pvs:
-            return self._pvs.get(attr)
-
-    def __dir__(self):
-        all_attrs =  set(self._pvs.keys() +
-                         self.__dict__.keys() + dir(EpicsConfig))
-        
-        return list(sorted(all_attrs))
-
-
 class L3Tdata(object):
     """L3 Trigger.
     """
@@ -808,7 +908,7 @@ class Detector(object):
        an event basis.
     """
     
-    _ds_attrs = ['evrConfig', 'epicsStore']
+    _ds_attrs = ['configStore', 'epicsStore']
 
     def __init__(self, ds, alias, **kwargs):
         """Initialize a psana Detector class for a given detector alias.
@@ -821,22 +921,21 @@ class Detector(object):
         self._ds = ds
         self.src = ds._aliases.get(alias)
 
-        print 'Adding Detector: {:20} {:40}'.format(alias, psana.Source(self.src))
-        
-        srcname = str(self.src).split('(')[1].split(')')[0]
+        if self.src:
+            print 'Adding Detector: {:20} {:40}'.format(alias, psana.Source(self.src))
+        else:
+            print 'ERROR No Detector with alias {:20}'.format(alias)
+            return
+
+        self._srcstr = str(self.src)
+        self._srcname = self._srcstr.split('(')[1].split(')')[0]
        
+        self.configStore = getattr(ds.configStore, self._srcstr)
+
         try:
-            self._pydet = psana.Detector(srcname, ds._ds.env())
+            self._pydet = psana.Detector(self._srcname, ds._ds.env())
         except:
             self._pydet = None
-
-        self.configStore = KeyDict(ds, str(self.src), 'config')
-
-#        try:
-#            cskey = ds._ds.env().configStore.get(
-#           self._configStore = 
-#        else:
-#            self._configStore = {}
 
         if not hasattr(self._pydet, 'dettype'):
             self._det_class = None
@@ -850,7 +949,7 @@ class Detector(object):
         else:
             self._det_class = None
             self._tabclass = 'evtData'
-
+    
     @property
     def _attrs(self):
         """Attributes of psana.Detector functions if relevant, and otherwise
@@ -887,7 +986,7 @@ class Detector(object):
     def evtData(self):
         """Tab accessible raw data from psana event keys.
         """
-        return KeyDict(self._ds, str(self.src))
+        return KeyDict(self._ds._current_evt, self._srcstr, key_info=self._ds._evt_keys)
 
     @property
     def detector(self):
@@ -905,8 +1004,8 @@ class Detector(object):
         return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
 
     def __getattr__(self, attr):
-        if hasattr(getattr(self._ds, attr), self._alias):
-            return getattr(getattr(self._ds, attr), self._alias)
+        if attr in self._ds_attrs:
+            return getattr(self._ds, attr)
         if attr in self._attrs:
             return getattr(getattr(self, self._tabclass), attr)
 
@@ -1039,18 +1138,6 @@ class ImageDict(object):
         self._evt = evt
         self._det = det
 
-#    @property
-#    def configStore(self):
-#        return self._det.configStore
-#
-#    @property
-#    def evrConfig(self):
-#        return self._det.evrConfig
-#    
-#    @property
-#    def epicsStore(self):
-#        return self._det.epicsStore
-    
     @property
     def instrument(self):
         """Instrument to which this detector belongs.
@@ -1151,84 +1238,147 @@ class ImageDict(object):
         
         return list(sorted(all_attrs))
 
-class ConfigStore(object):
-    """ConfigStore
+
+class AliasConfig(object):
+    """Tab Accessible configStore Alias information.
     """
-    def __init__(self, ds):
-        alias_dict = {val: key for key, val in ds._aliases.items()}
-        for attr in ds._config_keys:
-            alias = alias_dict.get(attr)
-            if alias:
-                setattr(self, alias, KeyDict(ds, attr, 'config'))
+    def __init__(self, configStore):
+
+        self._aliases = {}
+        csPartition = get_config(configStore, 'Partition')
+        partition = {str(s.src()): {'src': s.src(), 'group': s.group(), 'alias': None} \
+                                    for s in csPartition.sources()}
+        for key in configStore.keys():
+            if key.type() and key.type().__module__ == 'psana.Alias':
+                a = configStore.get(key.type(),key.src())
+                for alias in a.srcAlias():
+                    self._aliases[alias.aliasName()] = {'src': alias.src(),
+                                                        'ipAddr': key.src().ipAddr()}
+
+# to convert ipAddr int to address 
+# import socket, struct
+# s = key.src()
+# socket.inet_ntoa(struct.pack('!L',s.ipAddr()))
+
+    def show_info(self):
+        print '< '+str(self)+' >'
+        for alias, item in self._aliases.items():
+            print '{:18s} {:}'.format(alias, item['src'])
+
+    def __str__(self):
+        return '{:}'.format(self.__class__.__name__)
+    
+    def __repr__(self):
+        self.show_info()
+        return '< '+str(self)+' >'
+
+    def __getattr__(self, attr):
+        if attr in self._aliases:
+            return self._aliases.get(attr)['src']
+
+    def __dir__(self):
+        all_attrs =  set(self._aliases.keys() +
+                         self.__dict__.keys() + dir(AliasConfig))
+        
+        return list(sorted(all_attrs))
+
+
+class EpicsConfig(object):
+    """Tab Accessible configStore Epics information.
+       Currently relatively simple, but expect this to be expanded
+       at some point with more PV config info with daq update.
+    """
+
+    _pv_attrs = ['description', 'interval', 'pvId']
+
+    def __init__(self, configStore):
+
+        self._pvs = {}
+        for key in configStore.keys():
+            if key.type() and key.type().__module__ == 'psana.Epics':
+                a = configStore.get(key.type(),key.src())
+                for pv in a.getPvConfig():
+                    pvdict = {attr: getattr(pv, attr)() for attr in self._pv_attrs} 
+                    self._pvs[pv.description()] = pvdict
+
+    def show_info(self):
+        for alias, items in self._pvs.items():
+            print '{:18s} {:}'.format(alias, item.pvId)
+
+    def __getattr__(self, attr):
+        if attr in self._pvs:
+            return self._pvs.get(attr)
+
+    def __dir__(self):
+        all_attrs =  set(self._pvs.keys() +
+                         self.__dict__.keys() + dir(EpicsConfig))
+        
+        return list(sorted(all_attrs))
+
 
 class KeyDict(object):
     """Dictify psana data for a given detector source.
        data_type: 'evt' or 'config' (default = 'evt')
     """
-    def __init__(self, ds, srcstr, data_type='evt'):
-        _keys_obj  = { 'evt':    ('_evt_keys', '_current_evt'),
-                       'config': ('_config_keys', '_configStore')}
-        self._values = {}
-        self._types = {}
+    def __init__(self, objclass, srcstr, key_info=None):
         self._srcstr = srcstr
-        _keys = getattr(ds, _keys_obj[data_type][0])
-        self._obj = getattr(ds, _keys_obj[data_type][1])
+        if not key_info:
+            key_info = get_key_info(objclass)
 
-        if self._srcstr in _keys:
-            for type_name, item in _keys[self._srcstr].items():
-                typ = item[0]
-                src = item[1]
-                key = item[2]
+        self._data = {}
+        self._keys = key_info.get(srcstr)
+        if self._keys:
+            for (typ, src, key) in self._keys:
                 if key:
-                    typ_func = self._obj.get(*item)
+                    typ_func = objclass.get(*item)
                 else:
-                    typ_func = self._obj.get(typ, src)
+                    typ_func = objclass.get(typ, src)
 
-                typ_data = get_key_dict(typ_func)
-                self._values.update(typ_data)
+                self._data.update(get_key_dict(typ_func))
                 
-                self._types.update({type_name: {'typ': typ, 'src': src, 'key': key, 
-                                                'attrs': typ_data.keys(),
-                                                'module': typ.__module__.lstrip('psana.'),
-                                                'func': typ_func}})
-
-        self._attrs = self._values.keys()
-
     @property
     def _attr_info(self):
+        """
+        """
         _info = {}
-        for type_name, item in self._types.items():
-            _info[type_name] = {}
-            for attr, item in psana_dict[item['module']][type_name].items():
-                value = self._values[attr]
+        for (typ, src, key) in self._keys:
+            _info[typ] = {}
+            type_name = typ.__name__
+            module = typ.__module__.lstrip('psana.')
+            for attr, item in psana_dict[module][type_name].items():
+                value = self._data[attr]
                 if isinstance(value, dict):
                     try:
-                        for a,b in psana_dict[item['module']][attr].items():
+                        for a,b in psana_dict[module][attr].items():
                             val = value.get(a)
-                            name =  '__'.join([attr,a])
+                            name =  '_'.join([attr,a])
                             b['attr'] = name
                             b['value'] = val
                             b['str'] = _repr_value(val)
-                            _info[type_name][name] = b
+                            _info[typ][name] = b
                     except:
                         for a,val in value.items():
                             b = {'unit': '', 'doc': ''}
-                            name =  '__'.join([attr,a])
+                            name =  '_'.join([attr,a])
                             b['attr'] = name
                             b['value'] = val
                             b['str'] = _repr_value(val)
-                            _info[type_name][name] = b
+                            _info[typ][name] = b
 
                 else:
                     item['attr'] = attr
                     item['value'] = value
                     item['str'] = _repr_value(value)
-                    _info[type_name][attr] = item
+                    _info[typ][attr] = item
         
         return _info
 
+    @property
+    def _attrs(self):
+        return self._data.keys()
+
     def show_info(self):
-        for type_name, type_info in self._attr_info.items():
+        for typ, type_info in self._attr_info.items():
             type_attrs = sorted(type_info)
             for attr in type_attrs:
                 if not attr[0].isupper() or attr in ['TypeId','Version']:
@@ -1236,11 +1386,11 @@ class KeyDict(object):
                     print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
 
     def __getattr__(self, attr):
-        if attr in self._attrs:
-            return self._values[attr]
+        if attr in self._data:
+            return self._data[attr]
         
     def __dir__(self):
-        all_attrs = set(self._attrs +
+        all_attrs = set(self._data.keys() +
                         self.__dict__.keys() + dir(KeyDict))
         return list(sorted(all_attrs))
 
@@ -1447,55 +1597,6 @@ class SrcDictify(ReDictify):
         self._show_attrs.remove('Device')
         self._show_attrs.remove('Detector')
 
-
-class EvrConfig(object):
-    """Psana Evr Information Dictified from Alias.AliasConfig, EvrData.EvrDataIOConfig and
-       the evr modules in the configStore, which have the psana type EvrDataConfig.
-
-    """
-
-    def __init__(self, ds):
-        
-        self._evr_dict = {}
-        self._src_dict = {}
-        self._output_maps = {}
-        alias_dict = {val: key for key, val in ds._aliases.items()}
-        self._evr_keys = [attr for attr,item in configStore._evt_dict.items() \
-                          if 'EvrDataConfig' in item['type']]
-
-        for evr_key in self._evr_keys:
-            evr_module = getattr(configStore, evr_key)
-            for output_map in evr_module.output_maps:
-                map_key = 'module{:}_conn{:02}'.format(output_map.module, output_map.conn_id)
-                if str(output_map.source) == 'Pulse':
-                    pulse_id = output_map.source_id
-                    pulse=evr_module.pulses[pulse_id]
-                else:
-                    pulse_id = None
-                    pulse = None
-
-                output_map.add_property(evr=pulse)
-                self._output_maps[map_key] = output_map
-        try:
-            for ch in configStore.EvrData.channels:
-                output_map = ReDictify(ch.output)
-                map_key = 'module{:}_conn{:02}'.format(output_map.module, output_map.conn_id)
-                for i in range(ch.ninfo):
-                    src = SrcDictify(ch.infos[i])
-                    src.add_property(alias=alias_dict.get(src.src))
-                    src.add_property(evr=self._output_maps[map_key].evr)
-    #                src.add_property(output=output_map)
-    #                src.add_property(map_key=map_key)
-    #                src.add_property(output_map=self._output_maps[map_key])
-                    self._evr_dict[src.src] = src
-                    self._src_dict[src.src] = src.det_key
-        except:
-            pass
-
-        for key, item in self._evr_dict.items():
-            alias = alias_dict.get(key)
-            if alias:
-                setattr(self, alias, item)
 
 
 
@@ -1773,6 +1874,7 @@ class TimeStamp(object):
 
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name_, _self.__str__)
+
 
 def initArgs():
     """Initialize argparse arguments.
