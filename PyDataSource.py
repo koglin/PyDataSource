@@ -1,3 +1,143 @@
+#--------------------------------------------------------------------------
+# File and Version Information:
+#  $Id: PyDataSource.py  koglin@SLAC.STANFORD.EDU $
+#
+# Description:
+#  module PyDataSource
+#--------------------------------------------------------------------------
+"""Python implementation of psana DataSource object.
+
+Example:
+
+    # Import the PyDataSource module
+    In [1]: import PyDataSource
+
+    # Load example run
+    In [2]: ds = PyDataSource.DataSource('exp=xpptut15:run=54')
+    Adding Detector: FEEGasDetEnergy      Source("BldInfo(FEEGasDetEnergy)")      
+    Adding Detector: XppSb3_Ipm           Source("BldInfo(XppSb3_Ipm)")           
+    Adding Detector: PhaseCavity          Source("BldInfo(PhaseCavity)")          
+    Adding Detector: EBeam                Source("BldInfo(EBeam)")                
+    Adding Detector: XppEnds_Ipm0         Source("BldInfo(XppEnds_Ipm0)")         
+    Adding Detector: XppSb2_Ipm           Source("BldInfo(XppSb2_Ipm)")           
+    Adding Detector: yag_lom              Source("DetInfo(XppMonPim.1:Tm6740.1)") 
+    Adding Detector: cspad                Source("DetInfo(XppGon.0:Cspad.0)")     
+    Adding Detector: yag2                 Source("DetInfo(XppSb3Pim.1:Tm6740.1)") 
+
+    # Access the first event
+    In [3]: evt = ds.next()
+
+    # Tab to see Data objects in current event
+    In [4]: evt.
+    evt.EBeam            evt.FEEGasDetEnergy  evt.XppEnds_Ipm0     evt.cspad            evt.next
+    evt.EventId          evt.L3T              evt.XppSb2_Ipm       evt.get              evt.yag2
+    evt.Evr              evt.PhaseCavity      evt.XppSb3_Ipm       evt.keys             evt.yag_lom
+
+    # Tab to see EBeam attributes
+    In [4]: evt.EBeam.
+    evt.EBeam.EventId            evt.EBeam.ebeamEnergyBC1     evt.EBeam.ebeamPhotonEnergy  evt.EBeam.epicsData
+    evt.EBeam.Evr                evt.EBeam.ebeamEnergyBC2     evt.EBeam.ebeamPkCurrBC1     evt.EBeam.evtData
+    evt.EBeam.L3T                evt.EBeam.ebeamL3Energy      evt.EBeam.ebeamPkCurrBC2     evt.EBeam.monitor
+    evt.EBeam.calibData          evt.EBeam.ebeamLTU250        evt.EBeam.ebeamUndAngX       evt.EBeam.next
+    evt.EBeam.configData         evt.EBeam.ebeamLTU450        evt.EBeam.ebeamUndAngY       evt.EBeam.show_all
+    evt.EBeam.damageMask         evt.EBeam.ebeamLTUAngX       evt.EBeam.ebeamUndPosX       evt.EBeam.show_info
+    evt.EBeam.detector           evt.EBeam.ebeamLTUAngY       evt.EBeam.ebeamUndPosY       evt.EBeam.src
+    evt.EBeam.ebeamCharge        evt.EBeam.ebeamLTUPosX       evt.EBeam.ebeamXTCAVAmpl     
+    evt.EBeam.ebeamDumpCharge    evt.EBeam.ebeamLTUPosY       evt.EBeam.ebeamXTCAVPhase    
+
+    # Print a table of the EBeam data for the current event
+    In [4]: evt.EBeam.show_info()
+    --------------------------------------------------------------------------------
+    EBeam: xpptut15, Run 54, Event 0, 11:37:12.4517, [140, 141, 41, 40]
+    --------------------------------------------------------------------------------
+    damageMask                 1.0486e+06         Damage mask.
+    ebeamCharge                0.00080421 nC      Beam charge in nC.
+    ebeamDumpCharge                     0 e-      Bunch charge at Dump in num. electrons
+    ebeamEnergyBC1                -13.772 mm      Beam position in mm (related to beam energy).
+    ebeamEnergyBC2               -0.38553 mm      Beam position in mm (related to beam energy).
+    ebeamL3Energy                       0 MeV     Beam energy in MeV.
+    ebeamLTU250                         0 mm      LTU250 BPM value in mm, used to compute photon energy. from BPMS:LTU1:250:X
+    ebeamLTU450                         0 mm      LTU450 BPM value in mm, used to compute photon energy. from BPMS:LTU1:450:X
+    ebeamLTUAngX                        0 mrad    LTU beam angle in mrad.
+    ebeamLTUAngY                        0 mrad    LTU beam angle in mrad.
+    ebeamLTUPosX                        0 mm      LTU beam position (BPMS:LTU1:720 through 750) in mm.
+    ebeamLTUPosY                        0 mm      LTU beam position in mm.
+    ebeamPhotonEnergy                   0 eV      computed photon energy, in eV
+    ebeamPkCurrBC1                 33.661 Amps    Beam current in Amps.
+    ebeamPkCurrBC2             2.9709e+08 Amps    Beam current in Amps.
+    ebeamUndAngX                        0 mrad    Undulator launch feedback beam x-angle in mrad.
+    ebeamUndAngY                        0 mrad    Undulator launch feedback beam y-angle in mrad.
+    ebeamUndPosX                        0 mm      Undulator launch feedback (BPMs U4 through U10) beam x-position in mm.
+    ebeamUndPosY                        0 mm      Undulator launch feedback beam y-position in mm.
+    ebeamXTCAVAmpl                      0 MVolt   XTCAV Amplitude in MVolt.
+    ebeamXTCAVPhase                     0 degrees XTCAV Phase in degrees.
+
+    # Print summary of the cspad detector (uses PyDetector methods for creatining calib and image data)
+    In [5]: evt.cspad.show_info()
+    --------------------------------------------------------------------------------
+    cspad: xpptut15, Run 54, Event 0, 11:37:12.4517, [140, 141, 41, 40]
+    --------------------------------------------------------------------------------
+    calib                 <0.01035> ADU     Calibrated data
+    image               <0.0079081> ADU     Reconstruced 2D image from calibStore geometry
+    raw                    <1570.2> ADU     Raw data
+    size                  2.297e+06         Total size of raw data
+
+    # Print summary of cspad detector calibration data (using PyDetector access methods) 
+    In [6]: evt.cspad.calibData.show_info()
+    areas                  <1.0077>         Pixel area correction factor
+    bkgd                      <0.0>         
+    common_mode        [   1.   25.   10.  100.]         Common mode parameters
+    coords_x               <281.44> um      Pixel X coordinate
+    coords_y               <753.19> um      Pixel Y coordinate
+    coords_z                <1e+06> um      Pixel Z coordinate
+    gain                      <1.0>         Pixel Gain factor from calibStore
+    indexes_x              <863.22>         Pixel X index
+    indexes_y              <869.53>         Pixel Y index
+    ndim                          3         Number of dimensions of raw data
+    pedestals              <1572.1> ADU     Pedestals from calibStore
+    pixel_size               109.92 um      Pixel Size
+    rms                    <4.9305> ADU     
+    runnum                       54         Run number
+    shape              (32, 185, 388)         Shape of raw data array
+    size                  2.297e+06         Total size of raw data
+    status             <0.00069396>         
+
+    # Print summary of cspad detector calibration data (using PyDetector access methods) 
+    In [7]: evt.cspad.configData.show_info()
+    activeRunMode                       3         
+    asicMask                           15         
+    badAsicMask0                        0         
+    badAsicMask1                        0         
+    concentratorVersion        3.4055e+09         
+    eventCode                          40         
+    inactiveRunMode                     1         
+    internalTriggerDelay                0         
+    numAsicsRead                       16         
+    numAsicsStored           <bound method ConfigV5.numAsicsStored of <psana.CsPad.ConfigV5 object at 0x7f4b0cd36cf8>>         Number of ASICs in given quadrant
+    numQuads                            4         Total number of quadrants in setup
+    numSect                            32         Total number of sections (2x1) in all quadrants
+    payloadSize                1.1485e+06         
+    protectionEnable                    1         
+    protectionThresholds             list         
+    quadMask                           15         
+    quads                    <bound method ConfigV5.quads of <psana.CsPad.ConfigV5 object at 0x7f4b0cd36cf8>>         
+    quads_shape                      list         
+    roiMask                  <bound method ConfigV5.roiMask of <psana.CsPad.ConfigV5 object at 0x7f4b0cd36cf8>>         ROI mask for given quadrant
+    roiMasks                    4.295e+09         
+    runDelay                        58100         
+    tdi                                 4         
+
+This software was developed for the LCLS project.
+If you use all or part of it, please give an appropriate acknowledgment.
+
+@version $Id: PyDataSource.py  koglin@SLAC.STANFORD.EDU $
+
+@author Koglin, Jason
+"""
+#------------------------------
+__version__ = "$Revision:  $"
+##-----------------------------
+
 import sys
 import operator
 import re
@@ -23,19 +163,9 @@ def get_key_info(psana_obj):
 
     return key_info
 
-def get_key_dict(func):
-    """Return a dictionary of a psana evt key.
-    """
-    if hasattr(func, '__module'):
-        m = func.__module__.lstrip('psana.')
-        n = func.__class__.__name__
-        attrs = psana_doc_info[m][n]
-    else:
-        attrs = [attr for attr in dir(func) if not attr.startswith('_')]
-    
-    return {attr: get_func_value(getattr(func,attr)) for attr in attrs}
-
 def _repr_value(value):
+    """Represent a value for use in show_info method.
+    """
     if isinstance(value,str):
         return value
     else:
@@ -52,42 +182,158 @@ def _repr_value(value):
                 except:
                     return value
 
-def get_func_value(func):
-    """Return the value of a psana object.
+def _is_psana_type(value):
+    """True if the input is a psana data type
     """
-    try:
-        func = func()
-    except:
-        pass
+    return hasattr(value, '__module__') and value.__module__.startswith('psana')
 
-    if isinstance(func, list):
-        func = [func_redict(f) for f in func]
-    else:
-        try:
-            func = func_redict(func)
-        except:
-            pass
-
-    return func
-
-def func_redict(f):
-    """Resolve the full function.
+class PsanaTypeData(object):
+    """Python representation of a psana data object (event or configStore data).
     """
-    if hasattr(f, '__module__') and f.__module__.startswith('psana'):
-        m = f.__module__.lstrip('psana.')
-        n = f.__class__.__name__
-        if n in psana_doc_info[m]:
-            return {attr: get_func_value(getattr(f,attr)) for attr in psana_doc_info[m][n]}
 
+    def __init__(self, typ_func):
+        self._typ_func = typ_func
+        module = self._typ_func.__module__.lstrip('psana.')
+        type_name = self._typ_func.__class__.__name__
+
+        if type_name in psana_doc_info[module]:
+            self._info = psana_doc_info[module][type_name]
+            self._attrs = [key for key in self._info.keys() if not key[0].isupper()]
         else:
-            attrs = [attr for attr in dir(f) if not attr.startswith('_')]
-            try:
-                return {attrs: getattr(f,attr) for attrs in attrs}
-            except:
-                return f
+            self._attrs = [attr for attr in dir(self._typ_func) if not attr.startswith('_')]
+            self._info = {}
+
+    @property
+    def _attr_info(self):
+        """Attribute information including the unit and doc information 
+           and a str representation of the value.
+        """
+        _data = {}
+        for attr in self._attrs:
+            value = getattr(self, attr)
+            if hasattr(value, '__class__') and value.__class__.__name__ == 'PsanaTypeData':
+                _data.update({'_'.join([attr, a]): item for a, item in value._attr_info.items()})
+            else:
+                info = self._info.get(attr, {'unit': '', 'doc': ''})
+                info['attr'] = attr
+                info['value'] = value
+                info['str'] = _repr_value(value)
+                _data[attr] = info
+
+        return _data
+
+    @property
+    def _values(self):
+        """Dictionary of attributes: values. 
+        """
+        return {attr: getattr(self, attr) for attr in self._attrs}
+
+    def show_info(self):
+        """Show a table of the attribute, value, unit and doc information
+        """
+        items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+        for attr, item in items:
+            print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
     
-    else:
-        return f
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            value = getattr(self._typ_func, attr)
+            try:
+                value = value()
+            except:
+                pass
+
+            if isinstance(value, list):
+                values = []
+                for val in value:
+                    if _is_psana_type(val):
+                        val = PsanaTypeData(val)
+                    
+                    values.append(val)
+            
+                return values
+
+            elif _is_psana_type(value):
+                return PsanaTypeData(value)
+
+            else:
+                return value
+
+    def __dir__(self):
+        all_attrs = set(self._attrs +
+                        self.__dict__.keys() + dir(PsanaTypeData))
+        return list(sorted(all_attrs))
+
+
+class PsanaSrcData(object):
+    """Dictify psana data for a given detector source.
+       key_info: get_key_info(objclass) for faster evt data access.
+    """
+    def __init__(self, objclass, srcstr, key_info=None):
+        self._srcstr = srcstr
+        if not key_info:
+            key_info = get_key_info(objclass)
+
+        self._types = {}
+        self._type_attrs = {}
+        self._keys = key_info.get(srcstr)
+        if self._keys:
+            for (typ, src, key) in self._keys:
+                if key:
+                    typ_func = objclass.get(*item)
+                else:
+                    typ_func = objclass.get(typ, src)
+
+                type_data = PsanaTypeData(typ_func)
+                self._types[(typ,key)] = type_data 
+                self._type_attrs.update({attr: (typ,key) for attr in type_data._attrs})
+
+    @property
+    def _attrs(self):
+        attrs = []
+        for type_data in self._types.values():
+            attrs.extend(type_data._attrs)
+
+        return attrs
+
+    @property
+    def _attr_info(self):
+        """Attribute information including the unit and doc information 
+           and a str representation of the value for all data types.
+        """
+        attr_info = {}
+        for type_data in self._types.values():
+            attr_info.update(**type_data._attr_info)
+
+        return attr_info
+
+    @property
+    def _values(self):
+        """Dictionary of attributes: values for all data types.
+        """
+        values = {}
+        for type_data in self._types.values():
+            values.update(**type_data._values)
+
+        return values
+
+    def show_info(self):
+        """Show a table of the attribute, value, unit and doc information
+           for all data types of the given source.
+        """
+        for type_data in self._types.values():
+            type_data.show_info()
+
+    def __getattr__(self, attr):
+        item = self._type_attrs.get(attr)
+        if item:
+            return getattr(self._types.get(item), attr)
+
+    def __dir__(self):
+        all_attrs = set(self._type_attrs.keys() +
+                        self.__dict__.keys() + dir(PsanaSrcData))
+        return list(sorted(all_attrs))
+
 
 class DataSource(object):
     """Python version of psana.DataSource with support for event and config
@@ -96,21 +342,19 @@ class DataSource(object):
 
     _ds_attrs = ['empty', 'end', 'env', 'runs', 'steps']
     _env_attrs = ['calibDir', 'instrument', 'experiment','expNum']
-    _detectors = {}
-    _srcs = {}
 
     def __init__(self, data_source=None, **kwargs):
         self.load_run(data_source=data_source, **kwargs)
-        self._evt_time_last = (0,0)
-        self._ievent = -1
 
-    def load_run(self, **kwargs):
+    def load_run(self, data_source=None, **kwargs):
+        """Load a run with psana.
+        """
         self._evtData = None
         self._current_evt = None
         self._evt_keys = {}
-        self.data_source = DataSourceInfo(**kwargs)
+        self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
         self._ds = psana.DataSource(str(self.data_source))
-        self.epicsStore = EpicsDictify(self._ds) 
+        self.epicsData = EpicsData(self._ds) 
 
         if self.data_source.indexed:
             self._Events = RunEvents(self, **kwargs)
@@ -118,13 +362,21 @@ class DataSource(object):
             self._Events = Events(self, **kwargs)
 
         self._init_detectors()
+        self._evt_time_last = (0,0)
+        self._ievent = -1
+
+    def reload(self):
+        """Reload the current run.
+        """
+        self.load_run(str(self.data_source))
 
     def _init_detectors(self):
         """Initialize psana.Detector classes based on psana env information.
         """
-        self.configStore = ConfigStore(self)
-        self._aliases = self.configStore._aliases
-        for srcstr, item in self.configStore._sources.items():
+        self._detectors = {}
+        self.configData = ConfigData(self)
+        self._aliases = self.configData._aliases
+        for srcstr, item in self.configData._sources.items():
             alias = item.get('alias')
             self._add_dets(**{alias: srcstr})
 
@@ -177,14 +429,18 @@ class DataSource(object):
         return list(sorted(all_attrs))
 
 
-class ConfigStore(object):
-    """ConfigStore
+class ConfigData(object):
+    """ConfigData
     """
     _configStore_attrs = ['get','put','keys']
     
     def __init__(self, ds):
         configStore = ds.env().configStore()
-        self._ds = ds
+        if (hasattr(ds, 'data_source') and ds.data_source.monshmserver):
+            self._monshmserver = ds.data_source.monshmserver
+        else:
+            self._monshmserver = None 
+        
         self._configStore = configStore
         self._key_info = get_key_info(configStore)
 
@@ -192,7 +448,7 @@ class ConfigStore(object):
         self._config = {}
         self._modules = {}
         for attr, keys in self._key_info.items():
-            config = KeyDict(self._configStore, attr, key_info=self._key_info)
+            config = PsanaSrcData(self._configStore, attr, key_info=self._key_info)
             self._config[attr] = config
             for typ, src, key in keys:
                 type_name = typ.__name__
@@ -224,9 +480,24 @@ class ConfigStore(object):
             print '       ', self._modules['Partition'][type_name]
             return
 
+# to convert ipAddr int to address 
+# import socket, struct
+# s = key.src()
+# socket.inet_ntoa(struct.pack('!L',s.ipAddr()))
+
         self._ipAddrPartition = src.ipAddr()
         self._bldMask = config.bldMask
-        self._partition = {str(item['src']): item for item in config.sources}
+        self._partition = {} 
+        self._readoutGroup = {}
+        self._sources = {}
+        for source in config.sources:
+            self._partition[str(source.src)] = source._values
+            group = source.group
+            srcstr = str(source.src)
+            if group not in self._readoutGroup:
+                self._readoutGroup[group] = {'srcs': [], 'eventCodes': []}
+
+            self._readoutGroup[group]['srcs'].append(srcstr)
 
         # Find Aliases and update Partition
         self._srcAlias = {}
@@ -236,7 +507,7 @@ class ConfigStore(object):
                     srcstr = str(src)
                     config = self._config[srcstr]
                     for item in config.srcAlias:
-                        self._srcAlias[item['aliasName']] = (item['src'], src.ipAddr())
+                        self._srcAlias[item.aliasName] = (item.src, src.ipAddr())
 
         self._aliases = {}
         for alias, item in self._srcAlias.items():
@@ -246,14 +517,20 @@ class ConfigStore(object):
             alias = re.sub('-|:|\.| ','_', alias)
             if srcstr in self._partition:
                 self._partition[srcstr]['alias'] = alias
-                self._aliases[alias] = srcstr
-            elif ipAddr != self._ipAddrPartition or self._ds.data_source.monshmserver:
+                if srcstr.find('NoDetector') == -1:
+                    self._aliases[alias] = srcstr
+            elif ipAddr != self._ipAddrPartition or self._monshmserver:
                 # add data sources not in partition that come from recording nodes
-                self._partition[srcstr] = {'src': src, 'group': -1, 'alias': alias}
+                group = -1
+                self._partition[srcstr] = {'src': src, 'group': group, 'alias': alias}
                 self._aliases[alias] = srcstr
+                if group not in self._readoutGroup:
+                    self._readoutGroup[group] = {'srcs': [], 'eventCodes': []}
+
+                self._readoutGroup[group]['srcs'].append(srcstr)
+                self._sources[srcstr] = {'group': group}
 
         # Determine data sources and update aliases
-        self._sources = {}
         for srcstr, item in self._partition.items():
             if not item.get('alias'):
                 try:
@@ -268,7 +545,9 @@ class ConfigStore(object):
             if 'NoDetector' not in srcstr and 'NoDevice' not in srcstr:
                 # sources not recorded have group None
                 # only include these devices for shared memory
-                self._sources[srcstr] = item
+                if srcstr not in self._sources:
+                    self._sources[srcstr] = {}
+                self._sources[srcstr].update(**item)
 
         # Make dictionary of src: alias for sources with config objects 
         self._config_srcs = {}
@@ -280,7 +559,6 @@ class ConfigStore(object):
         self._output_maps = {}
         self._evr_pulses = {}
         self._eventcodes = {}
-        self._readoutGroup = {}
 
         for type_name in self._modules['EvrData'].keys():
             if type_name.startswith('IOConfig'):
@@ -294,23 +572,27 @@ class ConfigStore(object):
             srcstr = str(src)
             config = self._config[srcstr]
             for eventcode in config.eventcodes:
-                self._eventcodes.update({eventcode['code']: eventcode})
-                self._readoutGroup.update({eventcode['readoutGroup']: eventcode})
+                self._eventcodes.update({eventcode.code: eventcode._values})
+                if eventcode.isReadout:
+                    group = eventcode.readoutGroup
+                    if group not in self._readoutGroup:
+                        self._readoutGroup[group] = {'srcs': [], 'eventCodes': []}
+                    self._readoutGroup[group]['eventCodes'].append(eventcode.code)
 
             for output_map in config.output_maps:
-                map_key = (output_map['module'],output_map['conn_id'])
-                if output_map['source'].get('Pulse'):
-                    pulse_id = output_map['source_id']
+                map_key = (output_map.module,output_map.conn_id)
+                if output_map.source.Pulse:
+                    pulse_id = output_map.source_id
                     pulse = config.pulses[pulse_id]
-                    evr_info = { 'evr_width': pulse['width']*pulse['prescale']/119.e6, 
-                                 'evr_delay': pulse['delay']*pulse['prescale']/119.e6, 
-                                 'evr_polarity': pulse['polarity']}
+                    evr_info = { 'evr_width': pulse.width*pulse.prescale/119.e6, 
+                                 'evr_delay': pulse.delay*pulse.prescale/119.e6, 
+                                 'evr_polarity': pulse.polarity}
                 else:
                     pulse_id = None
                     pulse = None
                     evr_info = {'evr_width': None, 'evr_delay': None, 'evr_polarity': None}
 
-                self._output_maps[map_key] = {attr: output_map[attr] for attr in map_attrs} 
+                self._output_maps[map_key] = {attr: getattr(output_map,attr) for attr in map_attrs} 
                 self._output_maps[map_key].update(**evr_info) 
 
         # Assign evr info to the appropriate sources
@@ -321,18 +603,32 @@ class ConfigStore(object):
         srcstr = str(src)
         config = self._config[srcstr]
         for ch in config.channels:
-            map_key = (ch['output']['module'], ch['output']['conn_id'])
-            for i in range(ch['ninfo']):
-                src = ch['infos'][i]
+            map_key = (ch.output.module, ch.output.conn_id)
+            for i in range(ch.ninfo):
+                src = ch.infos[i]
                 srcstr = str(src)
-                self._sources[srcstr].update(**self._output_maps[map_key]) 
+                self._sources[srcstr]['map_key'] = map_key
+                for attr in ['evr_width', 'evr_delay', 'evr_polarity']:
+                    self._sources[srcstr][attr] = self._output_maps[map_key][attr]
 
-        for srcstr, item in self._sources.items():
-            group = item.get('group')
-            if group and group > 1:
-                item['eventCode'] = self._readoutGroup[group]
-            else:
-                item['eventCode'] = 0
+        for group, item in self._readoutGroup.items():
+            for srcstr in item['srcs']:
+                if srcstr in self._sources:
+                    self._sources[srcstr]['eventCodes'] = item['eventCodes']
+        
+        # Get control data
+        if self._modules.get('ControlData'):
+            type_name, keys = self._modules['ControlData'].items()[0]
+            typ, src, key = keys[0]
+            config = self._config[str(src)]
+            self._controlData = config._values
+
+        if self._modules.get('SmlData'):
+            type_name, keys = self._modules['SmlData'].items()[0]
+            typ, src, key = keys[0]
+            config = self._config[str(src)]
+            self._smlData = config._values
+
 
     def __getattr__(self, attr):
         if attr in self._config_srcs:
@@ -344,7 +640,7 @@ class ConfigStore(object):
     def __dir__(self):
         all_attrs = set(self._configStore_attrs +
                         self._config_srcs.keys() + 
-                        self.__dict__.keys() + dir(ConfigStore))
+                        self.__dict__.keys() + dir(ConfigData))
         return list(sorted(all_attrs))
 
 
@@ -353,10 +649,8 @@ class RunEvents(object):
 
        No support yet for multiple runs in a data_source
     """
-
-    _ds_runs = []
-
     def __init__(self, ds, **kwargs):
+        self._ds_runs = []
         self._kwargs = kwargs
         self._ds = ds
         self.next_run()
@@ -420,16 +714,15 @@ class EvtDetectors(object):
        Preserves get, keys and run method of items in psana events iterators.
     """
 
-    _init_attrs = ['get', 'keys', 'run']
-    
+    _init_attrs = ['get', 'keys'] #  'run' depreciated
+    _event_attrs = ['EventId', 'Evr', 'L3T']
+
     def __init__(self, ds): 
         self._ds = ds
-        self._EventId = EventId(self._ds._current_evt)
-        self.ievent = ds._ievent
-
+        
     @property
     def EventId(self):
-        return self._EventId
+        return EventId(self._ds._current_evt)
 
     @property
     def _attrs(self):
@@ -487,9 +780,15 @@ class EvtDetectors(object):
         
         return (False, False)
 
+    def next(self, *args, **kwargs):
+        return self._ds.next(*args, **kwargs)
+ 
+    def __iter__(self):
+        return self
+
     def __str__(self):
         return  '{:}, Run {:}, Event {:}, {:}, {:}'.format(self._ds.data_source.exp, 
-                self.run(), self.ievent, str(self.EventId), str(self.Evr))
+                self._ds.data_source.run, self._ds._ievent, str(self.EventId), str(self.Evr))
 
     def __repr__(self):
         repr_str = '{:}: {:}'.format(self.__class__.__name__, str(self))
@@ -536,7 +835,7 @@ class L3Tdata(object):
 
     def __dir__(self):
         all_attrs =  set(self._attrs+
-                         self.__dict__.keys() + dir(L3T))
+                         self.__dict__.keys() + dir(L3Tdata))
         
         return list(sorted(all_attrs))
 
@@ -595,7 +894,7 @@ class EventId(object):
     """
 
     _attrs = ['fiducials', 'idxtime', 'run', 'ticks', 'time', 'vector']
-    _properties = ['timef64']
+    _properties = ['timef64', 'nsec', 'sec']
 
     def __init__(self, evt):
 
@@ -604,6 +903,18 @@ class EventId(object):
     @property
     def timef64(self):
         return np.float64(self.time[0])+np.float64(self.time[1])/1.e9 
+
+    @property
+    def nsec(self):
+        """nanosecond part of event time.
+        """
+        return self.time[0]
+
+    @property
+    def sec(self):
+        """second part of event time.
+        """
+        return self.time[1]
 
     def show_info(self):
         print self.__repr__()
@@ -636,8 +947,8 @@ class EventId(object):
 
 
 class Detector(object):
-    """Includes epicsStore, configStore, evrConfig info 
-       Uses full ds in order to be able to access epicsStore info on
+    """Includes epicsData, configStore, evrConfig info 
+       Uses full ds in order to be able to access epicsData info on
        an event basis.
     """
     
@@ -661,7 +972,7 @@ class Detector(object):
         self._srcstr = str(self.src)
         self._srcname = self._srcstr.split('(')[1].split(')')[0]
        
-        self.configStore = getattr(ds.configStore, self._alias)
+        self.configData = getattr(ds.configData, self._alias)
 
         try:
             self._pydet = psana.Detector(self._srcname, ds._ds.env())
@@ -672,15 +983,71 @@ class Detector(object):
             self._det_class = None
             self._tabclass = 'evtData'
         elif self._pydet.dettype in [16, 17]:
-            self._det_class = WaveformDict
+            self._det_class = WaveformData
+            self._calib_class = WaveformCalibData
             self._tabclass = 'detector'
         elif self._pydet.dettype:
-            self._det_class = ImageDict
+            self._det_class = ImageData
+            self._calib_class = ImageCalibData
             self._tabclass = 'detector'
         else:
             self._det_class = None
             self._tabclass = 'evtData'
-    
+
+    @property
+    def _xray_attrs(self):
+        """Attributes
+        """
+        attrs = {}
+        for attr, item in self.configData._attr_info.items():
+            if item['str'] != 'list' and not item['str'].startswith('<bound'):
+                attrs.update({attr: item['value']})
+        
+        return attrs
+
+    @property
+    def _xray_dims(self):
+        """Dimensions of data attributes.
+        """
+        if self._det_class == WaveformData:
+            dims_dict = {
+                    'waveform':  (['channel', 't'], self.wftime),
+                    }
+        
+        elif self._det_class == ImageData:
+            raw_dims = (['sensor', 'row', 'column'],
+                        [])
+            if self.image is not None:
+                xaxis = ((np.arange(self.image.shape[0])-self.image.shape[0]/2.) \
+                          *self.calibData.pixel_size/1000.)
+                yaxis = ((np.arange(self.image.shape[1])-self.image.shape[1]/2.) \
+                          *self.calibData.pixel_size/1000.)
+            else:
+                xaxis = None
+                yaxis = None
+
+            image_dims = (['X', 'Y'],
+                          [xaxis, yaxis])
+            dims_dict = {
+                    'image':     image_dims,
+                    'calib':     raw_dims,
+                    'raw':       raw_dims,
+                    'areas':     raw_dims,
+                    'bkgd':      raw_dims,
+                    'coords_x':  raw_dims,
+                    'coords_y':  raw_dims,
+                    'coords_z':  raw_dims,
+                    'gain':      raw_dims,
+                    'indexes_x': raw_dims,
+                    'indexes_y': raw_dims,
+                    'pedestals': raw_dims,
+                    'rms':       raw_dims,
+                    }
+        else:
+            dims_dict = {}
+                    
+        return dims_dict
+
     @property
     def _attrs(self):
         """Attributes of psana.Detector functions if relevant, and otherwise
@@ -691,21 +1058,54 @@ class Detector(object):
         
         return attrs
 
-    def monitor(self, nevents=-1):
+    def next(self, *args, **kwargs):
+        return self._ds.next(*args, **kwargs)
+ 
+    def __iter__(self):
+        return self
+
+    def monitor(self, nevents=-1, sleep=0.2):
         """Monitor detector attributes continuously with show_info function.
         """ 
         ievent = nevents
         try:
             while ievent != 0:
-                self._ds.next()
-                ievent -= 1
+                self.next()
                 try:
                     self.show_info()
                 except:
                     pass
+                
+                if ievent < nevents and sleep:
+                    time.sleep(sleep)
+
+                ievent -= 1
 
         except KeyboardInterrupt:
             ievent = 0
+
+    def show_all(self):
+        print '-'*80
+        print '{:}: {:}'.format(self._alias, str(self._ds.current))
+        print '-'*80
+        print 'Event Data:'
+        print '-'*18
+        self.evtData.show_info()
+        if self._tabclass == 'detector':
+            print '-'*80
+            print 'Processed Data:'
+            print '-'*18
+            self.detector.show_info()
+            print '-'*80
+            print 'Calibration Data:'
+            print '-'*18
+            self.calibData.show_info()
+
+        if self.epicsData:
+            print '-'*80
+            print 'Epics Data:'
+            print '-'*18
+            self.epicsData.show_info()
 
     def show_info(self):
         print '-'*80
@@ -717,23 +1117,32 @@ class Detector(object):
     def evtData(self):
         """Tab accessible raw data from psana event keys.
         """
-        return KeyDict(self._ds._current_evt, self._srcstr, key_info=self._ds._evt_keys)
+        return PsanaSrcData(self._ds._current_evt, self._srcstr, key_info=self._ds._evt_keys)
 
     @property
-    def epicsStore(self):
-        return getattr(self._ds.epicsStore, self._alias)
+    def epicsData(self):
+        return getattr(self._ds.epicsData, self._alias)
 
     @property
     def detector(self):
-        """Tab accessible psana.Detector class
+        """Raw, calib and image data using psana.Detector class
         """
         if self._pydet:
             return self._det_class(self._pydet, self._ds._current_evt)
         else:
             return None
 
+    @property
+    def calibData(self):
+        """Calibration data using psana.Detector class
+        """
+        if self._pydet:
+            return self._calib_class(self._pydet, self._ds._current_evt)
+        else:
+            return None
+
     def __str__(self):
-        return '{:} {:}'.format(self._alias, self.src)
+        return '{:} {:}'.format(self._alias, str(self._ds.current))
 
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
@@ -741,15 +1150,19 @@ class Detector(object):
     def __getattr__(self, attr):
         if attr in self._attrs:
             return getattr(getattr(self, self._tabclass), attr)
+        
+        if attr in self._ds.current._event_attrs:
+            return getattr(self._ds.current, attr)
 
     def __dir__(self):
         all_attrs =  set(self._attrs+
+                         self._ds.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
         
         return list(sorted(all_attrs))
 
 
-class WaveformDict(object):
+class WaveformData(object):
     """Tab accessibile dictified psana.Detector object.
        
        Attributes come from psana.Detector 
@@ -759,10 +1172,11 @@ class WaveformDict(object):
 
     _attrs = ['raw', 'waveform', 'wftime'] 
 
-    _attr_docs = {
-#            'raw': 'Raw waveform Volts vs time in sec', 
-            'waveform': 'Returns np.array waveform [Volts]',
-            'wftime': 'Returns np.array waveform sample time [s]',
+    _attr_info = {
+            'waveform':    {'doc': 'Waveform array',
+                            'unit': 'V'},
+            'wftime':      {'doc': 'Waveform sample time',
+                            'unit': 's'},
             } 
 
     def __init__(self, det, evt):
@@ -775,26 +1189,14 @@ class WaveformDict(object):
         """
         return self._det.instrument()
 
-    def print_attributes(self):
-        """Print detector attributes.
-        """
-        self._det.print_attributes()
-
-    def set_calibration(self):
-        """On/off correction of time.'
-        """
-        if self._det.dettype == 16:
-            self._det.set_correct_acqiris_time()
-        elif self._det.dettype == 17:
-            self._det.set_calib_imp()
-
     def show_info(self):
         """Show information for relevant detector attributes.
         """
         try:
-            items = sorted(self._attr_docs.items(), key = operator.itemgetter(0))
-            for attr, doc in items:
-                fdict = {'attr': attr, 'unit': '', 'doc': doc}
+            items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+            for attr, item in items:
+                fdict = {'attr': attr, 'unit': '', 'doc': ''}
+                fdict.update(**item)
                 value = getattr(self, attr)
                 if isinstance(value, str):
                     fdict['str'] = value
@@ -824,46 +1226,104 @@ class WaveformDict(object):
 
     def __dir__(self):
         all_attrs =  set(self._attrs +
-                         self.__dict__.keys() + dir(WaveformDict))
+                         self.__dict__.keys() + dir(WaveformData))
         
         return list(sorted(all_attrs))
 
 
-class ImageDict(object):
+class WaveformCalibData(object):
+    """Calibration data using psana.Detector access.
+    """
+
+    _attrs = ['runnum'] 
+
+    _attr_info = {
+            'runnum':      {'doc': 'Run number',
+                            'unit': ''}
+            }
+
+    def __init__(self, det, evt):
+        self._evt = evt
+        self._det = det
+
+    @property
+    def instrument(self):
+        """Instrument to which this detector belongs.
+        """
+        return self._det.instrument()
+
+    def print_attributes(self):
+        """Print detector attributes.
+        """
+        self._det.print_attributes()
+
+    def set_calibration(self):
+        """On/off correction of time.'
+        """
+        if self._det.dettype == 16:
+            self._det.set_correct_acqiris_time()
+        elif self._det.dettype == 17:
+            self._det.set_calib_imp()
+
+    def show_info(self):
+        """Show information for relevant detector attributes.
+        """
+        try:
+            items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+            for attr, item in items:
+                fdict = {'attr': attr, 'unit': '', 'doc': ''}
+                fdict.update(**item)
+                value = getattr(self, attr)
+                if isinstance(value, str):
+                    fdict['str'] = value
+                elif isinstance(value, list):
+                    if len(value) < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = 'list'
+                elif hasattr(value,'mean'):
+                    if value.size < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = '<{:.5}>'.format(value.mean())
+                else:
+                    try:
+                        fdict['str'] = '{:12.5g}'.format(value)
+                    except:
+                        fdict['str'] = str(value)
+
+                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+        except:
+            print 'No Event'
+
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            return getattr(self._det, attr)(self._evt)
+
+    def __dir__(self):
+        all_attrs =  set(self._attrs +
+                         self.__dict__.keys() + dir(WaveformCalibData))
+        
+        return list(sorted(all_attrs))
+
+
+class ImageData(object):
     """Tab accessibile dictified psana Detector object.
        
        Attributes come from psana.Detector  
        with low level implementation done in C++ or python.  
        Boost is used for the C++.
     """
-
-    _attrs = ['shape', 'size', 'ndim', 'pedestals', 'rms', 'gain', 'bkgd', 'status',
-              'status_as_mask', 'mask_calib', 'common_mode', 'raw', 'calib',
-              'areas', 'indexes_x', 'indexes_y', 'pixel_size',
-              'coords_x', 'coords_y', 'coords_z', 
-              'image',
-             ] 
-
-    _attr_docs = {
-            'shape': 'Shape of raw data array', 
-            'size': 'Total size of raw data', 
-            'ndim': 'Number of dimensions of raw data', 
-            'pedestals': 'Pedestals from calibStore', 
-            'rms': '', 
-            'gain': 'Pixel Gain factor from calibStore', 
-            'bkgd': '', 
-            'status': '',
-            'common_mode': 'Common mode parameters', 
-            'raw': 'Raw data', 
-            'calib': 'Calibrated data',
-            'areas': 'Pixel area correction factor', 
-            'indexes_x': 'Pixel X index', 
-            'indexes_y': 'Pixel Y index', 
-            'pixel_size': 'Pixel Size',
-            'coords_x': 'Pixel X coordinate', 
-            'coords_y': 'Pixel Y coordinate', 
-            'coords_z': 'Pixel Z coordinate', 
-            'image': 'Reconstruced 2D image from calibStore geometry',
+    _attrs = ['image', 'raw', 'calib', 'size'] 
+    _attr_info = {
+            'size':        {'doc': 'Total size of raw data', 
+                            'unit': ''},
+            'raw':         {'doc': 'Raw data', 
+                            'unit': 'ADU'},
+            'calib':       {'doc': 'Calibrated data',
+                            'unit': 'ADU'},
+            'image':       {'doc': 'Reconstruced 2D image from calibStore geometry',
+                            'unit': 'ADU'},
             } 
 
     def __init__(self, det, evt):
@@ -882,11 +1342,6 @@ class ImageDict(object):
         """
         return self._det.image(self._evt, nda)
 
-    def set_do_offset(do_offset=True):
-        """Not sure what do offset does?
-        """
-        self._det.set_do_offset(do_offset=do_offset)
-
     def common_mode_correction(self, nda):
         """Return the common mode correction for the input numpy 
            array (pedestal-subtracted). 
@@ -898,6 +1353,109 @@ class ImageDict(object):
            numpy array (pedestal-subtracted). 
         """
         self._det.common_mode_apply(self._evt, nda)
+
+    def show_info(self):
+        """Show information for relevant detector attributes.
+        """
+        if self.size > 0:
+            items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+            for attr, item in items:
+                fdict = {'attr': attr, 'unit': '', 'doc': ''}
+                fdict.update(**item)
+                value = getattr(self, attr)
+                if isinstance(value, str):
+                    fdict['str'] = value
+                elif isinstance(value, list):
+                    if len(value) < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = 'list'
+                elif hasattr(value,'mean'):
+                    if value.size < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = '<{:.5}>'.format(value.mean())
+                else:
+                    try:
+                        fdict['str'] = '{:12.5g}'.format(value)
+                    except:
+                        fdict['str'] = str(value)
+
+                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+        else:
+            print 'No Event'
+
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            return getattr(self._det, attr)(self._evt)
+        
+    def __dir__(self):
+        all_attrs =  set(self._attrs +
+                         self.__dict__.keys() + dir(ImageData))
+        
+        return list(sorted(all_attrs))
+
+
+class ImageCalibData(object):
+    """Calibration Data from psana Detector object.
+    """
+
+    _attrs = ['shape', 'size', 'ndim', 'pedestals', 'rms', 'gain', 'bkgd', 'status',
+              'common_mode', 'runnum',
+              'areas', 'indexes_x', 'indexes_y', 'pixel_size',
+              'coords_x', 'coords_y', 'coords_z', 
+             ] 
+    _attr_info = {
+            'runnum':      {'doc': 'Run number',
+                            'unit': ''},
+            'shape':       {'doc': 'Shape of raw data array', 
+                            'unit': ''},
+            'size':        {'doc': 'Total size of raw data', 
+                            'unit': ''},
+            'ndim':        {'doc': 'Number of dimensions of raw data', 
+                            'unit': ''},
+            'pedestals':   {'doc': 'Pedestals from calibStore', 
+                            'unit': 'ADU'},
+            'rms':         {'doc': '', 
+                            'unit': 'ADU'},
+            'gain':        {'doc': 'Pixel Gain factor from calibStore', 
+                            'unit': ''},
+            'bkgd':        {'doc': '', 
+                            'unit': ''},
+            'status':      {'doc': '',
+                            'unit': ''},
+            'common_mode': {'doc': 'Common mode parameters', 
+                            'unit': ''},
+            'areas':       {'doc': 'Pixel area correction factor', 
+                            'unit': ''},
+            'indexes_x':   {'doc': 'Pixel X index', 
+                            'unit': ''},
+            'indexes_y':   {'doc': 'Pixel Y index', 
+                            'unit': ''},
+            'pixel_size':  {'doc': 'Pixel Size',
+                            'unit': 'um'},
+            'coords_x':    {'doc': 'Pixel X coordinate', 
+                            'unit': 'um'},
+            'coords_y':    {'doc': 'Pixel Y coordinate', 
+                            'unit': 'um'},
+            'coords_z':    {'doc': 'Pixel Z coordinate', 
+                            'unit': 'um'},
+            } 
+
+    def __init__(self, det, evt):
+        self._evt = evt
+        self._det = det
+
+    @property
+    def instrument(self):
+        """Instrument to which this detector belongs.
+        """
+        return self._det.instrument()
+
+    def set_do_offset(do_offset=True):
+        """Not sure what do offset does?
+        """
+        self._det.set_do_offset(do_offset=do_offset)
 
     def mask(self, calib=False, status=False, 
                    edges=False, central=False, 
@@ -934,9 +1492,10 @@ class ImageDict(object):
         """Show information for relevant detector attributes.
         """
         if self.size > 0:
-            items = sorted(self._attr_docs.items(), key = operator.itemgetter(0))
-            for attr, doc in items:
-                fdict = {'attr': attr, 'unit': '', 'doc': doc}
+            items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+            for attr, item in items:
+                fdict = {'attr': attr, 'unit': '', 'doc': ''}
+                fdict.update(**item)
                 value = getattr(self, attr)
                 if isinstance(value, str):
                     fdict['str'] = value
@@ -966,91 +1525,8 @@ class ImageDict(object):
         
     def __dir__(self):
         all_attrs =  set(self._attrs +
-                         self.__dict__.keys() + dir(ImageDict))
+                         self.__dict__.keys() + dir(ImageCalibData))
         
-        return list(sorted(all_attrs))
-
-# to convert ipAddr int to address 
-# import socket, struct
-# s = key.src()
-# socket.inet_ntoa(struct.pack('!L',s.ipAddr()))
-
-class KeyDict(object):
-    """Dictify psana data for a given detector source.
-       data_type: 'evt' or 'config' (default = 'evt')
-    """
-    def __init__(self, objclass, srcstr, key_info=None):
-        self._srcstr = srcstr
-        if not key_info:
-            key_info = get_key_info(objclass)
-
-        self._data = {}
-        self._keys = key_info.get(srcstr)
-        if self._keys:
-            for (typ, src, key) in self._keys:
-                if key:
-                    typ_func = objclass.get(*item)
-                else:
-                    typ_func = objclass.get(typ, src)
-
-                self._data.update(get_key_dict(typ_func))
-                
-    @property
-    def _attr_info(self):
-        """
-        """
-        _info = {}
-        for (typ, src, key) in self._keys:
-            _info[typ] = {}
-            type_name = typ.__name__
-            module = typ.__module__.lstrip('psana.')
-            for attr, item in psana_doc_info[module][type_name].items():
-                value = self._data[attr]
-                if isinstance(value, dict):
-                    try:
-                        for a,b in psana_doc_info[module][attr].items():
-                            val = value.get(a)
-                            name =  '_'.join([attr,a])
-                            b['attr'] = name
-                            b['value'] = val
-                            b['str'] = _repr_value(val)
-                            _info[typ][name] = b
-                    except:
-                        for a,val in value.items():
-                            b = {'unit': '', 'doc': ''}
-                            name =  '_'.join([attr,a])
-                            b['attr'] = name
-                            b['value'] = val
-                            b['str'] = _repr_value(val)
-                            _info[typ][name] = b
-
-                else:
-                    item['attr'] = attr
-                    item['value'] = value
-                    item['str'] = _repr_value(value)
-                    _info[typ][attr] = item
-        
-        return _info
-
-    @property
-    def _attrs(self):
-        return self._data.keys()
-
-    def show_info(self):
-        for typ, type_info in self._attr_info.items():
-            type_attrs = sorted(type_info)
-            for attr in type_attrs:
-                if not attr[0].isupper() or attr in ['TypeId','Version']:
-                    item = type_info.get(attr)
-                    print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
-
-    def __getattr__(self, attr):
-        if attr in self._data:
-            return self._data[attr]
-        
-    def __dir__(self):
-        all_attrs = set(self._data.keys() +
-                        self.__dict__.keys() + dir(KeyDict))
         return list(sorted(all_attrs))
 
 
@@ -1064,7 +1540,7 @@ class EpicsConfig(object):
 
     def __init__(self, configStore):
 
-        # move to KeyDict objects
+        # move to PsanaSrcData objects
         self._pvs = {}
         for key in configStore.keys():
             if key.type() and key.type().__module__ == 'psana.Epics':
@@ -1088,10 +1564,10 @@ class EpicsConfig(object):
         return list(sorted(all_attrs))
 
 
-class EpicsDictify(object):
-    """Tab accessible dictified epics data from psana epicsStore.
+class EpicsData(object):
+    """Epics data from psana epicsStore.
        e.g., 
-         epicsStore = EpicsDictify(ds)
+         epicsStore = EpicsData(ds)
          returns dictified representation of ds.env().epicsStore()
     """
 
@@ -1115,7 +1591,6 @@ class EpicsDictify(object):
                     pvname = pv
 
                 pvalias = re.sub(':|\.|-| ','_',pvalias)
-
                 components = re.split(':|\.|-| ',pv)
                 if len(components) == 1:
                     components = re.split('_',pv,1)
@@ -1140,7 +1615,7 @@ class EpicsDictify(object):
         if attr in self._attrs:
             attr_dict = {key: pdict for key,pdict in self._pv_dict.items()
                          if pdict['components'][0] == attr}
-            return PVdictify(attr_dict, self._ds, level=1)
+            return PvData(attr_dict, self._ds, level=1)
         
         if attr in dir(self._ds.env().epicsStore()):
             return getattr(self._ds.env().epicsStore(),attr)
@@ -1148,12 +1623,12 @@ class EpicsDictify(object):
     def __dir__(self):
         all_attrs = set(self._attrs +
                         dir(self._ds.env().epicsStore()) +
-                        self.__dict__.keys() + dir(EpicsDictify))
+                        self.__dict__.keys() + dir(EpicsData))
         return list(sorted(all_attrs))
 
 
-class PVdictify(object):
-    """Dot.dictifies a dictionary of {PVnames: values}.
+class PvData(object):
+    """Epics PV Data.
     """
 
     def __init__(self, attr_dict, ds, level=0):
@@ -1214,19 +1689,19 @@ class PVdictify(object):
                     pv = self._attr_dict[key]['pv']
                     return self._get_pv(pv)
             if len(attr_dict) > 0:
-                return PVdictify(attr_dict, self._ds, level=self._level+1)
+                return PvData(attr_dict, self._ds, level=self._level+1)
 
     def __repr__(self):
         return self.get_info()
 
     def __dir__(self):
         all_attrs = set(self._attrs +
-                        self.__dict__.keys() + dir(PVdictify))
+                        self.__dict__.keys() + dir(PvData))
         return list(sorted(all_attrs))
 
 
 class EpicsStorePV(object):
-    """Dictified psana class for epicsStore PV's. 
+    """Epics PV access from epicsStore. 
     """
 
     def __init__(self, epicsStore, pv):
