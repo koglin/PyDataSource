@@ -219,6 +219,7 @@ def _is_psana_type(value):
     """
     return hasattr(value, '__module__') and value.__module__.startswith('psana')
 
+
 class PsanaTypeData(object):
     """Python representation of a psana data object (event or configStore data).
     """
@@ -294,13 +295,50 @@ class PsanaTypeData(object):
         """Return psana functions as properties.
         """
         value = getattr(self._typ_func, attr)
+        info = self._info.get(attr)
+        if info.get('func_shape'):
+            vals = getattr(self._typ_func, info.get('func_shape'))()[0]
+            try:
+                value = [value(i) for i in range(vals)]
+            except:
+                pass
+
+        elif info.get('func_len_hex'):
+            vals = getattr(self._typ_func, info.get('func_len_hex'))()
+            try:
+                value = [hex(value(i)) for i in range(vals)]
+            except:
+                pass
+
+        elif info.get('func_len'):
+            vals = getattr(self._typ_func, info.get('func_len'))()
+            try:
+                value = [value(i) for i in range(vals)]
+            except:
+                pass
+
+        elif info.get('func_index'):
+            vals = getattr(self._typ_func, info.get('func_index'))()
+            try:
+                value = [value(int(i)).name for i in vals]
+            except:
+                pass
+
+        elif 'func_method' in info:
+            return info.get('func_method')(value())
+
         if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
             # evaluate as name to avoid recursive psana functions 
             if 'name' in value._attrs:   
                 return value.name
-        
+       
+        # this needs to be made systematic
+        # previously tried checking for __func__ attribute to evaluate
+        # but did not always work.
         try:
             value = value()
+            if hasattr(value, 'name'):
+                return value.name
         except:
             pass
 
@@ -388,6 +426,13 @@ class PsanaSrcData(object):
         """
         for type_data in self._types.values():
             type_data.show_info()
+
+    def __str__(self):
+        return '{:}'.format(self._srcstr)
+
+    def __repr__(self):
+        repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
+        return '< '+repr_str+' >'
 
     def __getattr__(self, attr):
         item = self._type_attrs.get(attr)
@@ -640,7 +685,7 @@ class ConfigData(object):
 
             for output_map in config.output_maps:
                 map_key = (output_map.module,output_map.conn_id)
-                if output_map.source.Pulse:
+                if output_map.source == 'Pulse':
                     pulse_id = output_map.source_id
                     pulse = config.pulses[pulse_id]
                     evr_info = { 'evr_width': pulse.width*pulse.prescale/119.e6, 
@@ -800,44 +845,13 @@ class EvtDetectors(object):
     def Evr(self):
         """Master evr from psana evt data.
         """
-        if self._evr_typ is None:
-            self._evr_typ, self._evr_src = self._get_evr_typ_src()
-
-        if self._evr_typ:
-            return MasterEvr(self.get(self._evr_typ, self._evr_src))
-        else:
-            return []
+        return EvrData(self._ds)
 
     @property
     def L3T(self):
         """L3T Level 3 trigger.
         """
-        if self._l3t_typ is None:
-            self._l3t_typ, self._l3t_src = self._get_l3t_typ_src()
-
-        if self._l3t_typ:
-            return L3Tdata(self.get(self._l3t_typ, self._l3t_src))
-        else:
-            return True
-
-    def _get_l3t_typ_src(self):
-        """Set the L3T type and source.
-        """
-        for key in self._ds._current_evt.keys():
-            typ = key.type()
-            if typ and typ.__module__ == 'psana.L3T':
-                return (typ, key.src())
-                
-        return (False, False)
-
-    def _get_evr_typ_src(self):
-        """Set the maste evr. By default automated as there should only be one in the evt keys.
-        """
-        for key in self._ds._current_evt.keys():
-            if hasattr(key.src(),'devName') and getattr(key.src(),'devName')() == 'Evr':
-                return (key.type(), key.src())
-        
-        return (False, False)
+        return L3Tdata(self._ds)
 
     def next(self, *args, **kwargs):
         return self._ds.next(*args, **kwargs)
@@ -854,8 +868,8 @@ class EvtDetectors(object):
         return '< '+repr_str+' >'
 
     def __getattr__(self, attr):
-        if attr in self._dets:
-            return self._dets[attr]
+        if attr in self._ds._detectors:
+            return self._ds._detectors[attr]
         
         if attr in self._init_attrs:
             return getattr(self._ds._current_evt, attr)
@@ -868,19 +882,13 @@ class EvtDetectors(object):
         return list(sorted(all_attrs))
 
 
-class L3Tdata(object):
-    """L3 Trigger.
-    """
+class L3Tdata(PsanaTypeData):
 
-    _attrs = ['accept', 'bias', 'result']
-    _properties = ['TypeId', 'Version']
+    def __init__(self, ds):
 
-    def __init__(self, l3t):
-        self._l3t = l3t
-
-    def show_info(self):
-        for attr in self._attrs:
-            print '{:18s} {:>12}'.format(attr, getattr(self, attr))
+        self._typ, self._src, key = ds._evt_modules['L3T'].values()[0][0]
+        typ_func = ds._current_evt.get(self._typ,self._src)
+        PsanaTypeData.__init__(self, typ_func)
 
     def __str__(self):
         return str(self.result)
@@ -888,43 +896,15 @@ class L3Tdata(object):
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
 
-    def __getattr__(self, attr):
-        if attr in self._attrs:
-            return getattr(self._l3t, attr)()
 
-    def __dir__(self):
-        all_attrs =  set(self._attrs+
-                         self.__dict__.keys() + dir(L3Tdata))
-        
-        return list(sorted(all_attrs))
+class EvrData(PsanaTypeData):
 
+    def __init__(self, ds):
 
-class MasterEvr(object):
-    """Tab Accessible event Evr information for psana event.
-    """
-
-    _attrs = ['fifoEvents', 'numFifoEvents']
-
-    def __init__(self, evr):
-
-        self._evr = evr
-
-    @property
-    def eventCodes(self):
-        """Event codes
-        """
-        return [a.eventCode() for a in self.fifoEvents]
-
-    def preset(self, eventCode):
-        """True if event code is present in event.
-        """
-        try:
-            return self._evr.present(eventCode)
-        except:
-            return False
-
-    def show_info(self):
-        print '{:18s} {:>12}'.format('eventCodes', self.eventCodes)
+        self._typ, self._src, key = ds._evt_modules['EvrData'].values()[0][0]
+        typ_func = ds._current_evt.get(self._typ,self._src)
+        PsanaTypeData.__init__(self, typ_func)
+        self.eventCodes = [a.eventCode for a in self.fifoEvents]
 
     def __str__(self):
         try:
@@ -933,19 +913,6 @@ class MasterEvr(object):
             eventCodeStr = ''
         
         return eventCodeStr
-
-    def __repr__(self):
-        return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
-
-    def __getattr__(self, attr):
-        if attr in self._attrs:
-            return getattr(self._evr, attr)()
-
-    def __dir__(self):
-        all_attrs =  set(self._attrs+
-                         self.__dict__.keys() + dir(MasterEvr))
-        
-        return list(sorted(all_attrs))
 
 
 class EventId(object):
