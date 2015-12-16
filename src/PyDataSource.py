@@ -163,6 +163,35 @@ def get_key_info(psana_obj):
 
     return key_info
 
+def get_keys(psana_obj):
+    """Get a dictionary of the (type, src, key) for the data types of each src.
+    """
+    key_info = {}
+    _modules = {}
+    for key in psana_obj.keys():
+        typ = key.type()
+        src = key.src()
+        if typ:
+            srcstr = str(src)
+            if srcstr not in key_info:
+                key_info[srcstr] = [] 
+            
+            key_info[srcstr].append((typ, src, key.key()))
+            
+            type_name = typ.__name__
+            module = typ.__module__.lstrip('psana.')
+            if module:
+                if module not in _modules:
+                    _modules[module] = {}
+                
+                if type_name not in _modules[module]:
+                    _modules[module][type_name] = []
+
+                _modules[module][type_name].append((typ, src, key.key()))
+
+    return key_info, _modules
+
+
 def _repr_value(value):
     """Represent a value for use in show_info method.
     """
@@ -172,13 +201,16 @@ def _repr_value(value):
         if isinstance(value, list):
             return 'list'
         elif hasattr(value, 'mean'):
-            return '<{:.4}>'.format(value.mean())
+            try:
+                return '<{:.4}>'.format(value.mean())
+            except:
+                return value
         else:
             try:
                 return '{:10.5g}'.format(value)
             except:
                 try:
-                    return value.__str__()
+                    return str(value)
                 except:
                     return value
 
@@ -211,8 +243,22 @@ class PsanaTypeData(object):
         _data = {}
         for attr in self._attrs:
             value = getattr(self, attr)
-            if hasattr(value, '__class__') and value.__class__.__name__ == 'PsanaTypeData':
-                _data.update({'_'.join([attr, a]): item for a, item in value._attr_info.items()})
+            # avoid recursive psana functions
+            #if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
+            if hasattr(value, '_typ_func') and str(value._typ_func) != 'None':
+                if 'name' in value._attrs:  
+                    info = self._info.get(attr, {'unit': '', 'doc': ''})
+                    info['attr'] = attr
+                    info['value'] = value.name
+                    info['str'] = value.name
+                    _data[attr] = info
+                else:
+                    for a, item in value._attr_info.items():
+                        # make sure to make copy here or item changes previous objects
+                        aitem = item.copy()
+                        name = '_'.join([attr, a])
+                        aitem['attr'] = name
+                        _data.update({name: aitem})
             else:
                 info = self._info.get(attr, {'unit': '', 'doc': ''})
                 info['attr'] = attr
@@ -234,30 +280,49 @@ class PsanaTypeData(object):
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
         for attr, item in items:
             print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
-    
+
+    def __str__(self):
+        return '{:}.{:}.{:}'.format(self._typ_func.__class__.__module__,
+                                    self._typ_func.__class__.__name__, 
+                                    str(self._typ_func))
+
+    def __repr__(self):
+        repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
+        return '< '+repr_str+' >'
+
+    def _get_typ_func_attr(self, attr):
+        """Return psana functions as properties.
+        """
+        value = getattr(self._typ_func, attr)
+        if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
+            # evaluate as name to avoid recursive psana functions 
+            if 'name' in value._attrs:   
+                return value.name
+        
+        try:
+            value = value()
+        except:
+            pass
+
+        if isinstance(value, list):
+            values = []
+            for val in value:
+                if _is_psana_type(val):
+                    val = PsanaTypeData(val)
+                
+                values.append(val)
+        
+            return values
+
+        elif _is_psana_type(value):
+            return PsanaTypeData(value)
+
+        else:
+            return value
+
     def __getattr__(self, attr):
         if attr in self._attrs:
-            value = getattr(self._typ_func, attr)
-            try:
-                value = value()
-            except:
-                pass
-
-            if isinstance(value, list):
-                values = []
-                for val in value:
-                    if _is_psana_type(val):
-                        val = PsanaTypeData(val)
-                    
-                    values.append(val)
-            
-                return values
-
-            elif _is_psana_type(value):
-                return PsanaTypeData(value)
-
-            else:
-                return value
+            return self._get_typ_func_attr(attr)
 
     def __dir__(self):
         all_attrs = set(self._attrs +
@@ -327,7 +392,12 @@ class PsanaSrcData(object):
     def __getattr__(self, attr):
         item = self._type_attrs.get(attr)
         if item:
-            return getattr(self._types.get(item), attr)
+            value = getattr(self._types.get(item), attr)
+            if hasattr(value, '_typ_func') and str(value._typ_func) != 'None':
+                if 'name' in value._attrs:  
+                    return value.name
+
+            return value
 
     def __dir__(self):
         all_attrs = set(self._type_attrs.keys() +
@@ -352,6 +422,7 @@ class DataSource(object):
         self._evtData = None
         self._current_evt = None
         self._evt_keys = {}
+        self._evt_modules = {}
         self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
         self._ds = psana.DataSource(str(self.data_source))
         self.epicsData = EpicsData(self._ds) 
@@ -442,25 +513,13 @@ class ConfigData(object):
             self._monshmserver = None 
         
         self._configStore = configStore
-        self._key_info = get_key_info(configStore)
+        self._key_info, self._modules = get_keys(configStore)
 
         # Build _config dictionary for each source
         self._config = {}
-        self._modules = {}
         for attr, keys in self._key_info.items():
             config = PsanaSrcData(self._configStore, attr, key_info=self._key_info)
             self._config[attr] = config
-            for typ, src, key in keys:
-                type_name = typ.__name__
-                module = typ.__module__.lstrip('psana.')
-                if module:
-                    if module not in self._modules:
-                        self._modules[module] = {}
-                    
-                    if type_name not in self._modules[module]:
-                        self._modules[module][type_name] = []
-
-                    self._modules[module][type_name].append((typ, src, key))
 
         #Setup Partition
         if not self._modules.get('Partition'):
@@ -679,7 +738,7 @@ class RunEvents(object):
             print 'No more events in run.'
         else:
             evt = self._ds_run.event(self.times[self._ds._ievent]) 
-            self._ds._evt_keys = get_key_info(evt)
+            self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
             self._ds._current_evt = evt
 
         return EvtDetectors(self._ds)
@@ -699,7 +758,7 @@ class Events(object):
     def next(self):
         self._ds._ievent += 1
         evt = self._ds._ds.events().next()
-        self._ds._evt_keys = get_key_info(evt)
+        self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
         self._ds._current_evt = evt 
 
         return EvtDetectors(self._ds)
