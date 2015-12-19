@@ -199,12 +199,15 @@ def _repr_value(value):
         return value
     else:
         if isinstance(value, list):
-            return 'list'
+            if len(value) > 4:
+                return 'list'
+            else:
+                return str(value)
         elif hasattr(value, 'mean'):
             try:
                 return '<{:.4}>'.format(value.mean())
             except:
-                return value
+                return str(value)
         else:
             try:
                 return '{:10.5g}'.format(value)
@@ -219,15 +222,170 @@ def _is_psana_type(value):
     """
     return hasattr(value, '__module__') and value.__module__.startswith('psana')
 
+def _get_typ_func_attr(typ_func, attr, nolist=False):
+    """Return psana functions as properties.
+    """
+    value = getattr(typ_func, attr)
+    module = typ_func.__module__.lstrip('psana.')
+    type_name = typ_func.__class__.__name__
+    try: 
+        info = psana_doc_info[module][type_name].get(attr, {'unit': '', 'doc': ''})
+    except:
+        info = {'unit': '', 'doc': ''}
+
+    info['typ_func'] = typ_func
+    info['attr'] = attr
+
+    if info.get('func_shape'):
+        vals = getattr(typ_func, info.get('func_shape'))()[0]
+        try:
+            value = [value(i) for i in range(vals)]
+        except:
+            pass
+
+    elif info.get('func_len_hex'):
+        vals = getattr(typ_func, info.get('func_len_hex'))()
+        try:
+            value = [hex(value(i)) for i in range(vals)]
+        except:
+            pass
+
+    elif info.get('func_len'):
+        vals = getattr(typ_func, info.get('func_len'))()
+        try:
+            value = [value(i) for i in range(vals)]
+        except:
+            pass
+
+    elif info.get('func_index'):
+        vals = getattr(typ_func, info.get('func_index'))()
+        try:
+            value = [value(int(i)).name for i in vals]
+        except:
+            pass
+
+    elif 'func_method' in info:
+        info['value'] = info.get('func_method')(value())
+        return info
+
+#        if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
+#            # evaluate as name to avoid recursive psana functions 
+#            if 'name' in value._attrs:   
+#                return value.name
+#       
+#        # this needs to be made systematic
+#        # previously tried checking for __func__ attribute to evaluate
+#        # but did not always work.
+#        try:
+#            value = value()
+#            if hasattr(value, 'name'):
+#                return value.name
+#        except:
+#            pass
+#
+    if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
+        # evaluate as name to avoid recursive psana functions 
+        if 'name' in value._attrs and 'conjugate' in value._attrs:   
+            info['value'] = value.name
+  
+    try:
+        value = value()
+        if hasattr(value, 'name'):
+            info['value'] = value.name
+            return info
+    except:
+        pass
+
+    if isinstance(value, list):
+        values = []
+        is_type_list = False
+        for val in value:
+#            if _is_psana_type(val):
+#                val = PsanaTypeData(val)
+#                is_type_list = True
+#
+            values.append(val)
+           
+        if is_type_list and not nolist:
+            values = PsanaTypeList(values)
+
+        info['value'] = values
+        return info
+
+    if _is_psana_type(value):
+        info['value'] = PsanaTypeData(value)
+    else:
+        info['value'] = value
+
+    #if hasattr(value, 'name'):
+    #    value = value.name
+    
+    return info
+
+
+class PsanaTypeList(object):
+
+    def __init__(self, type_list):
+
+        self._type_list = type_list
+        typ_func = type_list[0]._typ_func
+        module = typ_func.__module__.lstrip('psana.')
+        type_name = typ_func.__class__.__name__
+        info = psana_doc_info[module][type_name]
+        
+        self._typ_func = typ_func
+        self._type_list = type_list
+        self._attrs = [key for key in info.keys() if not key[0].isupper()]
+        self._attr_info = info
+        #{attr: val for attr, val in type_list[0]._attr_info.items()}.copy()
+        self._values = {}
+        for attr, item in self._attr_info.items():
+            if not 'value' in item:
+                item['value'] = None
+
+        for attr in self._attrs:
+            values = [getattr(item, attr) for item in self._type_list]
+
+            try:
+                if isinstance(values[0], np.ndarray):
+                    values = np.array(values)
+            except:
+                pass
+#                print module, type_name, info
+#                print values
+
+            self._values[attr] = values
+            self._attr_info[attr]['value'] = values
+            self._attr_info[attr]['str'] = _repr_value(values)
+            self._attr_info[attr]['attr'] = attr
+
+    def show_info(self):
+        """Show a table of the attribute, value, unit and doc information
+        """
+        items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+        for attr, item in items:
+            if attr in self._attrs:
+                print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
+
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            return self._values.get(attr)
+
+    def __dir__(self):
+        all_attrs = set(self._attrs +
+                        self.__dict__.keys() + dir(PsanaTypeList))
+        return list(sorted(all_attrs))
+
 
 class PsanaTypeData(object):
     """Python representation of a psana data object (event or configStore data).
     """
 
-    def __init__(self, typ_func):
+    def __init__(self, typ_func, nolist=False):
         self._typ_func = typ_func
         module = self._typ_func.__module__.lstrip('psana.')
         type_name = self._typ_func.__class__.__name__
+        self._nolist = nolist
 
         if type_name in psana_doc_info[module]:
             self._info = psana_doc_info[module][type_name]
@@ -236,31 +394,17 @@ class PsanaTypeData(object):
             self._attrs = [attr for attr in dir(self._typ_func) if not attr.startswith('_')]
             self._info = {}
 
+#        self._attr_info = {}
+#        for attr in self._attrs:
+#            #self._attr_info[attr] = self._get_typ_func_attr(attr, nolist=nolist)
+#            self._attr_info[attr] = _get_typ_func_attr(typ_func, attr, nolist=nolist)
+
     @property
     def _attr_info(self):
-        """Attribute information including the unit and doc information 
-           and a str representation of the value.
-        """
         _data = {}
         for attr in self._attrs:
             value = getattr(self, attr)
-            # avoid recursive psana functions
-            #if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
-            if hasattr(value, '_typ_func') and str(value._typ_func) != 'None':
-                if 'name' in value._attrs:  
-                    info = self._info.get(attr, {'unit': '', 'doc': ''})
-                    info['attr'] = attr
-                    info['value'] = value.name
-                    info['str'] = value.name
-                    _data[attr] = info
-                else:
-                    for a, item in value._attr_info.items():
-                        # make sure to make copy here or item changes previous objects
-                        aitem = item.copy()
-                        name = '_'.join([attr, a])
-                        aitem['attr'] = name
-                        _data.update({name: aitem})
-            else:
+            if True:
                 info = self._info.get(attr, {'unit': '', 'doc': ''})
                 info['attr'] = attr
                 info['value'] = value
@@ -269,17 +413,56 @@ class PsanaTypeData(object):
 
         return _data
 
+#        info = self._info.copy()
+#        for attr in self._attrs:
+#            info['value'] = self._value[attr]
+
+#    @property
+#    def _attr_info(self):
+#        """Attribute information including the unit and doc information 
+#           and a str representation of the value.
+#        """
+#        _data = {}
+#        for attr in self._attrs:
+#            value = getattr(self, attr)
+#            # avoid recursive psana functions
+#            #if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
+#            if hasattr(value, '_typ_func') and str(value._typ_func) != 'None':
+#                if 'name' in value._attrs:  
+#                    info = self._info.get(attr, {'unit': '', 'doc': ''})
+#                    info['attr'] = attr
+#                    info['value'] = value.name
+#                    info['str'] = value.name
+#                    _data[attr] = info
+#                else:
+#                    for a, item in value._attr_info.items():
+#                        # make sure to make copy here or item changes previous objects
+#                        aitem = item.copy()
+#                        name = '_'.join([attr, a])
+#                        aitem['attr'] = name
+#                        _data.update({name: aitem})
+#            else:
+#                info = self._info.get(attr, {'unit': '', 'doc': ''})
+#                info['attr'] = attr
+#                info['value'] = value
+#                info['str'] = _repr_value(value)
+#                _data[attr] = info
+#
+#        return _data
+
     @property
     def _values(self):
         """Dictionary of attributes: values. 
         """
         return {attr: getattr(self, attr) for attr in self._attrs}
+        #return {attr: self._attr_info[attr]['value'] for attr in self._attrs}
 
     def show_info(self):
         """Show a table of the attribute, value, unit and doc information
         """
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
         for attr, item in items:
+            item['str'] = _repr_value(item.get('value'))
             print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
 
     def __str__(self):
@@ -291,11 +474,12 @@ class PsanaTypeData(object):
         repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
         return '< '+repr_str+' >'
 
-    def _get_typ_func_attr(self, attr):
+    def _get_typ_func_attr(self, attr, nolist=False):
         """Return psana functions as properties.
         """
         value = getattr(self._typ_func, attr)
         info = self._info.get(attr)
+
         if info.get('func_shape'):
             vals = getattr(self._typ_func, info.get('func_shape'))()[0]
             try:
@@ -344,22 +528,38 @@ class PsanaTypeData(object):
 
         if isinstance(value, list):
             values = []
+            is_type_list = False
             for val in value:
                 if _is_psana_type(val):
                     val = PsanaTypeData(val)
-                
+                    is_type_list = True
+
                 values.append(val)
-        
+               
+            if values and is_type_list and not self._nolist:
+                values = PsanaTypeList(values)
+            
             return values
+#            if info.get('func_dict_len'):
+#                vdict = {attr: [] for attr in values[0]._attrs}
+#                dict_len = getattr(self._typ_func,info['func_dict_len'])()
+#                if isinstance(dict_len, list):
+#                    dict_len = dict_len[0]
+#                for i in range(dict_len):
+#                    for attr in vdict.keys():
+#                        vdict[attr].append(getattr(values[i],attr))
+#
+#                return vdict
+
 
         elif _is_psana_type(value):
             return PsanaTypeData(value)
-
         else:
             return value
 
     def __getattr__(self, attr):
         if attr in self._attrs:
+            #return self._attr_info[attr]['value']
             return self._get_typ_func_attr(attr)
 
     def __dir__(self):
@@ -372,7 +572,7 @@ class PsanaSrcData(object):
     """Dictify psana data for a given detector source.
        key_info: get_key_info(objclass) for faster evt data access.
     """
-    def __init__(self, objclass, srcstr, key_info=None):
+    def __init__(self, objclass, srcstr, key_info=None, nolist=False):
         self._srcstr = srcstr
         if not key_info:
             key_info = get_key_info(objclass)
@@ -387,7 +587,7 @@ class PsanaSrcData(object):
                 else:
                     typ_func = objclass.get(typ, src)
 
-                type_data = PsanaTypeData(typ_func)
+                type_data = PsanaTypeData(typ_func, nolist=nolist)
                 self._types[(typ,key)] = type_data 
                 self._type_attrs.update({attr: (typ,key) for attr in type_data._attrs})
 
@@ -426,6 +626,9 @@ class PsanaSrcData(object):
         """
         for type_data in self._types.values():
             type_data.show_info()
+
+    def _get_type(self, typ):
+        return self._types.get(typ)
 
     def __str__(self):
         return '{:}'.format(self._srcstr)
@@ -563,7 +766,8 @@ class ConfigData(object):
         # Build _config dictionary for each source
         self._config = {}
         for attr, keys in self._key_info.items():
-            config = PsanaSrcData(self._configStore, attr, key_info=self._key_info)
+            config = PsanaSrcData(self._configStore, attr, 
+                                  key_info=self._key_info, nolist=True)
             self._config[attr] = config
 
         #Setup Partition
@@ -594,6 +798,7 @@ class ConfigData(object):
         self._partition = {} 
         self._readoutGroup = {}
         self._sources = {}
+        
         for source in config.sources:
             self._partition[str(source.src)] = source._values
             group = source.group
@@ -667,6 +872,7 @@ class ConfigData(object):
         for type_name in self._modules['EvrData'].keys():
             if type_name.startswith('IOConfig'):
                 IOCconfig_type = type_name
+                self._IOCconfig_type = type_name
             elif type_name.startswith('Config'):
                 config_type = type_name
 
@@ -703,6 +909,9 @@ class ConfigData(object):
         if len(self._modules['EvrData'][IOCconfig_type]) > 1:
             print 'WARNING: More than one EvrData.{:} objects'.format(IOCconfig_type)
 
+    def _init(self):
+
+        IOCconfig_type = self._IOCconfig_type
         typ, src, key = self._modules['EvrData'][IOCconfig_type][0]
         srcstr = str(src)
         config = self._config[srcstr]
@@ -736,6 +945,8 @@ class ConfigData(object):
 
     def __getattr__(self, attr):
         if attr in self._config_srcs:
+            #return PsanaSrcData(self._configStore, self._config_srcs[attr],
+            #                    key_info=self._key_info)
             return self._config[self._config_srcs[attr]]
 
         if attr in self._configStore_attrs:
@@ -904,7 +1115,8 @@ class EvrData(PsanaTypeData):
         self._typ, self._src, key = ds._evt_modules['EvrData'].values()[0][0]
         typ_func = ds._current_evt.get(self._typ,self._src)
         PsanaTypeData.__init__(self, typ_func)
-        self.eventCodes = [a.eventCode for a in self.fifoEvents]
+        #self.eventCodes = [a.eventCode for a in self.fifoEvents]
+        self.eventCodes = self.fifoEvents.eventCode
 
     def __str__(self):
         try:
@@ -1127,6 +1339,12 @@ class Detector(object):
             print '-'*18
             self.calibData.show_info()
 
+        if self.configData:
+            print '-'*80
+            print 'Configuration Data:'
+            print '-'*80
+            self.configData.show_info()
+        
         if self.epicsData:
             print '-'*80
             print 'Epics Data:'
