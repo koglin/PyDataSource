@@ -75,13 +75,29 @@ psana_doc_info['Quartz']['ConfigV2']['output_resolution']['unit'] = ''
 psana_doc_info['Acqiris']['DataDescV1Elem']['timestamp']['func_len'] = 'nbrSegments'
 psana_doc_info['Acqiris']['DataDescV1']['data']['func_shape'] = 'data_shape'
 psana_doc_info['Acqiris']['ConfigV1']['vert']['func_dict_len'] = 'nbrChannels'
-psana_doc_info['CsPad']['ConfigV5']['quads']['func_shape'] = 'quads_shape'
-psana_doc_info['CsPad']['ConfigV5']['quads']['func_dict_len'] = 'quads_shape'
+psana_doc_info['CsPad']['DataV1']['quads']['func_shape'] = 'quads_shape'
+#psana_doc_info['CsPad']['DataV1']['quads']['func_dict_len'] = 'quads_shape'
 psana_doc_info['CsPad']['DataV2']['quads']['func_shape'] = 'quads_shape'
-psana_doc_info['CsPad']['DataV2']['quads']['func_dict_len'] = 'quads_shape'
+#psana_doc_info['CsPad']['DataV2']['quads']['func_dict_len'] = 'quads_shape'
+psana_doc_info['CsPad']['ConfigV3']['quads']['func_shape'] = 'quads_shape'
+#psana_doc_info['CsPad']['ConfigV3']['quads']['func_dict_len'] = 'quads_shape'
+psana_doc_info['CsPad']['ConfigV3']['numAsicsStored']['func_len'] = 'numQuads'
+psana_doc_info['CsPad']['ConfigV3']['roiMask']['func_len_hex'] = 'numQuads'
+psana_doc_info['CsPad']['ConfigV3']['roiMasks']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV4']['quads']['func_shape'] = 'quads_shape'
+#psana_doc_info['CsPad']['ConfigV4']['quads']['func_dict_len'] = 'quads_shape'
+psana_doc_info['CsPad']['ConfigV4']['numAsicsStored']['func_len'] = 'numQuads'
+psana_doc_info['CsPad']['ConfigV4']['roiMask']['func_len_hex'] = 'numQuads'
+psana_doc_info['CsPad']['ConfigV4']['roiMasks']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV5']['quads']['func_shape'] = 'quads_shape'
+#psana_doc_info['CsPad']['ConfigV5']['quads']['func_dict_len'] = 'quads_shape'
 psana_doc_info['CsPad']['ConfigV5']['numAsicsStored']['func_len'] = 'numQuads'
 psana_doc_info['CsPad']['ConfigV5']['roiMask']['func_len_hex'] = 'numQuads'
 psana_doc_info['CsPad']['ConfigV5']['roiMasks']['func_method'] = hex
+psana_doc_info['CsPad']['ElementV2']['common_mode']['func_shape'] = 32
+psana_doc_info['Ipimb']['ConfigV1']['capacitorValue']['func_index'] = 'capacitorValues'
 psana_doc_info['Ipimb']['ConfigV2']['capacitorValue']['func_index'] = 'capacitorValues'
+#Need to understand the diode scale and base arrays.
+#psana_doc_info['Ipimb']['ConfigV2']['diode']['func_len'] = 4
 
 
