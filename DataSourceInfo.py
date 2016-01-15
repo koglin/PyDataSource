@@ -68,7 +68,7 @@ class DataSourceInfo(object):
                      'exp':           None, 
                      'h5':            None,
                      'run':           0,
-                     'smd':           None, 
+                     'smd':           True, 
                      'station':       0,
                      'idx':           None,
                      'ffb':           None,
@@ -127,12 +127,13 @@ class DataSourceInfo(object):
                     data_source += ":one-stream"
                 elif self.h5:
                     data_source += ":h5"
-                elif self.smd:
-                    data_source += ":smd"
-                    self.indexed = False 
                 elif self.idx:
                     data_source += ":idx"
                     self.indexed = True
+                else:
+                    data_source += ":smd"
+                    self.indexed = False 
+                    self.smd = True
 
             else:
                 print 'No data source specified, so assume this is shared memory.'
