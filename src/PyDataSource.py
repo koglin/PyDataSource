@@ -584,13 +584,16 @@ class Steps(object):
 
     def next(self):
         try:
-            self._ds._ievent = -1
-            self._ds._istep +=1
-            self._ds._ds_step = self._ds._ds.steps().next()
-            self._ds_steps.append(self._ds._ds_step)
-            self._ds._init_detectors()
-            self._ds._current_step = StepEvents(self._ds)
-            return self._ds._current_step
+            if self._ds._istep == self._ds._idx_run.nsteps()-1:
+                raise StopIteration()
+            else:
+                self._ds._ievent = -1
+                self._ds._istep +=1
+                self._ds._ds_step = self._ds._ds.steps().next()
+                self._ds_steps.append(self._ds._ds_step)
+                self._ds._init_detectors()
+                self._ds._current_step = StepEvents(self._ds)
+                return self._ds._current_step
 
         except: 
             raise StopIteration()
