@@ -118,7 +118,7 @@ class DataSourceInfo(object):
 
         else:
 
-            if self.exp and self.run:
+            if self.exp and self.run > 0:
                 self.instrument = self.exp[0:3]
      
                 data_source = "exp={exp}:run={run}".format(exp=self.exp,run=self.run)
@@ -153,14 +153,15 @@ class DataSourceInfo(object):
         return data_source
 
     def show_info(self):
-        print self.__repr__()
-        for attr in self._exp_defaults:
+        print '< {:}: {:} >'.format(self.__class__.__name__, self.data_source)
+        for attr in sorted(self._exp_defaults):
             print '{:20} {:}'.format(attr, getattr(self, attr))
 
     def __str__(self):
         return self.data_source
 
     def __repr__(self):
+        self.show_info()
         return '< {:}: {:} >'.format(self.__class__.__name__, self.data_source)
 
 
