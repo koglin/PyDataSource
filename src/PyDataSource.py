@@ -259,7 +259,7 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
             nvals = getattr(typ_func, nvals)()
         
         try:
-            value = [value(i) for i in range(vals)]
+            value = [value(i) for i in range(nvals)]
         except:
             pass
 
@@ -273,6 +273,7 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
     elif 'func_method' in info:
         info['value'] = info.get('func_method')(value())
         return info
+
 
     if hasattr(value, '_typ_func') and str(value._typ_func)[0].islower():
         # evaluate as name to avoid recursive psana functions 
@@ -290,7 +291,11 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
     if isinstance(value, list):
         values = []
         is_type_list = False
-        for i in range(len(value)):
+        nvals = info.get('list_len', len(value))
+        if isinstance(nvals, str):
+            nvals = getattr(typ_func, nvals)()
+       
+        for i in range(nvals):
             val = value[i]
             if _is_psana_type(val):
                 values.append(PsanaTypeData(val))
@@ -312,6 +317,384 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
     return info
 
 
+class DataSource(object):
+    """Python version of psana.DataSource with support for event and config
+       data as well as PyDetector functions to access calibrated data.
+    """
+
+    _ds_funcs = ['end', 'env']
+    _ds_attrs = ['empty']
+    _env_attrs = ['calibDir', 'instrument', 'experiment','expNum']
+
+    def __init__(self, data_source=None, **kwargs):
+        self.load_run(data_source=data_source, **kwargs)
+
+    def load_run(self, data_source=None, **kwargs):
+        """Load a run with psana.
+        """
+        self._evtData = None
+        self._current_evt = None
+        self._current_step = None
+        self._current_run = None
+        self._evt_keys = {}
+        self._evt_modules = {}
+        self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
+        self._ds = psana.DataSource(str(self.data_source))
+        self.epicsData = EpicsData(self._ds) 
+
+        self._evt_time_last = (0,0)
+        self._ievent = -1
+        self._istep = -1
+        self._irun = -1
+        if self.data_source.indexed:
+            self.runs = Runs(self, **kwargs)
+            self.events = self.runs.next().events
+        elif self.data_source.smd:
+            self.steps = Steps(self, **kwargs)
+            self.events = SmdEvents(self)
+            data_source_idx = str(self.data_source).replace('smd','idx')
+            self._idx_ds = psana.DataSource(data_source_idx)
+            self._idx_run = self._idx_ds.runs().next()
+            self._idx_times = self._idx_run.times()
+            self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
+                                    for a in self._idx_times]
+        else:
+            self.events = Events(self)
+
+    def reload(self):
+        """Reload the current run.
+        """
+        self.load_run(str(self.data_source))
+
+    def _init_detectors(self):
+        """Initialize psana.Detector classes based on psana env information.
+        """
+        self._detectors = {}
+        self.configData = ConfigData(self)
+        self._aliases = self.configData._aliases
+        for srcstr, item in self.configData._sources.items():
+            alias = item.get('alias')
+            self._add_dets(**{alias: srcstr})
+
+    def _add_dets(self, **kwargs):
+        for alias, srcstr in kwargs.items():
+            try:
+                det = Detector(self, alias)
+                self._detectors.update({alias: det})
+            except Exception as err:
+                print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
+                traceback.print_exc()
+    
+    def show_info(self):
+        self.configData.show_info()
+    
+    def __str__(self):
+        return  str(self.data_source)
+
+    def __repr__(self):
+        repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
+        print '< '+repr_str+' >'
+        self.show_info()
+        return '< '+repr_str+' >'
+
+    def __getattr__(self, attr):
+        if attr in self._ds_attrs:
+            return getattr(self._ds, attr)()
+        if attr in self._ds_funcs:
+            return getattr(self._ds, attr)
+        if attr in self._env_attrs:
+            return getattr(self._ds.env(), attr)()
+        
+    def __dir__(self):
+        all_attrs =  set(self._ds_attrs + 
+                         self._ds_funcs + 
+                         self._env_attrs +
+                         self.__dict__.keys() + dir(DataSource))
+        
+        return list(sorted(all_attrs))
+
+
+class Runs(object):
+    """psana DataSource Run iterator from ds.runs().
+    """
+    def __init__(self, ds, **kwargs):
+        self._ds_runs = []
+        self._kwargs = kwargs
+        self._ds = ds
+
+    def __iter__(self):
+        return self
+
+    @property
+    def current(self):
+        return self._ds._current_run
+
+    def next(self):
+        self._ds._ds_run = self._ds._ds.runs().next()
+        self._ds_runs.append(self._ds._ds_run)
+        self._ds._irun +=1
+        self._ds._istep = -1
+        self._ds._ievent = -1
+        self._ds._init_detectors()
+        self._ds._current_run = Run(self._ds)
+
+        return self._ds._current_run
+
+
+class Run(object):
+    """Python psana.Run class from psana.DataSource.runs().next().
+    """
+    _run_attrs = ['nsteps', 'times']
+    _run_funcs = ['end', 'env']
+
+    def __init__(self, ds, **kwargs):
+        self._ds = ds
+
+    @property
+    def events(self):
+        return RunEvents(self._ds)
+
+#    @property
+#    def steps(self):
+#        return RunSteps(self._ds)
+
+    def __getattr__(self, attr):
+        if attr in self._run_attrs:
+            return getattr(self._ds._ds_run, attr)()
+        if attr in self._run_funcs:
+            return getattr(self._ds._ds_run, attr)
+        
+    def __dir__(self):
+        all_attrs =  set(self._run_attrs +
+                         self._run_funcs + 
+                         self.__dict__.keys() + dir(Run))
+        
+        return list(sorted(all_attrs))
+
+
+#class RunSteps(object):
+#    """Step iterator from psana.DataSource.runs().steps().
+#    """
+#    def __init__(self, ds, **kwargs):
+#        self._ds = ds
+#        self._kwargs = kwargs
+#        self._ds_steps = []
+#        self._configSteps = []
+#
+#    def __iter__(self):
+#        return self
+#
+#    def next(self):
+#        try:
+#            self._ds._ievent = -1
+#            self._ds._istep +=1
+#            self._ds._ds_step = self._ds._current_run.steps().next()
+#            self._ds_steps.append(self._ds._ds_step)
+#            self._ds._init_detectors()
+#            return StepEvents(self._ds)
+#        
+#        except: 
+#            raise StopIteration()
+
+
+class RunEvents(object):
+    """Event iterator from ds.runs() for indexed data 
+
+       No support yet for multiple runs in a data_source
+    """
+    def __init__(self, ds, **kwargs):
+        self._kwargs = kwargs
+        self._ds = ds
+        self.times = self._ds.runs.current.times 
+
+    def __iter__(self):
+        return self
+
+    @property
+    def current(self):
+        return EvtDetectors(self._ds)
+
+    def next(self, evt_time=None):
+        """Optionally pass either an integer for the event number in the data_source
+           or a psana.EventTime time stamp to jump to an event.
+        """
+        try:
+            if evt_time is not None:
+                if isinstance(evt_time, int):
+                    self._ds._ievent = evt_time
+                else:
+                    self._ds._ievent = self.times.index(evt_time)
+            else:
+                self._ds._ievent += 1
+            
+            if self._ds._ievent >= len(self.times):
+                print 'No more events in run.'
+            else:
+                evt = self._ds._ds_run.event(self.times[self._ds._ievent]) 
+                self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
+                self._ds._current_evt = evt
+
+            return EvtDetectors(self._ds)
+
+        except: 
+            raise StopIteration()
+
+
+class SmdEvents(object):
+    """Event iterator for smd xtc data that iterates first over steps and then
+       events in steps (to make sure configData is updated for each step since
+       it is possible that it changes).
+    """
+    def __init__(self, ds, **kwargs):
+        self._ds = ds
+
+    @property
+    def current(self):
+        return EvtDetectors(self._ds)
+
+    def __iter__(self):
+        return self
+
+    def next(self, evt_time=None):
+        try:
+            return self._ds._current_step.next(evt_time=evt_time)
+        except:
+            try:
+                self._ds.steps.next()
+                return self._ds._current_step.next()
+            except:
+                raise StopIteration()
+
+
+class Steps(object):
+    """Step iterator from ds.steps().
+    """
+    def __init__(self, ds, **kwargs):
+        self._ds = ds
+        self._kwargs = kwargs
+        self._ds_steps = []
+        self._configSteps = []
+
+    @property
+    def current(self):
+        return self._ds._current_step
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        try:
+            self._ds._ievent = -1
+            self._ds._istep +=1
+            self._ds._ds_step = self._ds._ds.steps().next()
+            self._ds_steps.append(self._ds._ds_step)
+            self._ds._init_detectors()
+            self._ds._current_step = StepEvents(self._ds)
+            return self._ds._current_step
+
+        except: 
+            raise StopIteration()
+
+
+class StepEvents(object):
+    """Event iterator from ds.steps().events() 
+    """
+    def __init__(self, ds, **kwargs):
+        self._kwargs = kwargs
+        self._ds = ds
+
+    @property
+    def current(self):
+        return EvtDetectors(self._ds)
+
+    def __iter__(self):
+        return self
+
+    def next(self, evt_time=None):
+        """Next event in step.  Optionally pass either an integer for the 
+           event number in the data_source, a psana.EventTime time stamp
+           or a time stamp tupple (second, nanosecond, fiducial)
+           to jump to an event.  If no event time or number is passed, the
+           event loop will procede from the last event in the step regardless
+           of which event was previously jumped to.
+        """
+        if evt_time is not None:
+            # Jump to the specified event
+            try:
+                if self._ds._istep >= 0:
+                    # keep trak of event index to go back to step event loop
+                    self._ds._ievent_last = self._ds._ievent
+                    self._ds._istep_last = self._ds._istep
+                    self._ds._istep = -1
+                
+                if evt_time.__class__.__name__ == 'EventTime':
+                    # lookup event index from time tuple
+                    ttup = (evt_time.seconds(), evt_time.nanoseconds(), evt_time.fiducial())
+                    self._ds._ievent = self._ds._idx_times_tuple.index(ttup)
+                elif isinstance(evt_time, tuple):
+                    # optionally accept a time tuple (seconds, nanoseconds, fiducial)
+                    self._ds._ievent = self._ds._idx_times_tuple.index(evt_time)
+                    evt_time = self._ds._idx_times[self._ds._ievent]
+                else:
+                    # if an integer was passed jump to the appropriate time from 
+                    # the list of run times -- i.e., psana.DataSource.runs().next().times()
+                    self._ds._ievent = evt_time
+                    evt_time = self._ds._idx_times[evt_time]
+
+                print self._ds._ievent, evt_time.seconds(), evt_time.nanoseconds()
+                evt = self._ds._idx_run.event(evt_time) 
+                    
+                self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
+                self._ds._current_evt = evt
+            
+            except:
+                print evt_time, 'is not a valid event time'
+        
+        else:
+            try:
+                if self._ds._istep == -1:
+                    # recover event and step index after previoiusly jumping to an event 
+                    self._ds._ievent = self._ds._ievent_last
+                    self._ds._istep = self._ds._istep_last
+                
+                self._ds._ievent += 1
+                evt = self._ds._ds_step.events().next()
+                self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
+                self._ds._current_evt = evt 
+            except:
+                raise StopIteration()
+
+        return EvtDetectors(self._ds)
+
+
+class Events(object):
+    """Event iterator
+    """
+
+    def __init__(self, ds, **kwargs):
+        self._kwargs = kwargs
+        self._ds = ds
+        self._ds._init_detectors()
+
+    @property
+    def current(self):
+        return EvtDetectors(self._ds)
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        try:
+            self._ds._ievent += 1
+            evt = self._ds._ds.events().next()
+            self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
+            self._ds._current_evt = evt 
+        except:
+            raise StopIteration()
+
+        return EvtDetectors(self._ds)
+
+
 class PsanaTypeList(object):
 
     def __init__(self, type_list):
@@ -323,18 +706,14 @@ class PsanaTypeList(object):
         info = psana_doc_info[module][type_name].copy()
         
         self._typ_func = typ_func
-        self._attr_info = info
         self._values = {}
-        for attr, item in self._attr_info.items():
-            if not 'value' in item:
-                item['value'] = None
+        self._attr_info = {}
+        for attr, item in info.items():
+            item['value'] = None
 
         attrs = [key for key in info.keys() if not key[0].isupper()]
         for attr in attrs:
-            values = []
-            for item in type_list:
-                values.append(getattr(item, attr))
-            #values = [getattr(item, attr) for item in self._type_list]
+            values = [getattr(item, attr) for item in self._type_list]
 
             try:
                 if isinstance(values[0], np.ndarray):
@@ -346,18 +725,33 @@ class PsanaTypeList(object):
 
             if hasattr(values[0], '_typ_func'):
                 vals = PsanaTypeList(values)
-                for name, item in vals._attr_info.items():
+                for name, item in vals._attr_info.copy().items():
                     alias = attr+'_'+name
-                    self._attr_info[alias] = item
-                    self._attr_info[alias]['attr'] = alias
                     self._values[alias] = item['value']
+                    self._attr_info[alias] = item.copy()
+                    self._attr_info[alias]['attr'] = alias
 
             else:
                 self._values[attr] = values
+                self._attr_info[attr] = info[attr].copy()
                 self._attr_info[attr]['value'] = values
                 self._attr_info[attr]['attr'] = attr
 
         self._attrs = self._values.keys()
+
+    @property
+    def _all_values(self):
+        """All values in a flattened dictionary.
+        """
+        avalues = {}
+        items = sorted(self._values.items(), key = operator.itemgetter(0))
+        for attr, val in items:
+            if hasattr(val, '_all_values'):
+                for a, v in val._all_values.items():
+                    avalues[attr+'_'+a] = v
+            else:
+                avalues[attr] = val
+        return avalues
 
     def show_info(self, prefix=''):
         """Show a table of the attribute, value, unit and doc information
@@ -397,7 +791,7 @@ class PsanaTypeData(object):
         self._nolist = nolist
 
         if type_name in psana_doc_info[module]:
-            self._info = psana_doc_info[module][type_name]
+            self._info = psana_doc_info[module][type_name].copy()
             self._attrs = [key for key in self._info.keys() if not key[0].isupper()]
         else:
             self._attrs = [attr for attr in dir(typ_func) if not attr.startswith('_')]
@@ -412,6 +806,20 @@ class PsanaTypeData(object):
         """Dictionary of attributes: values. 
         """
         return {attr: self._attr_info[attr]['value'] for attr in self._attrs}
+
+    @property
+    def _all_values(self):
+        """All values in a flattened dictionary.
+        """
+        avalues = {}
+        items = sorted(self._values.items(), key = operator.itemgetter(0))
+        for attr, val in items:
+            if hasattr(val, '_all_values'):
+                for a, v in val._all_values.items():
+                    avalues[attr+'_'+a] = v
+            else:
+                avalues[attr] = val
+        return avalues
 
     def show_info(self, prefix=None):
         """Show a table of the attribute, value, unit and doc information
@@ -506,6 +914,16 @@ class PsanaSrcData(object):
 
         return values
 
+    @property
+    def _all_values(self):
+        """All values in a flattened dictionary.
+        """
+        values = {}
+        for type_data in self._types.values():
+            values.update(**type_data._all_values)
+
+        return values
+
     def show_info(self):
         """Show a table of the attribute, value, unit and doc information
            for all data types of the given source.
@@ -538,101 +956,6 @@ class PsanaSrcData(object):
         return list(sorted(all_attrs))
 
 
-class DataSource(object):
-    """Python version of psana.DataSource with support for event and config
-       data as well as PyDetector functions to access calibrated data.
-    """
-
-    _ds_attrs = ['empty', 'end', 'env', 'runs', 'steps']
-    _env_attrs = ['calibDir', 'instrument', 'experiment','expNum']
-
-    def __init__(self, data_source=None, **kwargs):
-        self.load_run(data_source=data_source, **kwargs)
-
-    def load_run(self, data_source=None, **kwargs):
-        """Load a run with psana.
-        """
-        self._evtData = None
-        self._current_evt = None
-        self._evt_keys = {}
-        self._evt_modules = {}
-        self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
-        self._ds = psana.DataSource(str(self.data_source))
-        self.epicsData = EpicsData(self._ds) 
-
-        if self.data_source.indexed:
-            self._Events = RunEvents(self, **kwargs)
-        else:
-            self._Events = Events(self, **kwargs)
-
-        self._init_detectors()
-        self._evt_time_last = (0,0)
-        self._ievent = -1
-
-    def reload(self):
-        """Reload the current run.
-        """
-        self.load_run(str(self.data_source))
-
-    def _init_detectors(self):
-        """Initialize psana.Detector classes based on psana env information.
-        """
-        self._detectors = {}
-        self.configData = ConfigData(self)
-        self._aliases = self.configData._aliases
-        for srcstr, item in self.configData._sources.items():
-            alias = item.get('alias')
-            self._add_dets(**{alias: srcstr})
-
-    def _add_dets(self, **kwargs):
-        for alias, srcstr in kwargs.items():
-            try:
-                det = Detector(self, alias)
-                self._detectors.update({alias: det})
-            except Exception as err:
-                print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
-                traceback.print_exc()
-    
-    def show_info(self):
-        print self.__repr__()
-        for item in self._detectors.values():
-            print item.__repr__()
-
-    @property
-    def current(self):
-        return EvtDetectors(self)
-
-    def events(self):
-        return self._Events
-
-    def next(self, *args, **kwargs):
-        return self.events().next(*args, **kwargs) 
- 
-    def __iter__(self):
-        return self
-
-    def __str__(self):
-        return  str(self.data_source)
-
-    def __repr__(self):
-        repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
-        return '< '+repr_str+' >'
-
-    def __getattr__(self, attr):
-        if attr in self._ds_attrs:
-            return getattr(self._ds, attr)
-        
-        if attr in self._env_attrs:
-            return getattr(self._ds.env(), attr)()
-        
-    def __dir__(self):
-        all_attrs =  set(self._ds_attrs + 
-                         self._env_attrs +
-                         self.__dict__.keys() + dir(DataSource))
-        
-        return list(sorted(all_attrs))
-
-
 class ConfigData(object):
     """ConfigData
     """
@@ -644,7 +967,8 @@ class ConfigData(object):
             self._monshmserver = ds.data_source.monshmserver
         else:
             self._monshmserver = None 
-        
+       
+        self._ds = ds
         self._configStore = configStore
         self._key_info, self._modules = get_keys(configStore)
 
@@ -668,6 +992,7 @@ class ConfigData(object):
             typ, src, key = self._modules['Partition'][type_name][0]
             srcstr = str(src)
             config = self._config[srcstr]
+            self.Partition = config
         else:
             print 'ERROR:  More that one Partition module in configStore data.'
             print '       ', self._modules['Partition'][type_name]
@@ -682,15 +1007,9 @@ class ConfigData(object):
         self._bldMask = config.bldMask
         self._readoutGroup = {group: {'srcs': [], 'eventCodes': []} \
                               for group in set(config.sources.group)}
-#        self._sources = {str(src): {'group': config.sources.group[i]} \
-#                         for i, src in enumerate(config.sources.src)}
         self._sources = {}
         self._partition = {str(src): {'group': config.sources.group[i], 'src': src} \
                            for i, src in enumerate(config.sources.src)}
-
-        for srcstr, item in self._sources.items():
-            group = item['group']
-            self._readoutGroup[group]['srcs'].append(srcstr)
 
         self._srcAlias = {}
         if self._modules.get('Alias'):
@@ -713,6 +1032,9 @@ class ConfigData(object):
                 self._partition[srcstr]['alias'] = alias
                 if srcstr.find('NoDetector') == -1:
                     self._aliases[alias] = srcstr
+                
+                group = self._partition[srcstr].get('group', -1)
+            
             elif ipAddr != self._ipAddrPartition or self._monshmserver:
                 # add data sources not in partition that come from recording nodes
                 group = -1
@@ -721,8 +1043,9 @@ class ConfigData(object):
                 if group not in self._readoutGroup:
                     self._readoutGroup[group] = {'srcs': [], 'eventCodes': []}
 
-                self._readoutGroup[group]['srcs'].append(srcstr)
                 self._sources[srcstr] = {'group': group, 'alias': alias}
+                
+            self._readoutGroup[group]['srcs'].append(srcstr)
 
         # Determine data sources and update aliases
         for srcstr, item in self._partition.items():
@@ -808,16 +1131,18 @@ class ConfigData(object):
                     self._sources[srcstr][attr] = self._output_maps[map_key][attr]
 
         for group, item in self._readoutGroup.items():
-            for srcstr in item['srcs']:
-                if srcstr in self._sources:
-                    self._sources[srcstr]['eventCodes'] = item['eventCodes']
-        
+            if item['eventCodes']:
+                for srcstr in item['srcs']: 
+                    if srcstr in self._sources:
+                        self._sources[srcstr]['eventCode'] = item['eventCodes'][0]
+
         # Get control data
         if self._modules.get('ControlData'):
             type_name, keys = self._modules['ControlData'].items()[0]
             typ, src, key = keys[0]
             config = self._config[str(src)]
             self._controlData = config._values
+            self.ControlData = config
 
         if self._modules.get('SmlData'):
             type_name, keys = self._modules['SmlData'].items()[0]
@@ -825,11 +1150,46 @@ class ConfigData(object):
             config = self._config[str(src)]
             self._smlData = config._values
 
+    def show_info(self):
+        print '{:16} {:5} {:8} {:5} {:12} {:12} {:40}'.format('Alias', 'Group', 
+                'EvtCode', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
+        print '-'*80
+        cfg_srcs = self._config_srcs.values()
+        data_srcs = {item['alias']: s for s,item in self._sources.items() \
+                       if s in cfg_srcs or s.startswith('Bld')}
+        
+        for alias, srcstr in sorted(data_srcs.items(), key = operator.itemgetter(0)):
+            item = self._sources.get(srcstr,{})
+            eventCode = item.get('eventCode', '')
 
+            polarity = item.get('evr_polarity', '')
+            if polarity == 1:
+                polarity = 'Pos'
+            elif polarity == 0:
+                polarity = 'Neg'
+
+            delay = item.get('evr_delay', '')
+            if delay:
+                delay = '{:11.9f}'.format(delay)
+
+            width = item.get('evr_width', '')
+            if width:
+                width = '{:11.9f}'.format(width)
+
+            print '{:16} {:5} {:8} {:5} {:12} {:12} {:40}'.format(alias, 
+                   item.get('group'), eventCode, polarity, delay, width, srcstr)
+
+    def __str__(self):
+        return  'ConfigData: '+str(self._ds.data_source)
+
+    def __repr__(self):
+        repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self._ds.data_source))
+        print '< '+repr_str+' >'
+        self.show_info()
+        return '< '+repr_str+' >'
+    
     def __getattr__(self, attr):
         if attr in self._config_srcs:
-            #return PsanaSrcData(self._configStore, self._config_srcs[attr],
-            #                    key_info=self._key_info)
             return self._config[self._config_srcs[attr]]
 
         if attr in self._configStore_attrs:
@@ -840,67 +1200,6 @@ class ConfigData(object):
                         self._config_srcs.keys() + 
                         self.__dict__.keys() + dir(ConfigData))
         return list(sorted(all_attrs))
-
-
-class RunEvents(object):
-    """Event iterator from ds.runs() for indexed data 
-
-       No support yet for multiple runs in a data_source
-    """
-    def __init__(self, ds, **kwargs):
-        self._ds_runs = []
-        self._kwargs = kwargs
-        self._ds = ds
-        self.next_run()
-
-    def next_run(self):
-        self._ds_run = self._ds.runs().next()
-        self._ds_runs.append(self._ds_run)
-        self.times = self._ds_run.times()
-
-    def __iter__(self):
-        return self
-
-    def next(self, evt_time=None):
-        """Optionally pass either an integer for the event number in the data_source
-           or a psana.EventTime time stamp to jump to an event.
-        """
-        if evt_time is not None:
-            if isinstance(evt_time, int):
-                self._ds._ievent = evt_time
-            else:
-                self._ds._ievent = self.times.index(evt_time)
-        else:
-            self._ds._ievent += 1
-        
-        if self._ds._ievent >= len(self.times):
-            print 'No more events in run.'
-        else:
-            evt = self._ds_run.event(self.times[self._ds._ievent]) 
-            self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
-            self._ds._current_evt = evt
-
-        return EvtDetectors(self._ds)
-
-
-class Events(object):
-    """Event iterator
-    """
-
-    def __init__(self, ds, **kwargs):
-        self._kwargs = kwargs
-        self._ds = ds
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        self._ds._ievent += 1
-        evt = self._ds._ds.events().next()
-        self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
-        self._ds._current_evt = evt 
-
-        return EvtDetectors(self._ds)
 
 
 class EvtDetectors(object):
@@ -939,7 +1238,10 @@ class EvtDetectors(object):
     def Evr(self):
         """Master evr from psana evt data.
         """
-        return EvrData(self._ds)
+        if 'EvrData' in self._ds._evt_modules:
+            return EvrData(self._ds)
+        else:
+            return EvrNullData(self._ds)
 
     @property
     def L3T(self):
@@ -951,14 +1253,15 @@ class EvtDetectors(object):
             return L3Ttrue(self._ds)
 
     def next(self, *args, **kwargs):
-        return self._ds.next(*args, **kwargs)
+        return self._ds.events.next(*args, **kwargs)
  
     def __iter__(self):
         return self
 
     def __str__(self):
-        return  '{:}, Run {:}, Event {:}, {:}, {:}'.format(self._ds.data_source.exp, 
-                self._ds.data_source.run, self._ds._ievent, str(self.EventId), str(self.Evr))
+        return  '{:}, Run {:}, Step {:}, Event {:}, {:}, {:}'.format(self._ds.data_source.exp, 
+                self._ds.data_source.run, self._ds._istep, self._ds._ievent, 
+                str(self.EventId), str(self.Evr))
 
     def __repr__(self):
         repr_str = '{:}: {:}'.format(self.__class__.__name__, str(self))
@@ -1050,6 +1353,18 @@ class EvrData(PsanaTypeData):
         PsanaTypeData.__init__(self, typ_func)
         self.eventCodes = self.fifoEvents.eventCode
 
+    def present(self, eventCode):
+        """Return True if the eventCode is present.
+        """
+        try:
+            pres = self._typ_func.present(eventCode)
+            if pres:
+                return True
+            else:
+                return False
+        except:
+            return False
+
     def __str__(self):
         try:
             eventCodeStr = '{:}'.format(self.eventCodes)
@@ -1058,33 +1373,50 @@ class EvrData(PsanaTypeData):
         
         return eventCodeStr
 
+class EvrNullData(object):
+    """Evr data class when no EvrData type is in event keys.
+       Occurs for controls cameras with no other daq data present.
+    """
+
+    def __init__(self, ds):
+        self.eventCodes = []
+
+    def __str__(self):
+        return ''
+
 
 class EventId(object):
     """Time stamp information from psana EventId. 
     """
 
     _attrs = ['fiducials', 'idxtime', 'run', 'ticks', 'time', 'vector']
-    _properties = ['timef64', 'nsec', 'sec']
+    _properties = ['EventTime', 'timef64', 'nsec', 'sec']
 
     def __init__(self, evt):
 
         self._EventId = evt.get(psana.EventId)
 
     @property
+    def EventTime(self):
+        """psana.EventTime for use in indexed idx xtc files.
+        """
+        return psana.EventTime(int((self.sec<<32)|self.nsec), self.fiducials)
+
+    @property
     def timef64(self):
-        return np.float64(self.time[0])+np.float64(self.time[1])/1.e9 
+        return np.float64(self.sec)+np.float64(self.nsec)/1.e9 
 
     @property
     def nsec(self):
         """nanosecond part of event time.
         """
-        return self.time[0]
+        return self.time[1]
 
     @property
     def sec(self):
         """second part of event time.
         """
-        return self.time[1]
+        return self.time[0]
 
     def show_info(self):
         print self.__repr__()
@@ -1117,7 +1449,7 @@ class EventId(object):
 
 
 class Detector(object):
-    """Includes epicsData, configStore, evrConfig info 
+    """Includes epicsData, configData, evrConfig info 
        Uses full ds in order to be able to access epicsData info on
        an event basis.
     """
@@ -1170,8 +1502,7 @@ class Detector(object):
         """
         attrs = {}
         for attr, item in self.configData._attr_info.items():
-            if item['str'] != 'list' and not item['str'].startswith('<bound'):
-                attrs.update({attr: item['value']})
+            attrs.update({attr: item['value']})
         
         return attrs
 
@@ -1229,7 +1560,7 @@ class Detector(object):
         return attrs
 
     def next(self, *args, **kwargs):
-        return getattr(self._ds.next(*args, **kwargs), self._alias)
+        return getattr(self._ds.events.next(*args, **kwargs), self._alias)
  
     def __iter__(self):
         return self
@@ -1256,7 +1587,7 @@ class Detector(object):
 
     def show_all(self):
         print '-'*80
-        print '{:}: {:}'.format(self._alias, str(self._ds.current))
+        print str(self)
         print '-'*80
         print 'Event Data:'
         print '-'*18
@@ -1285,7 +1616,7 @@ class Detector(object):
 
     def show_info(self):
         print '-'*80
-        print '{:}: {:}'.format(self._alias, str(self._ds.current))
+        print str(self)
         print '-'*80
         getattr(self, self._tabclass).show_info()
 
@@ -1318,7 +1649,7 @@ class Detector(object):
             return None
 
     def __str__(self):
-        return '{:} {:}'.format(self._alias, str(self._ds.current))
+        return '{:} {:}'.format(self._alias, str(self._ds.events.current))
 
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
@@ -1327,12 +1658,12 @@ class Detector(object):
         if attr in self._attrs:
             return getattr(getattr(self, self._tabclass), attr)
         
-        if attr in self._ds.current._event_attrs:
-            return getattr(self._ds.current, attr)
+        if attr in self._ds.events.current._event_attrs:
+            return getattr(self._ds.events.current, attr)
 
     def __dir__(self):
         all_attrs =  set(self._attrs+
-                         self._ds.current._event_attrs +
+                         self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
         
         return list(sorted(all_attrs))
