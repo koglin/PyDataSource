@@ -1,0 +1,104 @@
+import argparse
+from PyDataSource import *
+
+def initArgs():
+    """Initialize argparse arguments.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("data_source", nargs='?', default=None, 
+                        help='psana data_source')
+    parser.add_argument("-e", "--exp", type=str, 
+                        help='Experiment number')
+    parser.add_argument("-r", "--run", type=int,  
+                        help='Run number')
+    parser.add_argument("-i", "--instrument", type=str, 
+                        help='Instrument')
+    parser.add_argument("-s", "--station", type=int, 
+                        help='Station')
+#    parser.add_argument("--cfg", type=str, 
+#                        help='psana cfg config file')
+    parser.add_argument("--idx", action="store_true", 
+                        help='Load indexed XTC data')
+    parser.add_argument("--smd", action="store_true", 
+                        help='Load smd small XTC data')
+    parser.add_argument("--h5", action="store_true", 
+                        help='Use hdf5 data instead of xtc')
+    parser.add_argument("--xtc_dir", type=str, 
+                        help='xtc file directory')
+    parser.add_argument("--ffb", action="store_true", 
+                        help='Use FFB data')
+#    parser.add_argument("--epics_file", type=str, 
+#                        help='epics alias file with epicsArch style file')
+#    parser.add_argument("--epics_dir", type=str, 
+#                        help='dir for epics_file used for epics aliases')
+    parser.add_argument("--show_errors", action="store_true", default=False,
+                        help='Show Errors in cases that might not be explicit ' \
+                             'due to try/except statements')
+    parser.add_argument("--indexed", action="store_true", default=False, 
+            help='Use indexing, see: https://confluence.slac.stanford.edu/display/PSDM/psana+-+Python+Script+Analysis+Manual#psana-PythonScriptAnalysisManual-RandomAccesstoXTCFiles("Indexing")')
+    parser.add_argument("--base", type=str, default='ds', 
+                        help='Base into which DataSource object is initiated.')
+    parser.add_argument("--shmem", action="store_true", 
+                        help='Use shmem data stream')
+#    parser.add_argument("-P", "--monshmserver", type=str, 
+#                        help='monshmserver source base for shmem data -- autodetected')
+    return parser.parse_args()
+
+def main():
+    """Main script to initialize DataSource object in interactive python.
+       Currently using ipsana.sh bash script to start this, but should look
+       to using example Dan D. provided for IPython startup.
+       /reg/neh/home/ddamiani/Workarea/psana-dev/psmon-dev/psmon/src/console.py
+
+       Left some code from psutils module for automatically guessing experiment
+       and instrument based on the user and local machine from which this is started.
+       
+       In future should add detection of data files to avoid trying to load 
+       run data that does not exist, including checks that the code is being
+       run on an appropriate machine.  If someone tries loading a file they do 
+       not have access to, a message should be given how to get access (i.e., 
+       ask the PI of the experiment to be added, and if sure are on experiment
+       then submit ticket to appropriate mail list for assistance).
+    """
+    time0 = time.time()
+    args = initArgs()
+    ds = DataSource(**vars(args))
+    setattr(sys.modules['__main__'], args.base, ds)
+    run_info = getattr(sys.modules['__main__'], args.base)
+    print "*"*80
+    print ""
+    print 'Data loaded for the psana data_source = ', run_info
+    if ds.events:
+        print 'Total Events = ', ds.nevents
+    
+    print 'Load time = {:5.1f} sec'.format(time.time()-time0)
+    print ""
+    ds.configData.show_info()
+    evt = ds.events.next()
+    print ""
+    print "*"*80
+    print '{:} is a python friendly (i.e, tab accessible) form of the psana.DataSource.'.format(args.base)
+    print 'Event data is accessible through aliases (psana get and keys methods are also preserved),  e.g.,'
+    print ""
+    print 'In [1]: evt = {:}.events.next()'.format(args.base)
+    print 'In [2]: evt.Evr.eventCodes'
+    print 'Out[2]: {:}'.format(str(evt.Evr.eventCodes))
+    print ""
+    print "The current event is also available in the {:}.events object, e.g.,".format(args.base) 
+    print ""
+    print 'In [3]: ds.events.current.Evr.eventCodes'
+    print 'Out[3]: {:}'.format(str(ds.events.current.Evr.eventCodes))
+    print ""
+    if ds.data_source.smd:
+        print 'For offline data (using smd small data access), one can also iterate through "calib cycle" steps.  e.g.,'
+        print "In [4]: for events in {:}.steps:".format(args.base)
+        print "            for evt in events:"
+        print "                # Do something with events..."
+        print ""
+    
+    print "*"*80
+    ds.reload()
+
+if __name__ == "__main__":
+    sys.exit(main())
+
