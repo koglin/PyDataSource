@@ -148,6 +148,27 @@ import numpy as np
 from DataSourceInfo import *
 from psana_doc_info import * 
 
+_eventCodes_rate = {
+        40: '120 Hz',
+        41: '60 Hz',
+        42: '30 Hz',
+        43: '10 Hz',
+        44: '5 Hz',
+        45: '1 Hz',
+        46: '0.5 Hz',
+        140: 'Beam & 120 Hz',
+        141: 'Beam & 60 Hz',
+        142: 'Beam & 30 Hz',
+        143: 'Beam & 10 Hz',
+        144: 'Beam & 5 Hz',
+        145: 'Beam & 1 Hz',
+        146: 'Beam & 0.5 Hz',
+        150: 'Burst',
+        162: 'BYKIK',
+        163: 'BAKIK',
+        }
+
+
 def get_key_info(psana_obj):
     """Get a dictionary of the (type, src, key) for the data types of each src.
     """
@@ -316,6 +337,160 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
 
     return info
 
+class ScanData(object):
+    """
+    """
+    _array_attrs = ['pvControls_value', 'pvMonitors_loValue', 'pvMonitors_hiValue']
+    _uses_attrs = ['uses_duration', 'uses_events', 'uses_l3t_events']
+    _npv_attrs = ['npvControls', 'npvMonitors']
+
+    def __init__(self, ds):
+        self._ds = ds
+        self._attrs = sorted(ds.configData.ControlData._all_values.keys())
+        self._scanData = {attr: [] for attr in self._attrs}
+        ds.reload()
+        self.nsteps = ds._idx_nsteps
+        start_times = []
+        ievent_end = []
+        ievent_start = []
+        for istep, events in enumerate(ds.steps):
+            evt = events.next()
+            ttup = (evt.EventId.sec, evt.EventId.nsec, evt.EventId.fiducials)
+            ievent = ds._idx_times_tuple.index(ttup)
+            ievent_start.append(ievent)
+            if istep > 0:
+                ievent_end.append(ievent-1)
+            start_times.append(evt.EventId.timef64) 
+ 
+            for attr in self._attrs:
+                self._scanData[attr].append(ds.configData.ControlData._all_values[attr])
+        
+        ievent_end.append(len(ds._idx_times_tuple)-1)       
+        end_times = []
+        for istep, ievent in enumerate(ievent_end):
+            end_times.append(ds.events.next(ievent).EventId.timef64)
+ 
+        self._scanData['ievent_start'] = np.array(ievent_start)
+        self._scanData['ievent_end'] = np.array(ievent_end)
+        self.nevents = np.array(ievent_end)-np.array(ievent_start)       
+        self.start_times = np.array(start_times)
+        self.end_times = np.array(end_times)
+        self.step_times = np.array(end_times) - np.array(start_times)
+ 
+        for attr in self._uses_attrs:
+            setattr(self, attr, all(self._scanData.get(attr)))
+
+        if (self.uses_duration or self.uses_events or self.uses_l3t_events) \
+                and len(set(self._scanData['npvControls'])) == 1 \
+                and len(set(self._scanData['npvMonitors'])) == 1 :
+            self._is_simple = True
+            for attr in self._npv_attrs:
+                setattr(self, attr, self._scanData.get(attr)[0]) 
+
+            if 'pvControls_name' in self._attrs:
+                self.pvControls = self._scanData['pvControls_name'][0]
+            else:
+                self.pvControls = None
+            
+            if 'pvMonitors_name' in self._attrs:
+                self.pvMonitors = self._scanData['pvMonitors_name'][0]
+            else:
+                self.pvMonitors = None
+
+            self.pvLabels = self._scanData['pvLabels'][0]
+            if not self.pvLabels:
+                self.pvLabels = []
+                for pv in self.pvControls:
+                    alias = ds.epicsData.alias(pv)
+                    if not alias:
+                        alias = pv
+
+                    self.pvLabels.append(alias) 
+            
+            self.control_values = {} 
+            self.monitor_hivalues = {}
+            self.monitor_lovalues = {}
+            if self.pvControls is not None:
+                for i, pv in enumerate(self.pvControls):
+                    self.control_values[pv] = \
+                            np.array([val[i] for val in self._scanData['pvControls_value']])
+                
+            if self.pvMonitors is not None:
+                for i, pv in enumerate(self.pvMonitors):
+                    self.monitor_hivalues[pv] = \
+                            np.array([val[i] for val in self._scanData['pvMonitors_hiValue']])
+                    self.monitor_lovalues[pv] = \
+                            np.array([val[i] for val in self._scanData['pvMonitors_loValue']])
+
+            self.pvAliases = {}
+            for i, pv in enumerate(self.pvControls):
+                alias = self.pvLabels[i]
+                self.pvAliases[pv] = re.sub('-|:|\.| ','_', alias)
+                setattr(self, alias, self.control_values[pv])
+
+        ds.reload()
+
+    def show_info(self):
+        attrs = { 
+            'nsteps':      {'unit': '',     'desc': 'Number of steps'}, 
+            'npvControls': {'unit': '',     'desc': 'Number of control PVs'},
+            'npvMonitors': {'unit': '',     'desc': 'Number of monitor PVs'},
+            }
+
+        print '{:10}: Run {:}'.format(self._ds.data_source.exp, self._ds.data_source.run)
+        print '-'*70
+        for attr, item in attrs.items():
+            print '{:24} {:10} {:16}'.format(item.get('desc'), getattr(self, attr), attr)
+       
+        print ''
+        print '{:24} {:40}'.format('Alias', 'PV')
+        print '-'*70
+        for name, alias in self.pvAliases.items():
+            print '{:24} {:40}'.format(alias, name)
+        print ''
+
+        self._control_format = {}
+        self._name_len = {}
+        header1 = '{:4} {:6} {:>10}'.format('Step', 'Events', 'Time [s]')
+        for i, name in enumerate(self.control_values):
+            alias = self.pvAliases.get(name, name)
+            name_len = len(alias)
+            self._name_len[name] = name_len 
+            name_format = ' {:>'+str(name_len)+'}'
+            header1 += name_format.format(alias)
+            vals = self.control_values[name]
+            if self.nsteps > 1:
+                sigdigit = int(np.floor(np.log10(abs(np.mean(vals[1:]-vals[:-1])))))
+            else:
+                sigdigit = int(np.floor(np.log10(abs(vals))))
+            
+            if sigdigit < -5 or sigdigit > 5:
+                self._control_format[name] = ' {:'+str(name_len)+'.3e}'
+            elif sigdigit < 0:
+                self._control_format[name] = ' {:'+str(name_len)+'.'+str(-sigdigit+1)+'f}'
+            else:
+                self._control_format[name] = ' {:'+str(name_len)+'}'
+
+        print header1
+        print '-'*(21+sum(self._name_len.values()))
+        for i, nevents in enumerate(self.nevents):
+            a = '{:4} {:6} {:8.3f}'.format(i, nevents, self.step_times[i])
+            for name, vals in self.control_values.items():
+                a += self._control_format[name].format(vals[i])
+            
+            print a
+
+    def __str__(self):
+        return  'ScanData: '+str(self._ds.data_source)
+
+    def __repr__(self):
+        repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
+        print '< '+repr_str+' >'
+        self.show_info()
+        return '< '+repr_str+' >'
+
+
+
 
 class DataSource(object):
     """Python version of psana.DataSource with support for event and config
@@ -328,8 +503,18 @@ class DataSource(object):
 
     def __init__(self, data_source=None, **kwargs):
         self.load_run(data_source=data_source, **kwargs)
+        if self.data_source.smd:
+            self._load_smd_config()
 
-    def load_run(self, data_source=None, **kwargs):
+    def _load_smd_config(self):
+        """Load configData of first calib cycle by going to first step.
+           Reload so that steps can be used as an iterator.
+        """
+        if self.data_source.smd:
+            step = self.steps.next()
+            self.reload()
+    
+    def load_run(self, data_source=None, reload=False, **kwargs):
         """Load a run with psana.
         """
         self._evtData = None
@@ -338,8 +523,13 @@ class DataSource(object):
         self._current_run = None
         self._evt_keys = {}
         self._evt_modules = {}
-        self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
-        self._ds = psana.DataSource(str(self.data_source))
+        if not reload:
+            self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
+       
+        # do not reload shared memory
+        if not (self.data_source.monshmserver and self._ds):
+            self._ds = psana.DataSource(str(self.data_source))
+
         self.epicsData = EpicsData(self._ds) 
 
         self._evt_time_last = (0,0)
@@ -349,28 +539,50 @@ class DataSource(object):
         if self.data_source.indexed:
             self.runs = Runs(self, **kwargs)
             self.events = self.runs.next().events
+        
         elif self.data_source.smd:
             self.steps = Steps(self, **kwargs)
+            # SmdEvents automatically goes to next step if no events in current step.
             self.events = SmdEvents(self)
-            data_source_idx = str(self.data_source).replace('smd','idx')
-            self._idx_ds = psana.DataSource(data_source_idx)
-            self._idx_run = self._idx_ds.runs().next()
-            self._idx_times = self._idx_run.times()
-            self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
-                                    for a in self._idx_times]
+            if not reload:
+                self._scanData = None
+                data_source_idx = str(self.data_source).replace('smd','idx')
+                self._idx_ds = psana.DataSource(data_source_idx)
+                self._idx_run = self._idx_ds.runs().next()
+                self._idx_nsteps = self._idx_run.nsteps()
+                self._idx_times = self._idx_run.times()
+                self.nevents = len(self._idx_times)
+                self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
+                                        for a in self._idx_times]
         else:
+            # For live data or data_source without idx or smd
             self.events = Events(self)
+            self.nevents = None
 
     def reload(self):
         """Reload the current run.
         """
-        self.load_run(str(self.data_source))
+        self.load_run(reload=True)
+
+    def _load_ConfigData(self):
+        self._ConfigData = ConfigData(self)
+
+    @property
+    def configData(self):
+        """Configuration Data from ds.env().configStore().
+           For effieciency only loaded at beginning of run or step unless
+           working with shared memory.
+        """
+        if self.data_source.monshmserver:
+            self._load_ConfigData()
+        
+        return self._ConfigData
 
     def _init_detectors(self):
         """Initialize psana.Detector classes based on psana env information.
         """
         self._detectors = {}
-        self.configData = ConfigData(self)
+        self._load_ConfigData()
         self._aliases = self.configData._aliases
         for srcstr, item in self.configData._sources.items():
             alias = item.get('alias')
@@ -393,6 +605,8 @@ class DataSource(object):
 
     def __repr__(self):
         repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
+        if self.nevents:
+            repr_str += ' {:} events'.format(self.nevents)
         print '< '+repr_str+' >'
         self.show_info()
         return '< '+repr_str+' >'
@@ -506,6 +720,7 @@ class RunEvents(object):
         self._kwargs = kwargs
         self._ds = ds
         self.times = self._ds.runs.current.times 
+        self._ds.nevents = len(self.times)
 
     def __iter__(self):
         return self
@@ -573,7 +788,6 @@ class Steps(object):
         self._ds = ds
         self._kwargs = kwargs
         self._ds_steps = []
-        self._configSteps = []
 
     @property
     def current(self):
@@ -644,7 +858,7 @@ class StepEvents(object):
                     self._ds._ievent = evt_time
                     evt_time = self._ds._idx_times[evt_time]
 
-                print self._ds._ievent, evt_time.seconds(), evt_time.nanoseconds()
+                #print self._ds._ievent, evt_time.seconds(), evt_time.nanoseconds()
                 evt = self._ds._idx_run.event(evt_time) 
                     
                 self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
@@ -1039,8 +1253,13 @@ class ConfigData(object):
                 group = self._partition[srcstr].get('group', -1)
             
             elif ipAddr != self._ipAddrPartition or self._monshmserver:
-                # add data sources not in partition that come from recording nodes
-                group = -1
+                if self._monshmserver:
+                    # add data sources not in partition for live data
+                    group = -2
+                else:
+                    # add data sources not in partition that come from recording nodes
+                    group = -1
+
                 self._partition[srcstr] = {'src': src, 'group': group, 'alias': alias}
                 self._aliases[alias] = srcstr
                 if group not in self._readoutGroup:
@@ -1153,17 +1372,37 @@ class ConfigData(object):
             config = self._config[str(src)]
             self._smlData = config._values
 
+    @property
+    def ScanData(self):
+        """Scan configuration from steps ControlData.  
+           May take several seconds to load the first time.
+           Not relevant for live data from shared memory.
+        """
+        if self._ds.data_source.monshmserver is not None:
+            return None
+        
+        if self._ds._scanData is None:
+            self._ds._scanData = ScanData(self._ds)
+
+        return self._ds._scanData
+
     def show_info(self):
-        print '{:16} {:5} {:8} {:5} {:12} {:12} {:40}'.format('Alias', 'Group', 
-                'EvtCode', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
-        print '-'*80
+        print '*Detectors in group 0 are "BLD" data recorded at 120 Hz on event code 40'
+        if self._monshmserver:
+            print '*Detectors listed as Monitored are not being recorded (group -2).'
+        else:
+            print '*Detectors listed as Controls are controls devices with unknown event code (but likely 40).'
+        print ''
+        header =  '{:20} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
+                 'Rate', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
+        print header
+        print '-'*(len(header)+10)
         cfg_srcs = self._config_srcs.values()
         data_srcs = {item['alias']: s for s,item in self._sources.items() \
                        if s in cfg_srcs or s.startswith('Bld')}
         
         for alias, srcstr in sorted(data_srcs.items(), key = operator.itemgetter(0)):
             item = self._sources.get(srcstr,{})
-            eventCode = item.get('eventCode', '')
 
             polarity = item.get('evr_polarity', '')
             if polarity == 1:
@@ -1179,8 +1418,21 @@ class ConfigData(object):
             if width:
                 width = '{:11.9f}'.format(width)
 
-            print '{:16} {:5} {:8} {:5} {:12} {:12} {:40}'.format(alias, 
-                   item.get('group'), eventCode, polarity, delay, width, srcstr)
+            group = item.get('group')
+            if group == -1:
+                group = 'Controls'
+            elif group == -2:
+                group = 'Monitor'
+
+            if group == 0:
+                eventCode = 40
+            else:
+                eventCode = item.get('eventCode', '')
+
+            rate = _eventCodes_rate.get(eventCode, '')
+
+            print '{:20} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
+                   group, rate, eventCode, polarity, delay, width, srcstr)
 
     def __str__(self):
         return  'ConfigData: '+str(self._ds.data_source)
@@ -1355,6 +1607,7 @@ class EvrData(PsanaTypeData):
         typ_func = ds._current_evt.get(self._typ,self._src)
         PsanaTypeData.__init__(self, typ_func)
         self.eventCodes = self.fifoEvents.eventCode
+        #self._xray_dims = {'eventCode': ([],())}
 
     def present(self, eventCode):
         """Return True if the eventCode is present.
@@ -1383,6 +1636,7 @@ class EvrNullData(object):
 
     def __init__(self, ds):
         self.eventCodes = []
+        #self._xray_dims = {'eventCode': ([],())}
 
     def __str__(self):
         return ''
@@ -1393,11 +1647,18 @@ class EventId(object):
     """
 
     _attrs = ['fiducials', 'idxtime', 'run', 'ticks', 'time', 'vector']
-    _properties = ['EventTime', 'timef64', 'nsec', 'sec']
+    _properties = ['datetime64', 'EventTime', 'timef64', 'nsec', 'sec']
 
     def __init__(self, evt):
 
         self._EventId = evt.get(psana.EventId)
+
+    @property
+    def datetime64(self):
+        """NumPy datetime64 representation of EventTime.
+           see:  http://docs.scipy.org/doc/numpy/reference/arrays.datetime.html
+        """
+        return np.datetime64(int(self.sec*1e9+self.nsec), 'ns')
 
     @property
     def EventTime(self):
@@ -1457,7 +1718,7 @@ class Detector(object):
        an event basis.
     """
     
-    def __init__(self, ds, alias, **kwargs):
+    def __init__(self, ds, alias, verbose=False, **kwargs):
         """Initialize a psana Detector class for a given detector alias.
            Provides the attributes of the PyDetector functions for the current 
            event if applicable.  Otherwise provides the attributes from the
@@ -1469,7 +1730,9 @@ class Detector(object):
         self.src = ds._aliases.get(alias)
 
         if self.src:
-            print 'Adding Detector: {:20} {:40}'.format(alias, psana.Source(self.src))
+            if verbose:
+                print 'Adding Detector: {:20} {:40}'.format(alias, psana.Source(self.src))
+        
         else:
             print 'ERROR No Detector with alias {:20}'.format(alias)
             return
@@ -1503,11 +1766,35 @@ class Detector(object):
     def _xray_attrs(self):
         """Attributes
         """
-        attrs = {}
-        for attr, item in self.configData._attr_info.items():
-            attrs.update({attr: item['value']})
-        
-        return attrs
+        return {attr: item for attr, item in self.configData._all_values.items() \
+                if np.product(np.shape(item)) <= 17}
+
+    @property
+    def _coords(self):
+        if self._det_class == WaveformData:
+            coords_dict = {
+                    't': np.arange(self.configData.horiz.nbrSamples) \
+                            *self.configData.horiz.sampInterval \
+                            +self.configData.horiz.delayTime
+                    }
+        elif self._det_class == ImageData:
+            if self.calibData.ndim == 3:
+                raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
+            else:
+                raw_dims = (['X', 'Y'], self.calibData.shape)
+            
+            attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
+                     'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
+                    
+            coords_dict = {}
+            for attr in attrs:
+                val = getattr(self.calibData, attr)
+                if val is not None:
+                    coords_dict[attr] = (raw_dims[0], val)
+        else:
+            coords_dict = {}
+
+        return coords_dict
 
     @property
     def _xray_dims(self):
@@ -1515,40 +1802,38 @@ class Detector(object):
         """
         if self._det_class == WaveformData:
             dims_dict = {
-                    'waveform':  (['channel', 't'], self.wftime),
+                    'waveform':  (['channel', 't'], 
+                        (self.configData.nbrChannels, self.configData.horiz.nbrSamples)),
                     }
         
         elif self._det_class == ImageData:
-            raw_dims = (['sensor', 'row', 'column'],
-                        [])
-            if self.image is not None:
-                xaxis = ((np.arange(self.image.shape[0])-self.image.shape[0]/2.) \
-                          *self.calibData.pixel_size/1000.)
-                yaxis = ((np.arange(self.image.shape[1])-self.image.shape[1]/2.) \
-                          *self.calibData.pixel_size/1000.)
+            if self.calibData.ndim == 3:
+                raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
             else:
-                xaxis = None
-                yaxis = None
+                raw_dims = (['X', 'Y'], self.calibData.shape)
 
-            image_dims = (['X', 'Y'],
-                          [xaxis, yaxis])
+#           if self.calibData.ximage is not None and self.calibData.yimage is not None
+#                image_dims = (['X', 'Y'], (len(self.calibData.ximage),len(self.calibData.yimage)))
+#            else:
+#                image_dims = None
+#
             dims_dict = {
-                    'image':     image_dims,
+#                    'image':     image_dims,
                     'calib':     raw_dims,
-                    'raw':       raw_dims,
-                    'areas':     raw_dims,
-                    'bkgd':      raw_dims,
-                    'coords_x':  raw_dims,
-                    'coords_y':  raw_dims,
-                    'coords_z':  raw_dims,
-                    'gain':      raw_dims,
-                    'indexes_x': raw_dims,
-                    'indexes_y': raw_dims,
-                    'pedestals': raw_dims,
-                    'rms':       raw_dims,
+#                    'raw':       raw_dims,
+#                    'bkgd':      raw_dims,
+#                    'areas':     raw_dims,
+#                    'coords_x':  raw_dims,
+#                    'coords_y':  raw_dims,
+#                    'coords_z':  raw_dims,
+#                    'gain':      raw_dims,
+#                    'indexes_x': raw_dims,
+#                    'indexes_y': raw_dims,
+#                    'pedestals': raw_dims,
+#                    'rms':       raw_dims,
                     }
         else:
-            dims_dict = {}
+            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
                     
         return dims_dict
 
@@ -1826,6 +2111,8 @@ class ImageData(object):
     """
     _attrs = ['image', 'raw', 'calib', 'size'] 
     _attr_info = {
+            'shape':       {'doc': 'Shape of raw data array', 
+                            'unit': ''},
             'size':        {'doc': 'Total size of raw data', 
                             'unit': ''},
             'raw':         {'doc': 'Raw data', 
@@ -1962,6 +2249,26 @@ class ImageCalibData(object):
         """
         return self._det.instrument()
 
+    @property
+    def ximage(self):
+        """X axis of image [um].
+        """
+        if self.indexes_x is not None:
+            n = self.indexes_x.max()+1
+            return (np.arange(n)-n/2.)*self.pixel_size
+        else:
+            return None 
+
+    @property
+    def yimage(self):
+        """Y axis of image [um].
+        """
+        if self.indexes_y is not None:
+            n = self.indexes_y.max()+1
+            return (np.arange(n)-n/2.)*self.pixel_size
+        else:
+            return None
+
     def set_do_offset(do_offset=True):
         """Not sure what do offset does?
         """
@@ -2031,7 +2338,7 @@ class ImageCalibData(object):
 
     def __getattr__(self, attr):
         if attr in self._attrs:
-            return getattr(self._det, attr)(self._evt)
+            return (getattr(self._det, attr)(self._evt))
         
     def __dir__(self):
         all_attrs =  set(self._attrs +
@@ -2294,5 +2601,6 @@ class TimeStamp(object):
 
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name_, _self.__str__)
+
 
 
