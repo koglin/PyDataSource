@@ -73,7 +73,6 @@ class DataSourceInfo(object):
                      'idx':           None,
                      'ffb':           None,
                      'monshmserver':  None,
-                     'indexed':       False,
                      'dir':           None,
                      'cfg':           None}
 
@@ -95,7 +94,7 @@ class DataSourceInfo(object):
         self._set_exp_defaults(**kwargs)
 
         if self.monshmserver:
-            self.indexed = False
+            self.idx = False
             if not data_source:
                 data_source = live_source(**kwargs)
 
@@ -114,7 +113,7 @@ class DataSourceInfo(object):
                 else:
                     setattr(self, key, True)
                     if key in ['idx']:
-                        self.indexed = True
+                        self.smd = False
 
         else:
 
@@ -129,17 +128,16 @@ class DataSourceInfo(object):
                     data_source += ":h5"
                 elif self.idx:
                     data_source += ":idx"
-                    self.indexed = True
+                    self.smd = False
                 else:
                     data_source += ":smd"
-                    self.indexed = False 
                     self.smd = True
 
             else:
                 print 'No data source specified, so assume this is shared memory.'
                 data_source = live_source(**kwargs)
                 self.monshmserver = data_source
-                self.indexed = False
+                self.idx = False
 
 
         if not self.instrument and self.exp is not None:

@@ -525,10 +525,36 @@ class DataSource(object):
         self._evt_modules = {}
         if not reload:
             self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
-       
+
         # do not reload shared memory
         if not (self.data_source.monshmserver and self._ds):
-            self._ds = psana.DataSource(str(self.data_source))
+            try:
+                self._ds = psana.DataSource(str(self.data_source))
+                _key_info, _modules = get_keys(self._ds.env().configStore())
+                if 'Partition' in _modules:
+                    try_idx = False
+                else:
+                    try_idx = True
+                    print 'Exp {:}, run {:} smd data has no Partition data -- loading idx data instead.'.format( \
+                            self.data_source.exp, self.data_source.run)
+            except:
+                try_idx = True
+                print 'Exp {:}, run {:} smd data file not available -- loading idx data instead.'.format( \
+                            self.data_source.exp, self.data_source.run)
+
+        if try_idx:
+            if self.data_source.smd:
+                try:
+                    print 'Use smldata executable to convert idx data to smd data.'
+                    data_source_smd = self.data_source
+                    data_source_idx = str(data_source_smd).replace('smd','idx')
+                    self.data_source = DataSourceInfo(data_source=data_source_idx)
+                    self._ds = psana.DataSource(str(self.data_source))
+                except:
+                    print 'Failed to load either smd or idx data for exp {:}, run {:}'.format( \
+                            self.data_source.exp, self.data_source.run)
+                    print 'Data can be restored from experiment data portal:  https://pswww.slac.stanford.edu'
+                    return False
 
         self.epicsData = EpicsData(self._ds) 
 
@@ -536,7 +562,7 @@ class DataSource(object):
         self._ievent = -1
         self._istep = -1
         self._irun = -1
-        if self.data_source.indexed:
+        if self.data_source.idx:
             self.runs = Runs(self, **kwargs)
             self.events = self.runs.next().events
         
@@ -554,10 +580,13 @@ class DataSource(object):
                 self.nevents = len(self._idx_times)
                 self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
                                         for a in self._idx_times]
+        
         else:
             # For live data or data_source without idx or smd
             self.events = Events(self)
             self.nevents = None
+
+        return str(self.data_source)
 
     def reload(self):
         """Reload the current run.
@@ -712,7 +741,7 @@ class Run(object):
 
 
 class RunEvents(object):
-    """Event iterator from ds.runs() for indexed data 
+    """Event iterator from ds.runs() for indexed idx data 
 
        No support yet for multiple runs in a data_source
     """
@@ -1245,6 +1274,7 @@ class ConfigData(object):
             ipAddr = item[1]
             srcstr = str(src)
             alias = re.sub('-|:|\.| ','_', alias)
+            group = None
             if srcstr in self._partition:
                 self._partition[srcstr]['alias'] = alias
                 if srcstr.find('NoDetector') == -1:
@@ -1266,8 +1296,11 @@ class ConfigData(object):
                     self._readoutGroup[group] = {'srcs': [], 'eventCodes': []}
 
                 self._sources[srcstr] = {'group': group, 'alias': alias}
-                
-            self._readoutGroup[group]['srcs'].append(srcstr)
+            
+            if group:
+                self._readoutGroup[group]['srcs'].append(srcstr)
+            #else:
+            #    print 'No group for', srcstr
 
         # Determine data sources and update aliases
         for srcstr, item in self._partition.items():
@@ -1376,11 +1409,12 @@ class ConfigData(object):
     def ScanData(self):
         """Scan configuration from steps ControlData.  
            May take several seconds to load the first time.
-           Not relevant for live data from shared memory.
+           Only relevant for smd data.
         """
-        if self._ds.data_source.monshmserver is not None:
+        #if self._ds.data_source.monshmserver is not None:
+        if not self._ds.data_source.smd:
             return None
-        
+
         if self._ds._scanData is None:
             self._ds._scanData = ScanData(self._ds)
 
@@ -1393,7 +1427,7 @@ class ConfigData(object):
         else:
             print '*Detectors listed as Controls are controls devices with unknown event code (but likely 40).'
         print ''
-        header =  '{:20} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
+        header =  '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
                  'Rate', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
         print header
         print '-'*(len(header)+10)
@@ -1431,7 +1465,7 @@ class ConfigData(object):
 
             rate = _eventCodes_rate.get(eventCode, '')
 
-            print '{:20} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
+            print '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
                    group, rate, eventCode, polarity, delay, width, srcstr)
 
     def __str__(self):
@@ -1717,7 +1751,11 @@ class Detector(object):
        Uses full ds in order to be able to access epicsData info on
        an event basis.
     """
-    
+   
+    _tabclass = 'evtData'
+    _calib_class = None
+    _det_class = None
+
     def __init__(self, ds, alias, verbose=False, **kwargs):
         """Initialize a psana Detector class for a given detector alias.
            Provides the attributes of the PyDetector functions for the current 
@@ -1748,12 +1786,24 @@ class Detector(object):
             self._pydet = None
 
         if not hasattr(self._pydet, 'dettype'):
+            # PyDetector for Ipimb does not provide dettype
+            if hasattr(self._pydet, 'sum'):
+                self._det_class = IpimbData
+                self._calib_class = None
+                self._tabclass = 'detector'
+            else:
+                self._det_class = None
+                self._tabclass = 'evtData'
+        # Quartz camera not yet implemented as AreaDetector
+        elif self._pydet.dettype in [18]:
             self._det_class = None
             self._tabclass = 'evtData'
+        # WFDetector
         elif self._pydet.dettype in [16, 17]:
             self._det_class = WaveformData
             self._calib_class = WaveformCalibData
             self._tabclass = 'detector'
+        # AreaDetector
         elif self._pydet.dettype:
             self._det_class = ImageData
             self._calib_class = ImageCalibData
@@ -1777,61 +1827,86 @@ class Detector(object):
                             *self.configData.horiz.sampInterval \
                             +self.configData.horiz.delayTime
                     }
+            return coords_dict 
+
         elif self._det_class == ImageData:
             if self.calibData.ndim == 3:
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
-            else:
-                raw_dims = (['X', 'Y'], self.calibData.shape)
-            
-            attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
-                     'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
+                attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
+                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
+                coords_dict = {}
                     
-            coords_dict = {}
+            elif self.calibData.ndim == 2:
+                raw_dims = (['X', 'Y'], self.calibData.shape)
+                attrs = []
+                coords_dict = {
+                        'X': self.calibData.ximage,
+                        'Y': self.calibData.yimage}
+            else:
+                return {}
+
             for attr in attrs:
                 val = getattr(self.calibData, attr)
                 if val is not None:
                     coords_dict[attr] = (raw_dims[0], val)
-        else:
-            coords_dict = {}
+        
+            return coords_dict
 
-        return coords_dict
+        else:
+            return {}
+
 
     @property
     def _xray_dims(self):
         """Dimensions of data attributes.
         """
-        if self._det_class == WaveformData:
+        if self.src == 'BldInfo(FEE-SPEC0)':
+            dims_dict = {attr: ([], ()) for attr in ['integral', 'npeaks']}
+            dims_dict['hproj'] = (['X'], self.hproj.shape)
+
+        elif self.src == 'DetInfo(XrayTransportDiagnostic.0:Opal1000.0)':
+            dims_dict = {'data16': (['X', 'Y'], self.data16.shape)}
+
+        elif self._det_class == WaveformData:
             dims_dict = {
-                    'waveform':  (['channel', 't'], 
+                    'waveform':  (['ch', 't'], 
                         (self.configData.nbrChannels, self.configData.horiz.nbrSamples)),
                     }
-        
+
+        elif self._det_class == IpimbData:
+            dims_dict = {
+                    'sum':      ([], ()),
+                    'xpos':     ([], ()),
+                    'ypos':     ([], ()),
+                    'channel':  (['ch'], (4,)),
+                    }
+
         elif self._det_class == ImageData:
             if self.calibData.ndim == 3:
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
-            else:
-                raw_dims = (['X', 'Y'], self.calibData.shape)
-
-#           if self.calibData.ximage is not None and self.calibData.yimage is not None
-#                image_dims = (['X', 'Y'], (len(self.calibData.ximage),len(self.calibData.yimage)))
-#            else:
-#                image_dims = None
-#
-            dims_dict = {
+                dims_dict = {
 #                    'image':     image_dims,
                     'calib':     raw_dims,
 #                    'raw':       raw_dims,
-#                    'bkgd':      raw_dims,
-#                    'areas':     raw_dims,
-#                    'coords_x':  raw_dims,
-#                    'coords_y':  raw_dims,
-#                    'coords_z':  raw_dims,
-#                    'gain':      raw_dims,
-#                    'indexes_x': raw_dims,
-#                    'indexes_y': raw_dims,
-#                    'pedestals': raw_dims,
-#                    'rms':       raw_dims,
                     }
+            else:
+                raw_dims = (['X', 'Y'], self.calibData.shape)
+                if self.calibData.ximage is not None and self.calibData.yimage is not None:
+                    image_shape = (len(self.calibData.ximage),len(self.calibData.yimage))
+                    image_dims = (['X', 'Y'], image_shape)
+                    dims_dict = {'calib':     image_dims}
+                else:
+                    image_dims = None
+                    dims_dict = {}
+   
+        # temporary fix for Quartz camera not in PyDetector class
+        elif self._pydet is not None and hasattr(self._pydet, 'dettype') \
+                and self._pydet.dettype == 18:
+            try:
+                dims_dict = {'data8': (['X', 'Y'], self.data8.shape)}
+            except:
+                print str(self), 'Not valid data8'
+        
         else:
             dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
                     
@@ -1843,9 +1918,11 @@ class Detector(object):
            attributes of raw psana event keys for the given detector.
         """
         if self._tabclass:
-            attrs = getattr(self, self._tabclass)._attrs
-        
-        return attrs
+            tabclass = getattr(self, self._tabclass)
+            if hasattr(tabclass, '_attrs'):
+                return tabclass._attrs
+
+        return []
 
     def next(self, *args, **kwargs):
         return getattr(self._ds.events.next(*args, **kwargs), self._alias)
@@ -1885,10 +1962,11 @@ class Detector(object):
             print 'Processed Data:'
             print '-'*18
             self.detector.show_info()
-            print '-'*80
-            print 'Calibration Data:'
-            print '-'*18
-            self.calibData.show_info()
+            if self._calib_class:
+                print '-'*80
+                print 'Calibration Data:'
+                print '-'*18
+                self.calibData.show_info()
 
         if self.configData:
             print '-'*80
@@ -1945,7 +2023,7 @@ class Detector(object):
     def __getattr__(self, attr):
         if attr in self._attrs:
             return getattr(getattr(self, self._tabclass), attr)
-        
+
         if attr in self._ds.events.current._event_attrs:
             return getattr(self._ds.events.current, attr)
 
@@ -1953,6 +2031,79 @@ class Detector(object):
         all_attrs =  set(self._attrs+
                          self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
+        
+        return list(sorted(all_attrs))
+
+
+class IpimbData(object):
+    """Tab accessibile dictified psana.Detector object.
+       
+       Attributes come from psana.Detector 
+       with low level implementation done in C++ or python.  
+       Boost is used for the C++.
+    """
+
+    _attrs = ['channel', 'sum', 'xpos', 'ypos'] 
+
+    _attr_info = {
+            'channel':     {'doc': 'Array of 4 channel values',
+                            'unit': 'V'},
+            'sum':         {'doc': 'Sum of all 4 channels',
+                            'unit': 'V'},
+            'xpos':        {'doc': 'Calulated X beam position',
+                            'unit': 'mm'},
+            'ypos':        {'doc': 'Calulated Y beam position',
+                            'unit': 'mm'},
+            } 
+
+    def __init__(self, det, evt):
+        self._evt = evt
+        self._det = det
+
+    @property
+    def instrument(self):
+        """Instrument to which this detector belongs.
+        """
+        return self._det.instrument()
+
+    def show_info(self):
+        """Show information for relevant detector attributes.
+        """
+        try:
+            items = sorted(self._attr_info.items(), key=operator.itemgetter(0))
+            for attr, item in items:
+                fdict = {'attr': attr, 'unit': '', 'doc': ''}
+                fdict.update(**item)
+                value = getattr(self, attr)
+                if isinstance(value, str):
+                    fdict['str'] = value
+                elif isinstance(value, list):
+                    if len(value) < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = 'list'
+                elif hasattr(value,'mean'):
+                    if value.size < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = '<{:.5}>'.format(value.mean())
+                else:
+                    try:
+                        fdict['str'] = '{:12.5g}'.format(value)
+                    except:
+                        fdict['str'] = str(value)
+
+                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+        except:
+            print 'No Event'
+
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            return getattr(self._det, attr)(self._evt)
+
+    def __dir__(self):
+        all_attrs =  set(self._attrs +
+                         self.__dict__.keys() + dir(IpimbData))
         
         return list(sorted(all_attrs))
 
@@ -2257,7 +2408,8 @@ class ImageCalibData(object):
             n = self.indexes_x.max()+1
             return (np.arange(n)-n/2.)*self.pixel_size
         else:
-            return None 
+            if len(self.shape) == 2:
+                return np.arange(self.shape[0])
 
     @property
     def yimage(self):
@@ -2267,7 +2419,8 @@ class ImageCalibData(object):
             n = self.indexes_y.max()+1
             return (np.arange(n)-n/2.)*self.pixel_size
         else:
-            return None
+            if len(self.shape) == 2:
+                return np.arange(self.shape[1])
 
     def set_do_offset(do_offset=True):
         """Not sure what do offset does?
