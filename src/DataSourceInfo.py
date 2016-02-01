@@ -68,7 +68,7 @@ class DataSourceInfo(object):
                      'exp':           None, 
                      'h5':            None,
                      'run':           0,
-                     'smd':           True, 
+                     'smd':           None, 
                      'station':       0,
                      'idx':           None,
                      'ffb':           None,
@@ -112,8 +112,6 @@ class DataSourceInfo(object):
                     setattr(self, key, value)
                 else:
                     setattr(self, key, True)
-                    if key in ['idx']:
-                        self.smd = False
 
         else:
 
