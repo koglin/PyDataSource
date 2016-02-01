@@ -14,18 +14,9 @@ Example:
 
     # Load example run
     In [2]: ds = PyDataSource.DataSource('exp=xpptut15:run=54')
-    Adding Detector: FEEGasDetEnergy      Source("BldInfo(FEEGasDetEnergy)")      
-    Adding Detector: XppSb3_Ipm           Source("BldInfo(XppSb3_Ipm)")           
-    Adding Detector: PhaseCavity          Source("BldInfo(PhaseCavity)")          
-    Adding Detector: EBeam                Source("BldInfo(EBeam)")                
-    Adding Detector: XppEnds_Ipm0         Source("BldInfo(XppEnds_Ipm0)")         
-    Adding Detector: XppSb2_Ipm           Source("BldInfo(XppSb2_Ipm)")           
-    Adding Detector: yag_lom              Source("DetInfo(XppMonPim.1:Tm6740.1)") 
-    Adding Detector: cspad                Source("DetInfo(XppGon.0:Cspad.0)")     
-    Adding Detector: yag2                 Source("DetInfo(XppSb3Pim.1:Tm6740.1)") 
 
     # Access the first event
-    In [3]: evt = ds.next()
+    In [3]: evt = ds.events.next()
 
     # Tab to see Data objects in current event
     In [4]: evt.
@@ -34,70 +25,38 @@ Example:
     evt.Evr              evt.PhaseCavity      evt.XppSb3_Ipm       evt.keys             evt.yag_lom
 
     # Tab to see EBeam attributes
-
+    In [4]: evt.EBeam.
     evt.EBeam.EventId            evt.EBeam.ebeamEnergyBC1     evt.EBeam.ebeamPhotonEnergy  evt.EBeam.epicsData
-    evt.EBeam.Evr                evt.EBeam.ebeamEnergyBC2     evt.EBeam.ebeamPkCurrBC1     evt.EBeam.evtData
-    evt.EBeam.L3T                evt.EBeam.ebeamL3Energy      evt.EBeam.ebeamPkCurrBC2     evt.EBeam.monitor
-    evt.EBeam.calibData          evt.EBeam.ebeamLTU250        evt.EBeam.ebeamUndAngX       evt.EBeam.next
-    evt.EBeam.configData         evt.EBeam.ebeamLTU450        evt.EBeam.ebeamUndAngY       evt.EBeam.show_all
-    evt.EBeam.damageMask         evt.EBeam.ebeamLTUAngX       evt.EBeam.ebeamUndPosX       evt.EBeam.show_info
-    evt.EBeam.detector           evt.EBeam.ebeamLTUAngY       evt.EBeam.ebeamUndPosY       evt.EBeam.src
-    evt.EBeam.ebeamCharge        evt.EBeam.ebeamLTUPosX       evt.EBeam.ebeamXTCAVAmpl     
+    ...
     evt.EBeam.ebeamDumpCharge    evt.EBeam.ebeamLTUPosY       evt.EBeam.ebeamXTCAVPhase    
 
     # Print a table of the EBeam data for the current event
     In [4]: evt.EBeam.show_info()
     --------------------------------------------------------------------------------
-    EBeam: xpptut15, Run 54, Event 0, 11:37:12.4517, [140, 141, 41, 40]
+    EBeam xpptut15, Run 54, Step -1, Event 0, 11:37:12.4517, [140, 141, 41, 40]
     --------------------------------------------------------------------------------
     damageMask                 1.0486e+06         Damage mask.
     ebeamCharge                0.00080421 nC      Beam charge in nC.
-    ebeamDumpCharge                     0 e-      Bunch charge at Dump in num. electrons
-    ebeamEnergyBC1                -13.772 mm      Beam position in mm (related to beam energy).
-    ebeamEnergyBC2               -0.38553 mm      Beam position in mm (related to beam energy).
-    ebeamL3Energy                       0 MeV     Beam energy in MeV.
-    ebeamLTU250                         0 mm      LTU250 BPM value in mm, used to compute photon energy. from BPMS:LTU1:250:X
-    ebeamLTU450                         0 mm      LTU450 BPM value in mm, used to compute photon energy. from BPMS:LTU1:450:X
-    ebeamLTUAngX                        0 mrad    LTU beam angle in mrad.
-    ebeamLTUAngY                        0 mrad    LTU beam angle in mrad.
-    ebeamLTUPosX                        0 mm      LTU beam position (BPMS:LTU1:720 through 750) in mm.
-    ebeamLTUPosY                        0 mm      LTU beam position in mm.
+    ...
     ebeamPhotonEnergy                   0 eV      computed photon energy, in eV
-    ebeamPkCurrBC1                 33.661 Amps    Beam current in Amps.
-    ebeamPkCurrBC2             2.9709e+08 Amps    Beam current in Amps.
-    ebeamUndAngX                        0 mrad    Undulator launch feedback beam x-angle in mrad.
-    ebeamUndAngY                        0 mrad    Undulator launch feedback beam y-angle in mrad.
-    ebeamUndPosX                        0 mm      Undulator launch feedback (BPMs U4 through U10) beam x-position in mm.
-    ebeamUndPosY                        0 mm      Undulator launch feedback beam y-position in mm.
-    ebeamXTCAVAmpl                      0 MVolt   XTCAV Amplitude in MVolt.
-    ebeamXTCAVPhase                     0 degrees XTCAV Phase in degrees.
+    ...
 
     # Print summary of the cspad detector (uses PyDetector methods for creatining calib and image data)
     In [5]: evt.cspad.show_info()
     --------------------------------------------------------------------------------
-    cspad: xpptut15, Run 54, Event 0, 11:37:12.4517, [140, 141, 41, 40]
+    cspad xpptut15, Run 54, Step -1, Event 0, 11:37:12.4517, [140, 141, 41, 40]
     --------------------------------------------------------------------------------
-    calib                 <0.01035> ADU     Calibrated data
-    image               <0.0079081> ADU     Reconstruced 2D image from calibStore geometry
+    calib                <0.010653> ADU     Calibrated data
+    image               <0.0081394> ADU     Reconstruced 2D image from calibStore geometry
     raw                    <1570.2> ADU     Raw data
+    shape              (32, 185, 388)         Shape of raw data array
     size                  2.297e+06         Total size of raw data
 
     # Print summary of cspad detector calibration data (using PyDetector access methods) 
     In [6]: evt.cspad.calibData.show_info()
     areas                  <1.0077>         Pixel area correction factor
     bkgd                      <0.0>         
-    common_mode        [   1.   25.   10.  100.]         Common mode parameters
-    coords_x               <281.44> um      Pixel X coordinate
-    coords_y               <753.19> um      Pixel Y coordinate
-    coords_z                <1e+06> um      Pixel Z coordinate
-    gain                      <1.0>         Pixel Gain factor from calibStore
-    indexes_x              <863.22>         Pixel X index
-    indexes_y              <869.53>         Pixel Y index
-    ndim                          3         Number of dimensions of raw data
-    pedestals              <1572.1> ADU     Pedestals from calibStore
-    pixel_size               109.92 um      Pixel Size
-    rms                    <4.9305> ADU     
-    runnum                       54         Run number
+    ...
     shape              (32, 185, 388)         Shape of raw data array
     size                  2.297e+06         Total size of raw data
     status             <0.00069396>         
@@ -106,24 +65,8 @@ Example:
     In [7]: evt.cspad.configData.show_info()
     activeRunMode                       3         
     asicMask                           15         
-    badAsicMask0                        0         
-    badAsicMask1                        0         
-    concentratorVersion        3.4055e+09         
-    eventCode                          40         
-    inactiveRunMode                     1         
-    internalTriggerDelay                0         
-    numAsicsRead                       16         
-    numAsicsStored           <bound method ConfigV5.numAsicsStored of <psana.CsPad.ConfigV5 object at 0x7f4b0cd36cf8>>         Number of ASICs in given quadrant
-    numQuads                            4         Total number of quadrants in setup
-    numSect                            32         Total number of sections (2x1) in all quadrants
-    payloadSize                1.1485e+06         
-    protectionEnable                    1         
-    protectionThresholds             list         
-    quadMask                           15         
-    quads                    <bound method ConfigV5.quads of <psana.CsPad.ConfigV5 object at 0x7f4b0cd36cf8>>         
-    quads_shape                      list         
-    roiMask                  <bound method ConfigV5.roiMask of <psana.CsPad.ConfigV5 object at 0x7f4b0cd36cf8>>         ROI mask for given quadrant
-    roiMasks                    4.295e+09         
+    ...
+    roiMasks                   0xffffffff         
     runDelay                        58100         
     tdi                                 4         
 
@@ -528,16 +471,25 @@ class DataSource(object):
 
         # do not reload shared memory
         if not (self.data_source.monshmserver and self._ds):
-            try:
+            if True:
                 self._ds = psana.DataSource(str(self.data_source))
                 _key_info, _modules = get_keys(self._ds.env().configStore())
                 if 'Partition' in _modules:
                     try_idx = False
+
                 else:
-                    try_idx = True
-                    print 'Exp {:}, run {:} smd data has no Partition data -- loading idx data instead.'.format( \
+                    #if not self.data_source.smd:
+                    if False:
+                        print 'Exp {:}, run {:} is has no Partition data.'.format( \
                             self.data_source.exp, self.data_source.run)
-            except:
+                        print 'PyDataSource requires Partition data.'
+                        print 'Returning psana.DataSource({:})'.format(str(self.data_source))
+                        return self._ds
+                    else:
+                        try_idx = True
+                        print 'Exp {:}, run {:} smd data has no Partition data -- loading idx data instead.'.format( \
+                            self.data_source.exp, self.data_source.run)
+            else:
                 try_idx = True
                 print 'Exp {:}, run {:} smd data file not available -- loading idx data instead.'.format( \
                             self.data_source.exp, self.data_source.run)
@@ -772,7 +724,7 @@ class RunEvents(object):
                 self._ds._ievent += 1
             
             if self._ds._ievent >= len(self.times):
-                print 'No more events in run.'
+                raise StopIteration()
             else:
                 evt = self._ds._ds_run.event(self.times[self._ds._ievent]) 
                 self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
@@ -1195,6 +1147,7 @@ class PsanaSrcData(object):
         if attr in self._types:
             return self._types.get(attr)
 
+                   #
     def __dir__(self):
         all_attrs = set(self._type_attrs.keys() +
                         self._types.keys() + 
@@ -1206,7 +1159,13 @@ class ConfigData(object):
     """ConfigData
     """
     _configStore_attrs = ['get','put','keys']
-    
+    # Alias default provides way to keep aliases consistent for controls devices like the FEE_Spec
+    _alias_defaults = {
+            'BldInfo(FEE-SPEC0)': 'FEE_Spec',
+            'BldInfo(NH2-SB1-IPM-01':  'Nh2Sb1_Ipm1',
+            'BldInfo(NH2-SB1-IPM-02':  'Nh2Sb1_Ipm2',
+            }
+
     def __init__(self, ds):
         configStore = ds.env().configStore()
         if (hasattr(ds, 'data_source') and ds.data_source.monshmserver):
@@ -1225,48 +1184,66 @@ class ConfigData(object):
                                   key_info=self._key_info, nolist=True)
             self._config[attr] = config
 
+        self._sources = {}
         #Setup Partition
         if not self._modules.get('Partition'):
-            print 'ERROR:  No Partition module in configStore data.'
-            return 
+            #print 'ERROR:  No Partition module in configStore data.'
+            self._partition = {}
+            self._srcAlias = {}
+            for srcstr, item in self._config.items():
+                if srcstr[0:7] in ['BldInfo', 'DetInfo']:
+                    alias = srcstr[8:-1]
+                    alias = re.sub('-|:|\.| ','_', alias)
+                    src = item._keys[0][1] 
+                    self._partition[srcstr] = {
+                                               #'alias': alias, 
+                                               'group': 0, 
+                                               'src': src}
+
+                    self._srcAlias[alias] = (src, 0)
+
+                self._bldMask = 0
+                self._ipAddrpartition = 0 
+                self._readoutGroup = {0: {'eventCodes': [], 'srcs': []}}
+
         elif len(self._modules['Partition']) != 1:
             print 'ERROR:  More than one Partition config type in configStore data.'
-            return 
-        
-        type_name = self._modules.get('Partition').keys()[0]
-        if len(self._modules['Partition'][type_name]) == 1:
-            typ, src, key = self._modules['Partition'][type_name][0]
-            srcstr = str(src)
-            config = self._config[srcstr]
-            self.Partition = config
-        else:
-            print 'ERROR:  More that one Partition module in configStore data.'
-            print '       ', self._modules['Partition'][type_name]
             return
+        else:
+            #Build _partition _srcAlias _readoutGroup dictionaries based on Partition configStore data. 
+            type_name = self._modules.get('Partition').keys()[0]
+            if len(self._modules['Partition'][type_name]) == 1:
+                typ, src, key = self._modules['Partition'][type_name][0]
+                srcstr = str(src)
+                config = self._config[srcstr]
+                self.Partition = config
+            else:
+                print 'ERROR:  More that one Partition module in configStore data.'
+                print '       ', self._modules['Partition'][type_name]
+                return
 
-# to convert ipAddr int to address 
-# import socket, struct
-# s = key.src()
-# socket.inet_ntoa(struct.pack('!L',s.ipAddr()))
+    # to convert ipAddr int to address 
+    # import socket, struct
+    # s = key.src()
+    # socket.inet_ntoa(struct.pack('!L',s.ipAddr()))
 
-        self._ipAddrPartition = src.ipAddr()
-        self._bldMask = config.bldMask
-        self._readoutGroup = {group: {'srcs': [], 'eventCodes': []} \
-                              for group in set(config.sources.group)}
-        self._sources = {}
-        self._partition = {str(src): {'group': config.sources.group[i], 'src': src} \
-                           for i, src in enumerate(config.sources.src)}
+            self._ipAddrPartition = src.ipAddr()
+            self._bldMask = config.bldMask
+            self._readoutGroup = {group: {'srcs': [], 'eventCodes': []} \
+                                  for group in set(config.sources.group)}
+            self._partition = {str(src): {'group': config.sources.group[i], 'src': src} \
+                               for i, src in enumerate(config.sources.src)}
 
-        self._srcAlias = {}
-        if self._modules.get('Alias'):
-            for type_name, keys in self._modules['Alias'].items():
-                for typ, src, key in keys:
-                    srcstr = str(src)
-                    config = self._config[srcstr]
-                    ipAddr = src.ipAddr()
-                    for i, source in enumerate(config.srcAlias.src):
-                        alias = config.srcAlias.aliasName[i]
-                        self._srcAlias[alias] = (source, ipAddr)
+            self._srcAlias = {}
+            if self._modules.get('Alias'):
+                for type_name, keys in self._modules['Alias'].items():
+                    for typ, src, key in keys:
+                        srcstr = str(src)
+                        config = self._config[srcstr]
+                        ipAddr = src.ipAddr()
+                        for i, source in enumerate(config.srcAlias.src):
+                            alias = config.srcAlias.aliasName[i]
+                            self._srcAlias[alias] = (source, ipAddr)
 
         self._aliases = {}
         for alias, item in self._srcAlias.items():
@@ -1305,10 +1282,13 @@ class ConfigData(object):
         # Determine data sources and update aliases
         for srcstr, item in self._partition.items():
             if not item.get('alias'):
-                try:
-                    alias = srcstr.split('Info(')[1].rstrip(')')
-                except:
-                    alias = srcstr
+                if srcstr in self._alias_defaults:
+                    alias = self._alias_defaults.get(srcstr)
+                else:
+                    try:
+                        alias = srcstr.split('Info(')[1].rstrip(')')
+                    except:
+                        alias = srcstr
                 
                 alias = re.sub('-|:|\.| ','_',alias)
                 item['alias'] = alias
@@ -1332,6 +1312,8 @@ class ConfigData(object):
         self._evr_pulses = {}
         self._eventcodes = {}
 
+        IOCconfig_type = None
+        config_type = None
         for type_name in self._modules['EvrData'].keys():
             if type_name.startswith('IOConfig'):
                 IOCconfig_type = type_name
@@ -1339,57 +1321,58 @@ class ConfigData(object):
             elif type_name.startswith('Config'):
                 config_type = type_name
 
-        # get eventcodes and combine output_map info from all EvrData config keys
-        map_attrs = ['map', 'conn_id', 'module', 'value', 'source_id']
-        for typ, src, key in self._modules['EvrData'][config_type]:
+        if IOCconfig_type:
+            # get eventcodes and combine output_map info from all EvrData config keys
+            map_attrs = ['map', 'conn_id', 'module', 'value', 'source_id']
+            for typ, src, key in self._modules['EvrData'][config_type]:
+                srcstr = str(src)
+                config = self._config[srcstr]
+                for eventcode in config.eventcodes._type_list:
+                    self._eventcodes.update({eventcode.code: eventcode._values})
+                    if eventcode.isReadout:
+                        group = eventcode.readoutGroup
+                        if group not in self._readoutGroup:
+                            self._readoutGroup[group] = {'srcs': [], 'eventCodes': []}
+                        self._readoutGroup[group]['eventCodes'].append(eventcode.code)
+
+                for output_map in config.output_maps._type_list:
+                    map_key = (output_map.module,output_map.conn_id)
+                    if output_map.source == 'Pulse':
+                        pulse_id = output_map.source_id
+                        pulse = config.pulses._type_list[pulse_id]
+                        evr_info = { 'evr_width': pulse.width*pulse.prescale/119.e6, 
+                                     'evr_delay': pulse.delay*pulse.prescale/119.e6, 
+                                     'evr_polarity': pulse.polarity}
+                    else:
+                        pulse_id = None
+                        pulse = None
+                        evr_info = {'evr_width': None, 'evr_delay': None, 'evr_polarity': None}
+
+                    self._output_maps[map_key] = {attr: getattr(output_map,attr) for attr in map_attrs} 
+                    self._output_maps[map_key].update(**evr_info) 
+
+            # Assign evr info to the appropriate sources
+            if len(self._modules['EvrData'][IOCconfig_type]) > 1:
+                print 'WARNING: More than one EvrData.{:} objects'.format(IOCconfig_type)
+
+            IOCconfig_type = self._IOCconfig_type
+            typ, src, key = self._modules['EvrData'][IOCconfig_type][0]
             srcstr = str(src)
             config = self._config[srcstr]
-            for eventcode in config.eventcodes._type_list:
-                self._eventcodes.update({eventcode.code: eventcode._values})
-                if eventcode.isReadout:
-                    group = eventcode.readoutGroup
-                    if group not in self._readoutGroup:
-                        self._readoutGroup[group] = {'srcs': [], 'eventCodes': []}
-                    self._readoutGroup[group]['eventCodes'].append(eventcode.code)
+            for ch in config._values['channels']._type_list:
+                map_key = (ch.output.module, ch.output.conn_id)
+                for i in range(ch.ninfo):
+                    src = ch.infos[i]
+                    srcstr = str(src)
+                    self._sources[srcstr]['map_key'] = map_key
+                    for attr in ['evr_width', 'evr_delay', 'evr_polarity']:
+                        self._sources[srcstr][attr] = self._output_maps[map_key][attr]
 
-            for output_map in config.output_maps._type_list:
-                map_key = (output_map.module,output_map.conn_id)
-                if output_map.source == 'Pulse':
-                    pulse_id = output_map.source_id
-                    pulse = config.pulses._type_list[pulse_id]
-                    evr_info = { 'evr_width': pulse.width*pulse.prescale/119.e6, 
-                                 'evr_delay': pulse.delay*pulse.prescale/119.e6, 
-                                 'evr_polarity': pulse.polarity}
-                else:
-                    pulse_id = None
-                    pulse = None
-                    evr_info = {'evr_width': None, 'evr_delay': None, 'evr_polarity': None}
-
-                self._output_maps[map_key] = {attr: getattr(output_map,attr) for attr in map_attrs} 
-                self._output_maps[map_key].update(**evr_info) 
-
-        # Assign evr info to the appropriate sources
-        if len(self._modules['EvrData'][IOCconfig_type]) > 1:
-            print 'WARNING: More than one EvrData.{:} objects'.format(IOCconfig_type)
-
-        IOCconfig_type = self._IOCconfig_type
-        typ, src, key = self._modules['EvrData'][IOCconfig_type][0]
-        srcstr = str(src)
-        config = self._config[srcstr]
-        for ch in config._values['channels']._type_list:
-            map_key = (ch.output.module, ch.output.conn_id)
-            for i in range(ch.ninfo):
-                src = ch.infos[i]
-                srcstr = str(src)
-                self._sources[srcstr]['map_key'] = map_key
-                for attr in ['evr_width', 'evr_delay', 'evr_polarity']:
-                    self._sources[srcstr][attr] = self._output_maps[map_key][attr]
-
-        for group, item in self._readoutGroup.items():
-            if item['eventCodes']:
-                for srcstr in item['srcs']: 
-                    if srcstr in self._sources:
-                        self._sources[srcstr]['eventCode'] = item['eventCodes'][0]
+            for group, item in self._readoutGroup.items():
+                if item['eventCodes']:
+                    for srcstr in item['srcs']: 
+                        if srcstr in self._sources:
+                            self._sources[srcstr]['eventCode'] = item['eventCodes'][0]
 
         # Get control data
         if self._modules.get('ControlData'):
@@ -2260,7 +2243,7 @@ class ImageData(object):
        with low level implementation done in C++ or python.  
        Boost is used for the C++.
     """
-    _attrs = ['image', 'raw', 'calib', 'size'] 
+    _attrs = ['image', 'raw', 'calib', 'shape', 'size'] 
     _attr_info = {
             'shape':       {'doc': 'Shape of raw data array', 
                             'unit': ''},
