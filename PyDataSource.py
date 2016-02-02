@@ -1359,14 +1359,15 @@ class ConfigData(object):
             typ, src, key = self._modules['EvrData'][IOCconfig_type][0]
             srcstr = str(src)
             config = self._config[srcstr]
-            for ch in config._values['channels']._type_list:
-                map_key = (ch.output.module, ch.output.conn_id)
-                for i in range(ch.ninfo):
-                    src = ch.infos[i]
-                    srcstr = str(src)
-                    self._sources[srcstr]['map_key'] = map_key
-                    for attr in ['evr_width', 'evr_delay', 'evr_polarity']:
-                        self._sources[srcstr][attr] = self._output_maps[map_key][attr]
+            if config._values['channels']:
+                for ch in config._values['channels']._type_list:
+                    map_key = (ch.output.module, ch.output.conn_id)
+                    for i in range(ch.ninfo):
+                        src = ch.infos[i]
+                        srcstr = str(src)
+                        self._sources[srcstr]['map_key'] = map_key
+                        for attr in ['evr_width', 'evr_delay', 'evr_polarity']:
+                            self._sources[srcstr][attr] = self._output_maps[map_key][attr]
 
             for group, item in self._readoutGroup.items():
                 if item['eventCodes']:
