@@ -97,7 +97,8 @@ def main():
         print ""
     
     print "*"*80
-    ds.reload()
+    if not ds.data_source.monshmserver:
+        ds.reload()
 
 if __name__ == "__main__":
     sys.exit(main())
