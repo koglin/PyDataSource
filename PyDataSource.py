@@ -1,6 +1,8 @@
 #--------------------------------------------------------------------------
 # File and Version Information:
-#  $Id: PyDataSource.py  koglin@SLAC.STANFORD.EDU $
+#  $HeaderURL$
+#  $Id$
+#  $LastChangedDate$
 #
 # Description:
 #  module PyDataSource
@@ -73,12 +75,12 @@ Example:
 This software was developed for the LCLS project.
 If you use all or part of it, please give an appropriate acknowledgment.
 
-@version $Id: PyDataSource.py  koglin@SLAC.STANFORD.EDU $
+@version $Id$
 
 @author Koglin, Jason
 """
 #------------------------------
-__version__ = "$Revision:  $"
+__version__ = "$Revision$"
 ##-----------------------------
 
 import sys
