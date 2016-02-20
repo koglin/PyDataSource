@@ -75,6 +75,7 @@ psana_doc_info['Quartz']['ConfigV2']['output_resolution']['unit'] = ''
 psana_doc_info['Acqiris']['DataDescV1Elem']['timestamp']['func_len'] = 'nbrSegments'
 psana_doc_info['Acqiris']['DataDescV1']['data']['func_shape'] = 'data_shape'
 psana_doc_info['Acqiris']['ConfigV1']['vert']['list_len'] = 'nbrChannels'
+
 psana_doc_info['CsPad']['DataV1']['quads']['func_shape'] = 'quads_shape'
 #psana_doc_info['CsPad']['DataV1']['quads']['func_dict_len'] = 'quads_shape'
 psana_doc_info['CsPad']['DataV2']['quads']['func_shape'] = 'quads_shape'
@@ -91,10 +92,58 @@ psana_doc_info['CsPad']['ConfigV4']['roiMask']['func_len_hex'] = 'numQuads'
 psana_doc_info['CsPad']['ConfigV4']['roiMasks']['func_method'] = hex
 psana_doc_info['CsPad']['ConfigV5']['quads']['func_shape'] = 'quads_shape'
 #psana_doc_info['CsPad']['ConfigV5']['quads']['func_dict_len'] = 'quads_shape'
+
+# see https://confluence.slac.stanford.edu/display/PCDS/Discussion+of+timing+the+cspad+variants
+
 psana_doc_info['CsPad']['ConfigV5']['numAsicsStored']['func_len'] = 'numQuads'
+psana_doc_info['CsPad']['ConfigV5']['asicMask']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV5']['badAsicMask0']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV5']['badAsicMask1']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV5']['concentratorVersion']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV5']['quadMask']['func_method'] = bin
 psana_doc_info['CsPad']['ConfigV5']['roiMask']['func_len_hex'] = 'numQuads'
 psana_doc_info['CsPad']['ConfigV5']['roiMasks']['func_method'] = hex
 psana_doc_info['CsPad']['ElementV2']['common_mode']['func_shape'] = 32
+psana_doc_info['CsPad']['ConfigV3QuadReg']['ampIdle']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV3QuadReg']['biasTuning']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV3QuadReg']['digCount']['func_method'] = hex
+psana_doc_info['CsPad']['ConfigV3QuadReg']['acqDelay']['unit'] = 'x8ns'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['acqDelay']['doc'] = 'delay before acquisition (350 typical)'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['digDelay']['unit'] = 'x8ns'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['digDelay']['doc'] = 'hold delay before A to D conversion (1000 typical)'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['digPeriod']['unit'] = 'x8ns'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['digPeriod']['doc'] = 'digitiztion perios'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['intTime']['unit'] = 'x8ns'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['intTime']['doc'] = 'duration of the integration window (5000 typical)'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['readClkHold']['doc'] = '(should be 1)'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['readClkSet']['doc'] = '(should be 2)'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['rowColShiftPer']['doc'] = '(should be 3)'
+psana_doc_info['CsPad']['ConfigV3QuadReg']['digCount']['doc'] = '(max = 0x3ff)'
+psana_doc_info['CsPad']['CsPadReadOnlyCfg']['version']['func_method'] = hex
+
+psana_doc_info['CsPad2x2']['ConfigV2']['concentratorVersion']['func_method'] = hex
+psana_doc_info['CsPad2x2']['ConfigV2']['asicMask']['func_method'] = hex
+psana_doc_info['CsPad2x2']['ConfigV2']['badAsicMask']['func_method'] = hex
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['pdpmndnmBalance']['doc'] = '2 bits per nibble, bit order pd00pm00nd00nm'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['pdpmndnmBalance']['unit'] = ''
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['acqDelay']['unit'] = 'x8ns'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['acqDelay']['doc'] = 'delay before acquisition (280 typical)'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digDelay']['unit'] = 'x8ns'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digDelay']['doc'] = 'hold delay before A to D conversion (960 typical)'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digPeriod']['unit'] = 'x8ns'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digPeriod']['doc'] = 'digitiztion perios'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['intTime']['unit'] = 'x8ns'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['intTime']['doc'] = 'duration of the integration window (5000 typical)'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['readClkHold']['doc'] = '(should be 1)'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['readClkSet']['doc'] = '(should be 1)'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['rowColShiftPer']['doc'] = '(should be 3)'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digCount']['doc'] = '(max = 0x3ff)'
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['ampIdle']['func_method'] = hex
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['biasTuning']['func_method'] = hex
+psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digCount']['func_method'] = hex
+psana_doc_info['CsPad2x2']['CsPad2x2ReadOnlyCfg']['version']['func_method'] = hex
+psana_doc_info['CsPad2x2']['CsPad2x2ReadOnlyCfg']['shiftTest']['func_method'] = hex
+
 psana_doc_info['Ipimb']['ConfigV1']['capacitorValue']['func_index'] = 'capacitorValues'
 psana_doc_info['Ipimb']['ConfigV2']['capacitorValue']['func_index'] = 'capacitorValues'
 #Need to understand the diode scale and base arrays.
