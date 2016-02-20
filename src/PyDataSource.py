@@ -1892,7 +1892,15 @@ class Detector(object):
                 print str(self), 'Not valid data8'
         
         else:
-            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
+            dims_dict = {}
+            for attr, val in self.evtData._all_values.items():
+                npval = np.array(val)
+                if npval.size > 1:
+                    dims_dict[attr] = (['d{:}_{:}'.format(i,a) for i,a in enumerate(npval.shape)], npval.shape)
+                else:
+                    dims_dict[attr] = ([], ())
+
+#            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
                     
         return dims_dict
 
