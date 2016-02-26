@@ -4,7 +4,6 @@ import sys
 import IPython
 import time
 from PyDataSource import *
-from psana import *
 
 def initArgs():
     """Initialize argparse arguments.
