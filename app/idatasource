@@ -1,12 +1,17 @@
+#!/usr/bin/env python
 import argparse
+import sys
+import IPython
+import time
 from PyDataSource import *
+from psana import *
 
 def initArgs():
     """Initialize argparse arguments.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("data_source", nargs='?', default=None, 
-                        help='psana data_source')
+    #parser.add_argument("data_source", nargs='?', default=None, 
+    #                    help='psana data_source')
     parser.add_argument("-e", "--exp", type=str, 
                         help='Experiment number')
     parser.add_argument("-r", "--run", type=int,  
@@ -44,27 +49,7 @@ def initArgs():
 #                        help='monshmserver source base for shmem data -- autodetected')
     return parser.parse_args()
 
-def main():
-    """Main script to initialize DataSource object in interactive python.
-       Currently using ipsana.sh bash script to start this, but should look
-       to using example Dan D. provided for IPython startup.
-       /reg/neh/home/ddamiani/Workarea/psana-dev/psmon-dev/psmon/src/console.py
-
-       Left some code from psutils module for automatically guessing experiment
-       and instrument based on the user and local machine from which this is started.
-       
-       In future should add detection of data files to avoid trying to load 
-       run data that does not exist, including checks that the code is being
-       run on an appropriate machine.  If someone tries loading a file they do 
-       not have access to, a message should be given how to get access (i.e., 
-       ask the PI of the experiment to be added, and if sure are on experiment
-       then submit ticket to appropriate mail list for assistance).
-    """
-    time0 = time.time()
-    args = initArgs()
-    ds = DataSource(**vars(args))
-    setattr(sys.modules['__main__'], args.base, ds)
-    run_info = getattr(sys.modules['__main__'], args.base)
+def banner(ds):
     print "*"*80
     print ""
     print 'Data loaded for the psana data_source = ', run_info
@@ -97,8 +82,32 @@ def main():
         print ""
     
     print "*"*80
+
+def main():
+    """Main script to initialize DataSource object in interactive python.
+       Currently using ipsana.sh bash script to start this, but should look
+       to using example Dan D. provided for IPython startup.
+       /reg/neh/home/ddamiani/Workarea/psana-dev/psmon-dev/psmon/src/console.py
+
+       Left some code from psutils module for automatically guessing experiment
+       and instrument based on the user and local machine from which this is started.
+       
+       In future should add detection of data files to avoid trying to load 
+       run data that does not exist, including checks that the code is being
+       run on an appropriate machine.  If someone tries loading a file they do 
+       not have access to, a message should be given how to get access (i.e., 
+       ask the PI of the experiment to be added, and if sure are on experiment
+       then submit ticket to appropriate mail list for assistance).
+    """
+    time0 = time.time()
+    args = initArgs()
+    ds = DataSource(**vars(args))
+    setattr(sys.modules['__main__'], args.base, ds)
+    run_info = getattr(sys.modules['__main__'], args.base)
+
     if not ds.data_source.monshmserver:
         ds.reload()
+    IPython.embed(banner1=banner(ds))
 
 if __name__ == "__main__":
     sys.exit(main())
