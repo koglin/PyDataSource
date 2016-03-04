@@ -1876,14 +1876,13 @@ class Detector(object):
 #                    'raw':       raw_dims,
                     }
             else:
-                raw_dims = (['X', 'Y'], self.calibData.shape)
-                if self.calibData.ximage is not None and self.calibData.yimage is not None:
+                if self.calibData.ximage is not None and self.calibData.ximage.size > 0:
+                    raw_dims = (['X', 'Y'], self.calibData.shape)
                     image_shape = (len(self.calibData.ximage),len(self.calibData.yimage))
                     image_dims = (['X', 'Y'], image_shape)
                     dims_dict = {'calib':     image_dims}
                 else:
-                    image_dims = None
-                    dims_dict = {}
+                    dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
    
         # temporary fix for Quartz camera not in PyDetector class
         elif self._pydet is not None and hasattr(self._pydet, 'dettype') \
