@@ -71,6 +71,11 @@ def get_xdat(ds, nevents=None, max_size=1000,
     if not eventCodes:
         eventCodes = sorted(ds.configData._eventcodes.keys())
     
+    if hasattr(ds.configData, 'ScanData') and ds.configData.ScanData:
+        nsteps = ds.configData.ScanData.nsteps
+    else:
+        nsteps = 1
+    
     neventCodes = len(eventCodes)
     det_funcs = {}
 
@@ -106,12 +111,15 @@ def get_xdat(ds, nevents=None, max_size=1000,
                 # Make avg and std objects for each eventCode and step for multi-dimension data
                 if len(item[1]) > 1:
                     a = [det+'_'+name for name in item[0]]
-                    a.insert(0, 'codes')
-                    #a.insert(0, det+'_code')
-                    #a.insert(0, 'step')
+                    a.insert(0, det+'_codes')
+                    a.insert(0, det+'_steps')
                     b = list(item[1])
                     b.insert(0, neventCodes)
-                    summary_funcs = [Welford() for ec in eventCodes]
+                    b.insert(0, nsteps)
+                    summary_funcs = []
+                    for istep in range(nsteps):
+                        summary_funcs.append([Welford() for ec in eventCodes])
+                    
                     summary_names = ['ec{:}'.format(ec) for ec in eventCodes]
                     det_funcs[det][attr]['welford'] = {'dims': a, 'shape': b, 
                             'names': summary_names,
@@ -135,7 +143,6 @@ def get_xdat(ds, nevents=None, max_size=1000,
     # Scan Attributes -- cannot put None or dicts as attrs in netcdf4
     # e.g., pvAliases is a dict
     if hasattr(ds.configData, 'ScanData') and ds.configData.ScanData:
-        nsteps = ds.configData.ScanData.nsteps
         if ds.configData.ScanData.nsteps == 1:
             attrs = ['nsteps']
         else:
@@ -145,8 +152,6 @@ def get_xdat(ds, nevents=None, max_size=1000,
             val = getattr(ds.configData.ScanData, attr)
             if val:
                 xbase.attrs[attr] = val 
-    else:
-        nsteps = 1
 
     xbase.coords['time'] = np.zeros(nevents, dtype=dtime.datetime64.dtype)
     ttypes = {'sec': 'int32', 
@@ -173,7 +178,7 @@ def get_xdat(ds, nevents=None, max_size=1000,
         atimes[det] = []
         axdat[det] = xarray.Dataset()
         for attr, item in sorted(adat[det].items(), key=operator.itemgetter(0)):
-            axdat[det][attr] = (item[0], np.empty(item[1], dtype=float16))
+            axdat[det][attr] = (item[0], np.zeros(item[1], dtype=float16))
 
     for srcstr, srcitem in sorted(ds.configData._sources.items(), key=operator.itemgetter(0)):
         src_info = ds.configData._sources.get(srcstr).copy()
@@ -194,7 +199,7 @@ def get_xdat(ds, nevents=None, max_size=1000,
 
             attrs = detector._xarray_info.get('attrs')
             if attrs:
-                axdat[det].coords[det+'_config'] = (['steps'], range(nsteps))
+                axdat[det].coords[det+'_config'] = ([det+'_steps'], range(nsteps))
                 axdat[det].coords[det+'_config'].attrs.update(attrs)
 
             for attr, attr_func in det_func.items():
@@ -228,8 +233,9 @@ def get_xdat(ds, nevents=None, max_size=1000,
                 if 'welford' in attr_func:
                     #axdat[det].coords[det+'_code'] = eventCodes
                     #axdat[det].coords[det+'_events'] = ([det+'_code'], np.zeros(len(eventCodes), dtype=uint16))
-                    axdat[det].coords['codes'] = eventCodes
-                    axdat[det].coords[det+'_events'] = (['codes'], np.zeros(len(eventCodes), dtype=uint16))
+                    axdat[det].coords[det+'_codes'] = eventCodes
+                    axdat[det].coords[det+'_events'] = ([det+'_steps',det+'_codes'], \
+                                    np.zeros(shape=(nsteps,neventCodes), dtype=uint))
                     for wattr in attr_func['welford']['attrs']:
                         axdat[det][alias+'_'+wattr].attrs.update(attrs_info)
 
@@ -310,7 +316,8 @@ def get_xdat(ds, nevents=None, max_size=1000,
 
                 if vals is not None and 'welford' in attr_func:
                     # Add event to appropriate detector summary
-                    for iec, fec in enumerate(attr_func['welford']['funcs']):
+                    for iec, fecs in enumerate(attr_func['welford']['funcs']):
+                        fec = fecs[istep]
                         if eventCodes[iec] in evt.Evr.eventCodes:
                             try:
                                 if not fec.shape or fec.shape == vals.shape: 
@@ -347,21 +354,28 @@ def get_xdat(ds, nevents=None, max_size=1000,
                 _make_images(xdat, {det: det_funcs[det]})
             
             xbase = xbase.merge(xdat)
- 
+
+    # Need to fix getting number of event with steps added
     for det, det_func in det_funcs.items():
         for attr, attr_func in det_func.items():
             alias = attr_func.get('alias')
+            nec = []
             if 'welford' in attr_func:
-                nec = [fec.n for fec in attr_func['welford']['funcs']]
-                #xbase.coords[det+'_events'] = (det+'_code', nec)
-                #xbase.coords[det+'_events'] = ('codes', nec)
-                xbase.coords[det+'_events'] = nec
-#                xbase.coords[det+'_code'] = eventCodes
-    
+                nsteps = len(attr_func['welford']['funcs'])
+                for istep in range(nsteps):
+                    nec.append([fec.n for fec in attr_func['welford']['funcs'][istep]])
+            
+                try:
+                    xbase.coords[det+'_events'] = ([det+'_steps', det+'_codes'], np.array(nec))
+                except:
+                    print 'No events for ', det, attr, np.array(nec).shape
+                    print nec
+
     #return xbase
     
     return xbase, det_funcs
-  
+ 
+# Need to fix for steps
 def _make_images(xbase, det_funcs):
     for det, det_func in det_funcs.items():
         for attr, attr_func in det_func.items():
@@ -372,25 +386,32 @@ def _make_images(xbase, det_funcs):
                     indexes_x = np.array(getattr(xbase, det+'_indexes_x'))
                     indexes_y = np.array(getattr(xbase, det+'_indexes_y'))
                     #img_dims = [det+'_code', det+'_ximage', det+'_yimage']
-                    img_dims = ['codes', det+'_ximage', det+'_yimage']
+                    img_dims = [det+'_steps', det+'_codes', det+'_ximage', det+'_yimage']
                 else:
                     continue
 
                 print det, attr, alias
                 for fattr in attr_func['welford']['attrs']:
-                    imgs = []
-                    for iec, fec in enumerate(attr_func['welford']['funcs']):
-                        vals = getattr(fec, fattr)()
-                        if np.any(vals):
-                            #mask_vals = vals*mask*(xdat.DscCsPad_rms < 7.5)
-                            xbase[alias+'_'+fattr][iec] = vals
-                        
-                        if np.any(vals):
-                            img = img_from_pixel_arrays(indexes_x, indexes_y, vals)
-                        else:
-                            img = np.zeros((indexes_x.max()+1,indexes_y.max()+1))
-                        
-                        imgs.append(np.array(img))
-                               
-                    xbase[det+'_image_'+fattr] = (img_dims, np.array(imgs))
+                    aimgs = []
+                    nsteps = len(attr_func['welford']['funcs'])
+                    for istep in range(nsteps):
+                        imgs = []
+                        for iec, fec in enumerate(attr_func['welford']['funcs'][istep]):
+                            vals = getattr(fec, fattr)()
+                            if np.any(vals):
+                                #mask_vals = vals*mask*(xdat.DscCsPad_rms < 7.5)
+                                xbase[alias+'_'+fattr][iec] = vals
+                            
+                            if np.any(vals):
+                                img = img_from_pixel_arrays(indexes_x, indexes_y, vals)
+                            else:
+                                img = np.zeros((indexes_x.max()+1,indexes_y.max()+1))
+                            
+                            imgs.append(np.array(img))
+                    
+                        aimgs.append(imgs)
+                    
+                    print det, fattr, img_dims, np.array(aimgs).shape
+
+                    xbase[det+'_image_'+fattr] = (img_dims, np.array(aimgs))
  
