@@ -83,11 +83,14 @@ If you use all or part of it, please give an appropriate acknowledgment.
 __version__ = "$Revision$"
 ##-----------------------------
 
+import os
 import sys
 import operator
+import imp
 import re
 import time
 import traceback
+import inspect
 import psana
 import numpy as np
 from DataSourceInfo import *
@@ -113,6 +116,33 @@ _eventCodes_rate = {
         163: 'BAKIK',
         }
 
+
+def import_module(module_name, module_path):
+    """Import a module from a given path.
+    """
+    try:
+        if not isinstance(module_path,list):
+            module_path = [module_path]
+        file,filename,desc = imp.find_module(module_name, module_path)
+        globals()[module_name] = imp.load_module(module_name, file, filename, desc)
+        return
+    except Exception as err:
+        print 'import_module error', err
+        print 'ERROR loading {:} from {:}'.format(module_name, module_path)
+        traceback.print_exc()
+
+    sys.exit()
+
+def get_module(module_name, module_path, reload=False):
+    if reload or module_name not in globals():
+        import_module(module_name, module_path)
+    
+    try:
+        new_class =  getattr(globals()[module_name],module_name)
+    except:
+        new_class =  getattr(globals()[module_name],module_name.capitalize())
+
+    return new_class
 
 def get_key_info(psana_obj):
     """Get a dictionary of the (type, src, key) for the data types of each src.
@@ -405,7 +435,11 @@ class ScanData(object):
             header1 += name_format.format(alias)
             vals = self.control_values[name]
             if self.nsteps > 1:
-                sigdigit = int(np.floor(np.log10(abs(np.mean(vals[1:]-vals[:-1])))))
+                meanvals = np.mean(abs(vals[1:]-vals[:-1]))
+                if meanvals > 0:
+                    sigdigit = int(np.floor(np.log10(meanvals)))
+                else:
+                    sigdigit = -2
             else:
                 sigdigit = int(np.floor(np.log10(abs(vals))))
             
@@ -435,8 +469,6 @@ class ScanData(object):
         return '< '+repr_str+' >'
 
 
-
-
 class DataSource(object):
     """Python version of psana.DataSource with support for event and config
        data as well as PyDetector functions to access calibrated data.
@@ -445,8 +477,31 @@ class DataSource(object):
     _ds_funcs = ['end', 'env']
     _ds_attrs = ['empty']
     _env_attrs = ['calibDir', 'instrument', 'experiment','expNum']
+    _default_modules = {
+            'path': '',
+            'devName': {
+#                'Evr': 'evr', 
+#                'Imp': 'imp',
+##                'Acqiris': 'acqiris',
+#                'Epix': 'epix100',
+#                'Cspad': 'cspad',
+#                'Cspad2x2': 'cspad2x2',
+#                'Tm6740': 'pim',
+#                'Opal1000': 'camera',
+#                'Opal2000': 'camera',
+#                'Opal4000': 'camera',
+#                'Opal8000': 'camera',
+                },
+             'srcname': {
+#                'XrayTransportDiagnostic.0:Opal1000.0': 'xtcav_det',
+#                'CxiDsu.0:Opal1000.0': 'timetool',     
+                },
+            }
+
 
     def __init__(self, data_source=None, **kwargs):
+        self._device_sets = {}
+        self._default_modules.update({'path': os.path.dirname(__file__)+'/detectors'})
         self.load_run(data_source=data_source, **kwargs)
         if self.data_source.smd:
             self._load_smd_config()
@@ -468,6 +523,7 @@ class DataSource(object):
         self._current_run = None
         self._evt_keys = {}
         self._evt_modules = {}
+        self._init_dets = []
         if not reload:
             self.data_source = DataSourceInfo(data_source=data_source, **kwargs)
 
@@ -571,11 +627,115 @@ class DataSource(object):
             alias = item.get('alias')
             self._add_dets(**{alias: srcstr})
 
+    def add_detector(self, srcstr, alias=None, module=None, path=None, 
+                     #pvs=None, desc=None, parameters={}, 
+                     desc=None,
+                     **kwargs):
+        initialized = False
+        if not alias:
+            if srcstr in self._aliases:
+                alias = srcstr
+                srcstr = self._aliases[alias]
+            else:
+                alias = re.sub('-|:|\.| ','_', srcstr)
+
+        det = alias
+        
+        if alias not in self._device_sets:
+            self._device_sets[alias] = {'alias': alias, 'parameter': {}, 'property': {}}
+            if not desc:
+                desc = alias
+        
+        if True:
+            srcname = srcstr.split('(')[1].split(')')[0]
+            try:
+                devName = srcname.split(':')[1].split('.')[0]
+            except:
+                devName = None
+
+            det_dict = self._device_sets[alias]
+            det_dict.update({'desc': desc, 'srcname': srcname, 'srcstr': srcstr, 'devName': devName})
+            
+            if module:
+                module = module.split('.')[0]
+
+            # First check for device configuration
+            if 'module' in det_dict:
+                module_name = det_dict['module']['name']
+                if 'path' in det_dict['module']:
+                    module_path = det_dict['module']['path']
+                else:
+                    module_path = ''
+            else:
+                module_name = None 
+                module_path = ''
+
+            # Then use module and path keywords if applicable
+            if module:
+                if module_name:
+                    print 'Changing {alias} detector module from \
+                          {module_name} to {module}'.format(
+                           alias=alias,module=module,module_name=module_name)
+                else:
+                    det_dict['module'] = {}
+                
+                module_name = module
+                det_dict['module']['name'] = module
+
+            # Use defaults if not set by keyword or in device config
+            if not module_name: 
+                if srcname in self._default_modules['srcname']:
+                    module_name = self._default_modules['srcname'][srcname]
+                    module_path = ''
+                elif devName and devName in self._default_modules['devName']:
+                    module_name = self._default_modules['devName'][devName]
+                    module_path = ''
+
+            if module_name:
+                is_default_class = False
+            else:
+                is_default_class = True
+
+            if not is_default_class:
+                if path:
+                    module_path = path
+        
+                if module_path:
+                    print 'Using the path {module_path} for {module_name}'.format( \
+                           module_path=module_path, module_name=module_name)
+                else:
+                    module_path = self._default_modules['path']
+                    
+                det_dict['module']['path'] = module_path
+
+                new_class = get_module(module_name, module_path, reload=True)
+#                import_module(module_name, module_path)
+#                try:
+#                    new_class =  getattr(globals()[module_name],module_name)
+#                except:
+#                    new_class =  getattr(globals()[module_name],module_name.capitalize())
+                
+                det_dict['module']['dict'] = [attr for attr in new_class.__dict__ \
+                                              if not attr.startswith('_')]
+
+                print 'Loading {alias} as {new_class} from {module_path}'.format(
+                       alias=alias,new_class=new_class,module_path=module_path)
+                nomodule = False
+                self._detectors[alias] = new_class(self, alias, **kwargs)
+                initialized = True
+
+            if is_default_class:
+                print 'Loading {alias} as standard Detector class'.format(alias=alias)
+                self._detectors[alias] = Detector(self, alias)
+                initialized = True
+
+        if initialized:
+            self._init_dets.append(alias)
+
     def _add_dets(self, **kwargs):
         for alias, srcstr in kwargs.items():
             try:
-                det = Detector(self, alias)
-                self._detectors.update({alias: det})
+                self.add_detector(srcstr, alias=alias)
             except Exception as err:
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
@@ -1163,9 +1323,9 @@ class ConfigData(object):
     _configStore_attrs = ['get','put','keys']
     # Alias default provides way to keep aliases consistent for controls devices like the FEE_Spec
     _alias_defaults = {
-            'BldInfo(FEE-SPEC0)': 'FEE_Spec',
-            'BldInfo(NH2-SB1-IPM-01':  'Nh2Sb1_Ipm1',
-            'BldInfo(NH2-SB1-IPM-02':  'Nh2Sb1_Ipm2',
+            'BldInfo(FEE-SPEC0)':       'FEE_Spec',
+            'BldInfo(NH2-SB1-IPM-01)':  'Nh2Sb1_Ipm1',
+            'BldInfo(NH2-SB1-IPM-02)':  'Nh2Sb1_Ipm2',
             }
 
     def __init__(self, ds):
@@ -1741,6 +1901,11 @@ class Detector(object):
     _tabclass = 'evtData'
     _calib_class = None
     _det_class = None
+    _ds = None
+    _alias = ''
+    src = ''
+    _pydet = None
+    _init = False
 
     def __init__(self, ds, alias, verbose=False, **kwargs):
         """Initialize a psana Detector class for a given detector alias.
@@ -1752,6 +1917,7 @@ class Detector(object):
         self._alias = alias
         self._ds = ds
         self.src = ds._aliases.get(alias)
+        self._xarray_info = {'coords': {}, 'dims': {}, 'attrs': {}}
 
         if self.src:
             if verbose:
@@ -1762,14 +1928,13 @@ class Detector(object):
             return
 
         self._srcstr = str(self.src)
-        self._srcname = self._srcstr.split('(')[1].split(')')[0]
-       
-        self.configData = getattr(ds.configData, self._alias)
-
+        #self._srcname = self._srcstr.split('(')[1].split(')')[0]
+        srcname = self._det_config['srcname']
+ 
         try:
-            self._pydet = psana.Detector(self._srcname, ds._ds.env())
+            self._pydet = psana.Detector(srcname, ds._ds.env())
         except:
-            self._pydet = None
+            pass
 
         if not hasattr(self._pydet, 'dettype'):
             # PyDetector for Ipimb does not provide dettype
@@ -1798,54 +1963,26 @@ class Detector(object):
             self._det_class = None
             self._tabclass = 'evtData'
 
+        self.add = AddOn(ds, alias)
+        self._init = True
+
     @property
-    def _xray_attrs(self):
-        """Attributes
+    def _det_config(self):
+        return self._ds._device_sets.get(self._alias)
+
+    def _update_xarray_info(self):
+        """Update default xarray information
         """
-        return {attr: item for attr, item in self.configData._all_values.items() \
+        # attrs -- not valid yet for bld but should fix this to avoid try/except here
+        try:
+            attrs = {attr: item for attr, item in self.configData._all_values.items() \
                 if np.product(np.shape(item)) <= 17}
+        except:
+            attrs = {}
 
-    @property
-    def _coords(self):
-        if self._det_class == WaveformData:
-            coords_dict = {
-                    't': np.arange(self.configData.horiz.nbrSamples) \
-                            *self.configData.horiz.sampInterval \
-                            +self.configData.horiz.delayTime
-                    }
-            return coords_dict 
+        self._xarray_info['attrs'].update(**attrs)
 
-        elif self._det_class == ImageData:
-            if self.calibData.ndim == 3:
-                raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
-                attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
-                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
-                coords_dict = {}
-                    
-            elif self.calibData.ndim == 2:
-                raw_dims = (['X', 'Y'], self.calibData.shape)
-                attrs = []
-                coords_dict = {
-                        'X': self.calibData.ximage,
-                        'Y': self.calibData.yimage}
-            else:
-                return {}
-
-            for attr in attrs:
-                val = getattr(self.calibData, attr)
-                if val is not None:
-                    coords_dict[attr] = (raw_dims[0], val)
-        
-            return coords_dict
-
-        else:
-            return {}
-
-
-    @property
-    def _xray_dims(self):
-        """Dimensions of data attributes.
-        """
+        # xarray dims
         if self.src == 'BldInfo(FEE-SPEC0)':
             dims_dict = {attr: ([], ()) for attr in ['integral', 'npeaks']}
             dims_dict['hproj'] = (['X'], self.hproj.shape)
@@ -1903,7 +2040,42 @@ class Detector(object):
 
 #            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
                     
-        return dims_dict
+        self._xarray_info['dims'].update(**dims_dict)
+
+
+        # coords
+        if self._det_class == WaveformData:
+            coords_dict = {
+                    't': np.arange(self.configData.horiz.nbrSamples) \
+                            *self.configData.horiz.sampInterval \
+                            +self.configData.horiz.delayTime
+                    }
+
+        elif self._det_class == ImageData:
+            if self.calibData.ndim == 3:
+                raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
+                attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
+                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
+                coords_dict = {}
+                    
+            elif self.calibData.ndim == 2:
+                raw_dims = (['X', 'Y'], self.calibData.shape)
+                attrs = []
+                coords_dict = {
+                        'X': self.calibData.ximage,
+                        'Y': self.calibData.yimage}
+            else:
+                attrs = []
+
+            for attr in attrs:
+                val = getattr(self.calibData, attr)
+                if val is not None:
+                    coords_dict[attr] = (raw_dims[0], val)
+        
+        else:
+            coords_dict = {}
+
+        self._xarray_info['coords'].update(**coords_dict)
 
     @property
     def _attrs(self):
@@ -1943,6 +2115,41 @@ class Detector(object):
         except KeyboardInterrupt:
             ievent = 0
 
+    def _show_user_info(self):
+        if self._det_config.get('module') and self._det_config['module'].get('dict'):
+            print '-'*80
+            print 'Class Properties:'
+            print '-'*18
+            for attr in self._det_config['module'].get('dict', []):
+                val = getattr(self, attr)
+                try:
+                    val = val()
+                except:
+                    pass
+                
+                strval = _repr_value(val)
+                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+
+        if self._det_config['parameter']:
+            print '-'*80
+            print 'User Defined Parameters:'
+            print '-'*18
+            for attr, val in self._det_config['parameter'].items():
+                strval = _repr_value(val)
+                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+ 
+        if self._det_config['property']:
+            print '-'*80
+            print 'User Defined Properties:'
+            print '-'*18
+            for attr, func_name in self._det_config['property'].items():
+                val = getattr(self, func_name)
+                strval = _repr_value(val)
+                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+
     def show_all(self):
         print '-'*80
         print str(self)
@@ -1950,6 +2157,9 @@ class Detector(object):
         print 'Event Data:'
         print '-'*18
         self.evtData.show_info()
+
+        self._show_user_info()
+
         if self._tabclass == 'detector':
             print '-'*80
             print 'Processed Data:'
@@ -1964,7 +2174,7 @@ class Detector(object):
         if self.configData:
             print '-'*80
             print 'Configuration Data:'
-            print '-'*80
+            print '-'*18
             self.configData.show_info()
         
         if self.epicsData:
@@ -1972,12 +2182,17 @@ class Detector(object):
             print 'Epics Data:'
             print '-'*18
             self.epicsData.show_info()
-
+               
     def show_info(self):
         print '-'*80
         print str(self)
         print '-'*80
         getattr(self, self._tabclass).show_info()
+        self._show_user_info()
+
+    @property
+    def configData(self):
+        return getattr(self._ds.configData, self._alias)
 
     @property
     def evtData(self):
@@ -2020,12 +2235,62 @@ class Detector(object):
         if attr in self._ds.events.current._event_attrs:
             return getattr(self._ds.events.current, attr)
 
+        if attr in self._det_config['parameter']:
+            return self._det_config['parameter'].get(attr)
+
+        if attr in self._det_config['property']:
+            func_name = self._det_config['property'].get(attr)
+            if hasattr(func_name,'__call__'):
+                func_name = func_name(self)
+            return func_name
+
     def __dir__(self):
         all_attrs =  set(self._attrs+
+                         self._det_config['parameter'].keys() +
+                         self._det_config['property'].keys() +
                          self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
         
         return list(sorted(all_attrs))
+
+
+class AddOn(object):
+
+    def __init__(self, ds, alias):
+        self._ds = ds
+        self._alias = alias
+
+    @property
+    def _det_config(self):
+        return self._ds._device_sets.get(self._alias)
+
+    def module(self, module=None, **kwargs):
+        if module:
+            self._ds.add_detector(self._alias, module=module, **kwargs)
+
+    def parameter(self, **kwargs):
+        for param, value in kwargs.items():
+            self._det_config['parameter'][param] = value 
+
+    def property(self, func_name, *args, **kwargs):
+        """Add a property that operates on this detector object.
+                add_property(func_name [, attr])
+           The result will be added as an attribute to the detecor with the
+           name of the function unless attr is provided.
+           For example:
+            > def myfunc(self):       
+                  return self.ebeamL3Energy
+            > data.EBeam.add_property(myfunc, 'energy')
+
+           Or alternatively using lambda:
+            > data.EBeam.add_property(lambda self: self.ebeamL3Energy, 'energy')
+        """
+        if len(args) > 0:
+            attr = args[0]
+        else:
+            attr = func_name.func_name
+        
+        self._det_config['property'][attr] = func_name 
 
 
 class IpimbData(object):
@@ -2748,5 +3013,108 @@ class TimeStamp(object):
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name_, _self.__str__)
 
+
+def _xray_attrs(self):
+    """Attributes
+    """
+    return {attr: item for attr, item in self.configData._all_values.items() \
+            if np.product(np.shape(item)) <= 17}
+
+def _coords(self):
+    if self._det_class == WaveformData:
+        coords_dict = {
+                't': np.arange(self.configData.horiz.nbrSamples) \
+                        *self.configData.horiz.sampInterval \
+                        +self.configData.horiz.delayTime
+                }
+        return coords_dict 
+
+    elif self._det_class == ImageData:
+        if self.calibData.ndim == 3:
+            raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
+            attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
+                     'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
+            coords_dict = {}
+                
+        elif self.calibData.ndim == 2:
+            raw_dims = (['X', 'Y'], self.calibData.shape)
+            attrs = []
+            coords_dict = {
+                    'X': self.calibData.ximage,
+                    'Y': self.calibData.yimage}
+        else:
+            return {}
+
+        for attr in attrs:
+            val = getattr(self.calibData, attr)
+            if val is not None:
+                coords_dict[attr] = (raw_dims[0], val)
+    
+        return coords_dict
+
+    else:
+        return {}
+
+def _xray_dims(self):
+    """Dimensions of data attributes.
+    """
+    if self.src == 'BldInfo(FEE-SPEC0)':
+        dims_dict = {attr: ([], ()) for attr in ['integral', 'npeaks']}
+        dims_dict['hproj'] = (['X'], self.hproj.shape)
+
+    elif self.src == 'DetInfo(XrayTransportDiagnostic.0:Opal1000.0)':
+        dims_dict = {'data16': (['X', 'Y'], self.data16.shape)}
+
+    elif self._det_class == WaveformData:
+        dims_dict = {
+                'waveform':  (['ch', 't'], 
+                    (self.configData.nbrChannels, self.configData.horiz.nbrSamples)),
+                }
+
+    elif self._det_class == IpimbData:
+        dims_dict = {
+                'sum':      ([], ()),
+                'xpos':     ([], ()),
+                'ypos':     ([], ()),
+                'channel':  (['ch'], (4,)),
+                }
+
+    elif self._det_class == ImageData:
+        if self.calibData.ndim == 3:
+            raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
+            dims_dict = {
+#                    'image':     image_dims,
+                'calib':     raw_dims,
+#                    'raw':       raw_dims,
+                }
+        else:
+            if self.calibData.ximage is not None and self.calibData.ximage.size > 0:
+                raw_dims = (['X', 'Y'], self.calibData.shape)
+                image_shape = (len(self.calibData.ximage),len(self.calibData.yimage))
+                image_dims = (['X', 'Y'], image_shape)
+                dims_dict = {'calib':     image_dims}
+            else:
+                dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
+
+    # temporary fix for Quartz camera not in PyDetector class
+    elif self._pydet is not None and hasattr(self._pydet, 'dettype') \
+            and self._pydet.dettype == 18:
+        try:
+            dims_dict = {'data8': (['X', 'Y'], self.data8.shape)}
+        except:
+            print str(self), 'Not valid data8'
+    
+    else:
+        dims_dict = {}
+        for attr, val in self.evtData._all_values.items():
+            npval = np.array(val)
+            if npval.size > 1:
+                dims_dict[attr] = (['d{:}_{:}'.format(i,a) for i,a in enumerate(npval.shape)], npval.shape)
+            else:
+                dims_dict[attr] = ([], ())
+
+#            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
+                
+    return dims_dict
 
 
