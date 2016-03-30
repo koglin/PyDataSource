@@ -627,13 +627,15 @@ class DataSource(object):
             alias = item.get('alias')
             self._add_dets(**{alias: srcstr})
 
-    def add_detector(self, srcstr, alias=None, module=None, path=None, 
+    def add_detector(self, srcstr=None, alias=None, module=None, path=None, 
                      #pvs=None, desc=None, parameters={}, 
                      desc=None,
                      **kwargs):
         initialized = False
         if not alias:
-            if srcstr in self._aliases:
+            if not srcstr:
+                print 'Source string name or alias must be supplied'
+            elif srcstr in self._aliases:
                 alias = srcstr
                 srcstr = self._aliases[alias]
             else:
@@ -642,7 +644,13 @@ class DataSource(object):
         det = alias
         
         if alias not in self._device_sets:
-            self._device_sets[alias] = {'alias': alias, 'parameter': {}, 'property': {}}
+            self._device_sets[alias] = {
+                    'alias': alias, 
+                    'parameter': {}, 
+                    'property': {},
+                    'xarray': {},
+                    }
+
             if not desc:
                 desc = alias
         
@@ -1787,7 +1795,6 @@ class EvrData(PsanaTypeData):
         typ_func = ds._current_evt.get(self._typ,self._src)
         PsanaTypeData.__init__(self, typ_func)
         self.eventCodes = self.fifoEvents.eventCode
-        #self._xray_dims = {'eventCode': ([],())}
 
     def present(self, eventCode):
         """Return True if the eventCode is present.
@@ -1816,7 +1823,6 @@ class EvrNullData(object):
 
     def __init__(self, ds):
         self.eventCodes = []
-        #self._xray_dims = {'eventCode': ([],())}
 
     def __str__(self):
         return ''
@@ -1917,7 +1923,10 @@ class Detector(object):
         self._alias = alias
         self._ds = ds
         self.src = ds._aliases.get(alias)
-        self._xarray_info = {'coords': {}, 'dims': {}, 'attrs': {}}
+        if not self._xarray_info:
+            self._xarray_info.update({'coords': {}, 'dims': {}, 'attrs': {}})
+        
+        self._source = ds.configData._sources.get(self.src)
 
         if self.src:
             if verbose:
@@ -1949,6 +1958,10 @@ class Detector(object):
         elif self._pydet.dettype in [18]:
             self._det_class = None
             self._tabclass = 'evtData'
+        # Rayonix not yet implemented
+        elif self._pydet.dettype in [19]:
+            self._det_class = None
+            self._tabclass = 'evtData'
         # WFDetector
         elif self._pydet.dettype in [16, 17]:
             self._det_class = WaveformData
@@ -1969,6 +1982,10 @@ class Detector(object):
     @property
     def _det_config(self):
         return self._ds._device_sets.get(self._alias)
+
+    @property
+    def _xarray_info(self):
+        return self._det_config['xarray']
 
     def _update_xarray_info(self):
         """Update default xarray information
@@ -2012,6 +2029,10 @@ class Detector(object):
                     'calib':     raw_dims,
 #                    'raw':       raw_dims,
                     }
+           # # temporary fix for Opal2000, Opal4000 and Opa8000
+           # elif self._pydet.dettype in [7,8,9]:
+           #     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
+
             else:
                 if self.calibData.ximage is not None and self.calibData.ximage.size > 0:
                     raw_dims = (['X', 'Y'], self.calibData.shape)
@@ -2020,7 +2041,7 @@ class Detector(object):
                     dims_dict = {'calib':     image_dims}
                 else:
                     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
-   
+
         # temporary fix for Quartz camera not in PyDetector class
         elif self._pydet is not None and hasattr(self._pydet, 'dettype') \
                 and self._pydet.dettype == 18:
@@ -2042,7 +2063,6 @@ class Detector(object):
                     
         self._xarray_info['dims'].update(**dims_dict)
 
-
         # coords
         if self._det_class == WaveformData:
             coords_dict = {
@@ -2051,6 +2071,7 @@ class Detector(object):
                             +self.configData.horiz.delayTime
                     }
 
+        # temporary fix for Opal2000, Opal4000 and Opa8000
         elif self._det_class == ImageData:
             if self.calibData.ndim == 3:
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
@@ -2058,6 +2079,12 @@ class Detector(object):
                          'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
                 coords_dict = {}
                     
+            elif self.calib is None:
+                attrs = []
+                coords_shape = self.raw.shape
+                coords_dict = {'X': np.arange(coords_shape[0]), 
+                               'Y': np.arange(coords_shape[1])}
+
             elif self.calibData.ndim == 2:
                 raw_dims = (['X', 'Y'], self.calibData.shape)
                 attrs = []
@@ -3013,108 +3040,5 @@ class TimeStamp(object):
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name_, _self.__str__)
 
-
-def _xray_attrs(self):
-    """Attributes
-    """
-    return {attr: item for attr, item in self.configData._all_values.items() \
-            if np.product(np.shape(item)) <= 17}
-
-def _coords(self):
-    if self._det_class == WaveformData:
-        coords_dict = {
-                't': np.arange(self.configData.horiz.nbrSamples) \
-                        *self.configData.horiz.sampInterval \
-                        +self.configData.horiz.delayTime
-                }
-        return coords_dict 
-
-    elif self._det_class == ImageData:
-        if self.calibData.ndim == 3:
-            raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
-            attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
-                     'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
-            coords_dict = {}
-                
-        elif self.calibData.ndim == 2:
-            raw_dims = (['X', 'Y'], self.calibData.shape)
-            attrs = []
-            coords_dict = {
-                    'X': self.calibData.ximage,
-                    'Y': self.calibData.yimage}
-        else:
-            return {}
-
-        for attr in attrs:
-            val = getattr(self.calibData, attr)
-            if val is not None:
-                coords_dict[attr] = (raw_dims[0], val)
-    
-        return coords_dict
-
-    else:
-        return {}
-
-def _xray_dims(self):
-    """Dimensions of data attributes.
-    """
-    if self.src == 'BldInfo(FEE-SPEC0)':
-        dims_dict = {attr: ([], ()) for attr in ['integral', 'npeaks']}
-        dims_dict['hproj'] = (['X'], self.hproj.shape)
-
-    elif self.src == 'DetInfo(XrayTransportDiagnostic.0:Opal1000.0)':
-        dims_dict = {'data16': (['X', 'Y'], self.data16.shape)}
-
-    elif self._det_class == WaveformData:
-        dims_dict = {
-                'waveform':  (['ch', 't'], 
-                    (self.configData.nbrChannels, self.configData.horiz.nbrSamples)),
-                }
-
-    elif self._det_class == IpimbData:
-        dims_dict = {
-                'sum':      ([], ()),
-                'xpos':     ([], ()),
-                'ypos':     ([], ()),
-                'channel':  (['ch'], (4,)),
-                }
-
-    elif self._det_class == ImageData:
-        if self.calibData.ndim == 3:
-            raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
-            dims_dict = {
-#                    'image':     image_dims,
-                'calib':     raw_dims,
-#                    'raw':       raw_dims,
-                }
-        else:
-            if self.calibData.ximage is not None and self.calibData.ximage.size > 0:
-                raw_dims = (['X', 'Y'], self.calibData.shape)
-                image_shape = (len(self.calibData.ximage),len(self.calibData.yimage))
-                image_dims = (['X', 'Y'], image_shape)
-                dims_dict = {'calib':     image_dims}
-            else:
-                dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
-
-    # temporary fix for Quartz camera not in PyDetector class
-    elif self._pydet is not None and hasattr(self._pydet, 'dettype') \
-            and self._pydet.dettype == 18:
-        try:
-            dims_dict = {'data8': (['X', 'Y'], self.data8.shape)}
-        except:
-            print str(self), 'Not valid data8'
-    
-    else:
-        dims_dict = {}
-        for attr, val in self.evtData._all_values.items():
-            npval = np.array(val)
-            if npval.size > 1:
-                dims_dict[attr] = (['d{:}_{:}'.format(i,a) for i,a in enumerate(npval.shape)], npval.shape)
-            else:
-                dims_dict[attr] = ([], ())
-
-#            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
-                
-    return dims_dict
 
 
