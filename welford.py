@@ -1,12 +1,14 @@
 import numpy as np
 
+# See Knuth implementation of Welford algorithm -- needs to be checked.
+
 class Welford(object):
 
     def __init__(self, x=None):
-        self._K = 0 
-        self.n = 0
-        self._Ex = 0
-        self._Ex2 = 0
+        self._K = np.float64(0.) 
+        self.n = np.float64(0.)
+        self._Ex = np.float64(0.)
+        self._Ex2 = np.float64(0.)
         self.shape = None
         self._min = None
         self._max = None
@@ -18,6 +20,7 @@ class Welford(object):
             return
         
         x = np.array(x)
+        self.n += 1.
         if not self._init:
             self._init = True
             self._K = x
@@ -28,9 +31,9 @@ class Welford(object):
             self._min = np.minimum(self._min, x)
             self._max = np.maximum(self._max, x)
         
-        self.n += 1
-        self._Ex += x - self._K
-        self._Ex2 += (x - self._K) * (x - self._K)
+        self._Ex += (x - self._K) / self.n
+        self._Ex2 += (x - self._K) * (x - self._Ex)
+        self._K = self._Ex
     
     def __call__(self, x):
         self.add_data(x)
@@ -53,7 +56,7 @@ class Welford(object):
         if self.n < 1:
             return None
 
-        val = np.array(self._K + self._Ex / np.float(self.n))
+        val = np.array(self._K + self._Ex / np.float64(self.n))
         if axis:
             return val.mean(axis=axis)
         else:
@@ -65,7 +68,7 @@ class Welford(object):
         if self.n <= 1:
             return  np.zeros(self.shape)
             
-        val = np.array((self._Ex2 - (self._Ex*self._Ex)/self.n) / np.float(self.n-1))
+        val = np.array((self._Ex2 - (self._Ex*self._Ex)/np.float64(self.n)) / np.float64(self.n-1.))
 
         return val
 
