@@ -17,11 +17,11 @@ class Camera(PyDataSource.Detector):
 
     def make_roi(self, roi, xaxis=None, yaxis=None, **kwargs):       
         self.add.parameter(roi=roi)
-        if not xaxis or len(xaxis) != roi[1]-roi[0]:
-            xaxis = np.arange(roi[0],roi[1])    
+        if not xaxis or len(xaxis) != roi[0][1]-roi[0][0]:
+            xaxis = np.arange(roi[0][0],roi[0][1])    
         
-        if not yaxis or len(yaxis) != roi[3]-roi[2]:
-            yaxis = np.arange(roi[2],roi[3])    
+        if not yaxis or len(yaxis) != roi[1][1]-roi[1][0]:
+            yaxis = np.arange(roi[1][0],roi[1][1])    
         
         self.add.parameter(ximg=xaxis)
         self.add.parameter(yimg=yaxis)
@@ -38,7 +38,7 @@ class Camera(PyDataSource.Detector):
             self._update_xarray_info()
 
         try:
-            if self.detector is not None:
+            if False and self.detector is not None:
                 if self.detector.image is not None:
                     img = self.detector.image
                 elif self.detector.calib is not None:
@@ -47,16 +47,16 @@ class Camera(PyDataSource.Detector):
                     img = self.detector.raw
 
             elif self.evtData:
-                if len(self.data16):
-                    img = self.data16
+                if len(self.evtData.data16):
+                    img = self.evtData.data16
                 else:
-                    img =  self.data8
+                    img =  self.evtData.data8
 
             else:
                 return 
 
             if roi:
-                img = img[roi[0]:roi[1],roi[2]:roi[3]]
+                img = img[roi[0][0]:roi[0][1],roi[1][0]:roi[1][1]]
             
             return img
 
