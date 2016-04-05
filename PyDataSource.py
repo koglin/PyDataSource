@@ -2078,20 +2078,21 @@ class Detector(object):
                 attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
                          'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
                 coords_dict = {}
-                    
-            elif self.calib is None:
+
+            elif self.calibData.ndim == 2 and self.calibData.shape[0] > 0 and self.calib is None:
                 attrs = []
                 coords_shape = self.raw.shape
                 coords_dict = {'X': np.arange(coords_shape[0]), 
                                'Y': np.arange(coords_shape[1])}
 
-            elif self.calibData.ndim == 2:
+            elif self.calibData.ndim == 2 and  self.calibData.shape[0] > 0:
                 raw_dims = (['X', 'Y'], self.calibData.shape)
                 attrs = []
                 coords_dict = {
                         'X': self.calibData.ximage,
                         'Y': self.calibData.yimage}
             else:
+                coords_dict = {}
                 attrs = []
 
             for attr in attrs:
