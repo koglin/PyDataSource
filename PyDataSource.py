@@ -2005,13 +2005,16 @@ class Detector(object):
             dims_dict['hproj'] = (['X'], self.hproj.shape)
 
         elif self.src == 'DetInfo(XrayTransportDiagnostic.0:Opal1000.0)':
-            dims_dict = {'data16': (['X', 'Y'], self.data16.shape)}
+            dims_dict = {'data16': (['X', 'Y'], self.evtData.data16.shape)}
 
         elif self._det_class == WaveformData:
-            dims_dict = {
-                    'waveform':  (['ch', 't'], 
-                        (self.configData.nbrChannels, self.configData.horiz.nbrSamples)),
-                    }
+            if self._pydet.dettype == 17:
+                dims_dict = {'waveform': (['ch', 't'], (4, self.configData.numberOfSamples))} 
+            else:
+                dims_dict = {
+                        'waveform':  (['ch', 't'], 
+                            (self.configData.nbrChannels, self.configData.horiz.nbrSamples)),
+                        }
 
         elif self._det_class == IpimbData:
             dims_dict = {
@@ -2065,11 +2068,16 @@ class Detector(object):
 
         # coords
         if self._det_class == WaveformData:
-            coords_dict = {
-                    't': np.arange(self.configData.horiz.nbrSamples) \
-                            *self.configData.horiz.sampInterval \
-                            +self.configData.horiz.delayTime
-                    }
+            if self._pydet.dettype == 17:
+                coords_dict = {
+                        't': np.arange(self.configData.numberOfSamples) 
+                        }
+            else:
+                coords_dict = {
+                        't': np.arange(self.configData.horiz.nbrSamples) \
+                                *self.configData.horiz.sampInterval \
+                                +self.configData.horiz.delayTime
+                        }
 
         # temporary fix for Opal2000, Opal4000 and Opa8000
         elif self._det_class == ImageData:
