@@ -95,6 +95,7 @@ import psana
 import numpy as np
 from DataSourceInfo import *
 from psana_doc_info import * 
+from psmessage import Message
 
 _eventCodes_rate = {
         40: '120 Hz',
@@ -405,24 +406,26 @@ class ScanData(object):
 
         ds.reload()
 
-    def show_info(self):
+    def show_info(self, **kwargs):
+        message = Message(**kwargs)
+        
         attrs = { 
             'nsteps':      {'unit': '',     'desc': 'Number of steps'}, 
             'npvControls': {'unit': '',     'desc': 'Number of control PVs'},
             'npvMonitors': {'unit': '',     'desc': 'Number of monitor PVs'},
             }
 
-        print '{:10}: Run {:}'.format(self._ds.data_source.exp, self._ds.data_source.run)
-        print '-'*70
+        message('{:10}: Run {:}'.format(self._ds.data_source.exp, self._ds.data_source.run))
+        message('-'*70)
         for attr, item in attrs.items():
-            print '{:24} {:10} {:16}'.format(item.get('desc'), getattr(self, attr), attr)
+            message('{:24} {:10} {:16}'.format(item.get('desc'), getattr(self, attr), attr))
        
-        print ''
-        print '{:24} {:40}'.format('Alias', 'PV')
-        print '-'*70
+        message('')
+        message('{:24} {:40}'.format('Alias', 'PV'))
+        message('-'*70)
         for name, alias in self.pvAliases.items():
-            print '{:24} {:40}'.format(alias, name)
-        print ''
+            message('{:24} {:40}'.format(alias, name))
+        message('')
 
         self._control_format = {}
         self._name_len = {}
@@ -450,14 +453,16 @@ class ScanData(object):
             else:
                 self._control_format[name] = ' {:'+str(name_len)+'}'
 
-        print header1
-        print '-'*(21+sum(self._name_len.values()))
+        message(header1)
+        message('-'*(21+sum(self._name_len.values())))
         for i, nevents in enumerate(self.nevents):
             a = '{:4} {:6} {:8.3f}'.format(i, nevents, self.step_times[i])
             for name, vals in self.control_values.items():
                 a += self._control_format[name].format(vals[i])
             
-            print a
+            message(a)
+
+        return message
 
     def __str__(self):
         return  'ScanData: '+str(self._ds.data_source)
@@ -748,8 +753,8 @@ class DataSource(object):
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
     
-    def show_info(self):
-        self.configData.show_info()
+    def show_info(self, **kwargs):
+        return self.configData.show_info(**kwargs)
     
     def __str__(self):
         return  str(self.data_source)
@@ -1121,9 +1126,10 @@ class PsanaTypeList(object):
                 avalues[attr] = val
         return avalues
 
-    def show_info(self, prefix=''):
+    def show_info(self, prefix='', **kwargs):
         """Show a table of the attribute, value, unit and doc information
         """
+        message = Message(**kwargs)
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
         for attr, item in items:
             if attr in self._attrs:
@@ -1133,7 +1139,9 @@ class PsanaTypeList(object):
                 doc = item.get('doc')
                 if prefix:
                     alias = prefix+'_'+alias
-                print '{:24s} {:>12} {:7} {:}'.format(alias, str_repr, unit, doc)
+                message('{:24s} {:>12} {:7} {:}'.format(alias, str_repr, unit, doc))
+
+        return message
 
     def __getattr__(self, attr):
         if attr in self._attrs:
@@ -1189,9 +1197,10 @@ class PsanaTypeData(object):
                 avalues[attr] = val
         return avalues
 
-    def show_info(self, prefix=None):
+    def show_info(self, prefix=None, **kwargs):
         """Show a table of the attribute, value, unit and doc information
         """
+        message = Message(**kwargs)
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
         for attr, item in items:
             value = item.get('value')
@@ -1199,12 +1208,14 @@ class PsanaTypeData(object):
             if prefix:
                 alias = prefix+'_'+alias
             if hasattr(value, 'show_info'):
-                value.show_info(prefix=alias)
+                value.show_info(prefix=alias, append=True)
             else:
                 str_repr = _repr_value(item.get('value'))
                 unit = item.get('unit')
                 doc = item.get('doc')
-                print '{:24s} {:>12} {:7} {:}'.format(alias, str_repr, unit, doc)
+                message('{:24s} {:>12} {:7} {:}'.format(alias, str_repr, unit, doc))
+
+        return message
 
     def __str__(self):
         return '{:}.{:}.{:}'.format(self._typ_func.__class__.__module__,
@@ -1292,12 +1303,15 @@ class PsanaSrcData(object):
 
         return values
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show a table of the attribute, value, unit and doc information
            for all data types of the given source.
         """
+        message = Message(**kwargs)
         for type_data in self._types.values():
-            type_data.show_info()
+            type_data.show_info(append=True)
+
+        return message
 
     def _get_type(self, typ):
         return self._types.get(typ)
@@ -1574,17 +1588,18 @@ class ConfigData(object):
 
         return self._ds._scanData
 
-    def show_info(self):
-        print '*Detectors in group 0 are "BLD" data recorded at 120 Hz on event code 40'
+    def show_info(self, **kwargs):
+        message = Message(**kwargs)
+        message('*Detectors in group 0 are "BLD" data recorded at 120 Hz on event code 40')
         if self._monshmserver:
-            print '*Detectors listed as Monitored are not being recorded (group -2).'
+            message('*Detectors listed as Monitored are not being recorded (group -2).')
         else:
-            print '*Detectors listed as Controls are controls devices with unknown event code (but likely 40).'
-        print ''
+            message('*Detectors listed as Controls are controls devices with unknown event code (but likely 40).')
+        message('')
         header =  '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
                  'Rate', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
-        print header
-        print '-'*(len(header)+10)
+        message(header)
+        message('-'*(len(header)+10))
         cfg_srcs = self._config_srcs.values()
         data_srcs = {item['alias']: s for s,item in self._sources.items() \
                        if s in cfg_srcs or s.startswith('Bld')}
@@ -1619,8 +1634,10 @@ class ConfigData(object):
 
             rate = _eventCodes_rate.get(eventCode, '')
 
-            print '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
-                   group, rate, eventCode, polarity, delay, width, srcstr)
+            message('{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
+                   group, rate, eventCode, polarity, delay, width, srcstr))
+
+        return message
 
     def __str__(self):
         return  'ConfigData: '+str(self._ds.data_source)
@@ -1743,17 +1760,20 @@ class L3Ttrue(object):
         """
         return {attr: self._attr_info[attr]['value'] for attr in self._attrs}
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show a table of the attribute, value, unit and doc information
         """
+        message = Message(**kwargs)
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
         for attr, item in items:
             value = item.get('value')
             if hasattr(value, 'show_info'):
-                value.show_info(prefix=attr)
+                value.show_info(prefix=attr, append=True)
             else:
                 item['str'] = _repr_value(value)
-                print '{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item)
+                message('{attr:24s} {str:>12} {unit:7} {doc:}'.format(**item))
+
+        return message
 
     def __str__(self):
         return str(self.result)
@@ -1868,11 +1888,14 @@ class EventId(object):
         """
         return self.time[0]
 
-    def show_info(self):
-        print self.__repr__()
+    def show_info(self, **kwargs):
+        message = Message(**kwargs)
+        message(self.__repr__())
         for attr in self._attrs:
             if attr != 'idxtime': 
-                print '{:18s} {:>12}'.format(attr, getattr(self, attr))
+                message('{:18s} {:>12}'.format(attr, getattr(self, attr)))
+
+        return message
 
     def __str__(self):
         try:
@@ -2151,11 +2174,12 @@ class Detector(object):
         except KeyboardInterrupt:
             ievent = 0
 
-    def _show_user_info(self):
+    def _show_user_info(self, **kwargs):
+        message = Message(**kwargs)
         if self._det_config.get('module') and self._det_config['module'].get('dict'):
-            print '-'*80
-            print 'Class Properties:'
-            print '-'*18
+            message('-'*80)
+            message('Class Properties:')
+            message('-'*18)
             for attr in self._det_config['module'].get('dict', []):
                 val = getattr(self, attr)
                 try:
@@ -2165,66 +2189,74 @@ class Detector(object):
                 
                 strval = _repr_value(val)
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
 
         if self._det_config['parameter']:
-            print '-'*80
-            print 'User Defined Parameters:'
-            print '-'*18
+            message('-'*80)
+            message('User Defined Parameters:')
+            message('-'*18)
             for attr, val in self._det_config['parameter'].items():
                 strval = _repr_value(val)
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
  
         if self._det_config['property']:
-            print '-'*80
-            print 'User Defined Properties:'
-            print '-'*18
+            message('-'*80)
+            message('User Defined Properties:')
+            message('-'*18)
             for attr, func_name in self._det_config['property'].items():
                 val = getattr(self, func_name)
                 strval = _repr_value(val)
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
 
-    def show_all(self):
-        print '-'*80
-        print str(self)
-        print '-'*80
-        print 'Event Data:'
-        print '-'*18
-        self.evtData.show_info()
+        return message
 
-        self._show_user_info()
+    def show_all(self, **kwargs):
+        message = Message(**kwargs)
+        message('-'*80)
+        message(str(self))
+        message('-'*80)
+        message('Event Data:')
+        message('-'*18)
+        self.evtData.show_info(append=True)
+
+        self._show_user_info(append=True)
 
         if self._tabclass == 'detector':
-            print '-'*80
-            print 'Processed Data:'
-            print '-'*18
-            self.detector.show_info()
+            message('-'*80)
+            message('Processed Data:')
+            message('-'*18)
+            self.detector.show_info(append=True)
             if self._calib_class:
-                print '-'*80
-                print 'Calibration Data:'
-                print '-'*18
-                self.calibData.show_info()
+                message('-'*80)
+                message('Calibration Data:')
+                message('-'*18)
+                self.calibData.show_info(append=True)
 
         if self.configData:
-            print '-'*80
-            print 'Configuration Data:'
-            print '-'*18
-            self.configData.show_info()
+            message('-'*80)
+            message('Configuration Data:')
+            message('-'*18)
+            self.configData.show_info(append=True)
         
         if self.epicsData:
-            print '-'*80
-            print 'Epics Data:'
-            print '-'*18
-            self.epicsData.show_info()
+            message('-'*80)
+            message('Epics Data:')
+            message('-'*18)
+            self.epicsData.show_info(append=True)
                
-    def show_info(self):
-        print '-'*80
-        print str(self)
-        print '-'*80
-        getattr(self, self._tabclass).show_info()
-        self._show_user_info()
+        return message
+
+    def show_info(self, **kwargs):
+        message = Message(**kwargs)
+        message('-'*80)
+        message(str(self))
+        message('-'*80)
+        getattr(self, self._tabclass).show_info(append=True)
+        self._show_user_info(append=True)
+
+        return message
 
     @property
     def configData(self):
@@ -2360,9 +2392,10 @@ class IpimbData(object):
         """
         return self._det.instrument()
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
+        message = Message(**kwargs)
         try:
             items = sorted(self._attr_info.items(), key=operator.itemgetter(0))
             for attr, item in items:
@@ -2387,9 +2420,11 @@ class IpimbData(object):
                     except:
                         fdict['str'] = str(value)
 
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
         except:
-            print 'No Event'
+            message('No Event')
+
+        return message
 
     def __getattr__(self, attr):
         if attr in self._attrs:
@@ -2429,9 +2464,10 @@ class WaveformData(object):
         """
         return self._det.instrument()
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
+        message = Message(**kwargs)
         try:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -2456,9 +2492,11 @@ class WaveformData(object):
                     except:
                         fdict['str'] = str(value)
 
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
         except:
-            print 'No Event'
+            message('No Event')
+
+        return message
 
     def __getattr__(self, attr):
         if attr in self._attrs:
@@ -2505,9 +2543,10 @@ class WaveformCalibData(object):
         elif self._det.dettype == 17:
             self._det.set_calib_imp()
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
+        message = Message(**kwargs)
         try:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -2532,9 +2571,11 @@ class WaveformCalibData(object):
                     except:
                         fdict['str'] = str(value)
 
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
         except:
-            print 'No Event'
+            message('No Event')
+
+        return message
 
     def __getattr__(self, attr):
         if attr in self._attrs:
@@ -2596,9 +2637,10 @@ class ImageData(object):
         """
         self._det.common_mode_apply(self._evt, nda)
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
+        message = Message(**kwargs)
         if self.size > 0:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -2623,9 +2665,11 @@ class ImageData(object):
                     except:
                         fdict['str'] = str(value)
 
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
         else:
-            print 'No Event'
+            message('No Event')
+
+        return message
 
     def __getattr__(self, attr):
         if attr in self._attrs:
@@ -2752,9 +2796,10 @@ class ImageCalibData(object):
         """
         self._det.print_attributes()
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
+        message = Message(**kwargs)
         if self.size > 0:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -2779,9 +2824,9 @@ class ImageCalibData(object):
                     except:
                         fdict['str'] = str(value)
 
-                print '{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict)
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
         else:
-            print 'No Event'
+            message('No Event')
 
     def __getattr__(self, attr):
         if attr in self._attrs:
@@ -2813,9 +2858,12 @@ class EpicsConfig(object):
                     pvdict = {attr: getattr(pv, attr)() for attr in self._pv_attrs} 
                     self._pvs[pv.description()] = pvdict
 
-    def show_info(self):
+    def show_info(self, **kwargs):
+        message = Message(**kwargs)
         for alias, items in self._pvs.items():
-            print '{:18s} {:}'.format(alias, item.pvId)
+            message('{:18s} {:}'.format(alias, item.pvId))
+
+        return message
 
     def __getattr__(self, attr):
         if attr in self._pvs:
@@ -2905,12 +2953,13 @@ class PvData(object):
     def _get_pv(self, pv):
         return EpicsStorePV(self._ds.env().epicsStore(), pv)
 
-    def show_info(self):
+    def show_info(self, **kwargs):
         """Show information from PVdictionary for all PV's starting with 
            the specified dictified base.
            (i.e. ':' replaced by '.' to make them tab accessible in python)
         """
-        print self.get_info()
+        message = Message(self.get_info(), **kwargs)
+        return message
 
     def get_info(self):
         """Return string representation of all PV's starting with 
@@ -2988,8 +3037,9 @@ class EpicsStorePV(object):
         
         return info
 
-    def show_info(self):
-        print self.get_info()
+    def show_info(self, **kwargs):
+        message = Message(self.get_info(), **kwargs)
+        return message
 
     def get(self, attr):
         if attr in self._attrs:

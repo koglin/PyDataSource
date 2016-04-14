@@ -7,9 +7,20 @@ class Message(object):
     _message = []
     _message_history = []
     _max_messages = 100
+    _quiet = False
 
     def __init__(self, *args, **kwargs):
-        self.new(*args, **kwargs)
+        """Initialize message
+           append: append to previous if True.
+           quiet:  do not print each added line if True
+        """
+        if kwargs.get('append'):
+            self.add(*args, **kwargs)
+        else:
+            self.new(*args, **kwargs)
+
+        if 'quiet' in kwargs:
+            self._quiet = kwargs.get('quiet')
 
     def post(self, show=True, **kwargs):
         """Post message to elog.
@@ -43,7 +54,7 @@ class Message(object):
                 lines = [args[0]]
             
             for line in lines:
-                if not kwargs.get('quiet'):
+                if not kwargs.get('quiet') and not self._quiet:
                     print line
                 self._message.append(line)
 
@@ -60,6 +71,15 @@ class Message(object):
 
     def show(self, **kwargs):
         print self.__str__()
+
+    def __len__(self):
+        return len(self._message)
+
+    def __iter__(self):
+        return iter(self._message)
+
+    def __call__(self, *args, **kwargs):
+        self.add(*args, **kwargs)
 
     def __str__(self):
         return '\n'.join(self._message)
