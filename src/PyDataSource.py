@@ -91,8 +91,16 @@ import re
 import time
 import traceback
 import inspect
-import psana
+
 import numpy as np
+
+# psana modules
+import psana
+from psmon import publish
+publish.client_opts.daemon = True
+from psmon.plots import Image, XYPlot, MultiPlot
+
+# PyDataSource modules
 from DataSourceInfo import *
 from psana_doc_info import * 
 from psmessage import Message
@@ -117,6 +125,14 @@ _eventCodes_rate = {
         163: 'BAKIK',
         }
 
+def getattr_complete(base, args):
+    """Recursive getattr
+    """
+    attrs = args.split('.')
+    while len(attrs) > 0:
+        base = getattr(base, attrs.pop(0))
+
+    return base
 
 def import_module(module_name, module_path):
     """Import a module from a given path.
@@ -312,6 +328,53 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
         info['value'] = value
 
     return info
+
+def _new_EvtDetectors(ds, publish=False):
+    """Return EvtDetectors for ds object and perform relevant tasks for a new event.
+    """
+    import psplot
+    evt = EvtDetectors(ds)
+    if publish:
+        psplot.psmon_publish(evt)
+
+    return evt
+
+def psmon_publish(evt):
+    eventCodes = evt.Evr.eventCodes
+    event_info = str(evt)
+    for alias, item in evt._ds._device_sets.items():
+        psplots = item.get('psplot')
+        det = evt._dets.get(alias)
+        print det, psplots.keys()
+        if psplots and det:
+            for name, psmon_args in psplots.items():
+             
+                eventCode = psmon_args['pubargs'].get('eventCode', None)
+                print eventCode
+                if eventCode is None or eventCode in eventCodes:
+                    psplot_func = psmon_args['plot_function']
+                    if psplot_func is Image:
+                        image = getattr_complete(det, psmon_args['attr'][0])
+
+                        psmon_fnc = psplot_func(
+                                        event_info,
+                                        psmon_args['title'],
+                                        image, 
+                                        **psmon_args['kwargs'])
+                    elif psplot_func is XYPlot:
+                        ydata = [getattr_complete(det, attr) for attr in psmon_args['attr']]
+                        psmon_fnc = psplot_func(
+                                        event_info,
+                                        psmon_args['title'],
+                                        psmon_args['xdata'],
+                                        ydata,
+                                        **psmon_args['kwargs'])
+
+                    print 'publish', name, event_info, psmon_args
+                    print image
+                    print psmon_fnc
+                    publish.send(name,psmon_fnc)
+
 
 class ScanData(object):
     """
@@ -653,6 +716,7 @@ class DataSource(object):
                     'alias': alias, 
                     'parameter': {}, 
                     'property': {},
+                    'psplot': {},
                     'xarray': {},
                     }
 
@@ -799,7 +863,7 @@ class Runs(object):
     def current(self):
         return self._ds._current_run
 
-    def next(self):
+    def next(self, **kwargs):
         self._ds._ds_run = self._ds._ds.runs().next()
         self._ds_runs.append(self._ds._ds_run)
         self._ds._irun +=1
@@ -885,7 +949,7 @@ class RunEvents(object):
     def current(self):
         return EvtDetectors(self._ds)
 
-    def next(self, evt_time=None):
+    def next(self, evt_time=None, **kwargs):
         """Optionally pass either an integer for the event number in the data_source
            or a psana.EventTime time stamp to jump to an event.
         """
@@ -905,7 +969,7 @@ class RunEvents(object):
                 self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
                 self._ds._current_evt = evt
 
-            return EvtDetectors(self._ds)
+            return _new_EvtDetectors(self._ds, **kwargs)
 
         except: 
             raise StopIteration()
@@ -926,7 +990,7 @@ class SmdEvents(object):
     def __iter__(self):
         return self
 
-    def next(self, evt_time=None):
+    def next(self, evt_time=None, **kwargs):
         try:
             return self._ds._current_step.next(evt_time=evt_time)
         except:
@@ -952,7 +1016,7 @@ class Steps(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def next(self, **kwargs):
         try:
             if self._ds._istep == self._ds._idx_run.nsteps()-1:
                 raise StopIteration()
@@ -983,7 +1047,7 @@ class StepEvents(object):
     def __iter__(self):
         return self
 
-    def next(self, evt_time=None):
+    def next(self, evt_time=None, **kwargs):
         """Next event in step.  Optionally pass either an integer for the 
            event number in the data_source, a psana.EventTime time stamp
            or a time stamp tupple (second, nanosecond, fiducial)
@@ -1037,8 +1101,7 @@ class StepEvents(object):
             except:
                 raise StopIteration()
 
-        return EvtDetectors(self._ds)
-
+        return _new_EvtDetectors(self._ds, **kwargs)
 
 class Events(object):
     """Event iterator
@@ -1056,7 +1119,7 @@ class Events(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def next(self, **kwargs):
         try:
             self._ds._ievent += 1
             evt = self._ds._ds.events().next()
@@ -1065,7 +1128,7 @@ class Events(object):
         except:
             raise StopIteration()
 
-        return EvtDetectors(self._ds)
+        return _new_EvtDetectors(self._ds, **kwargs)
 
 
 class PsanaTypeList(object):
@@ -2359,6 +2422,130 @@ class AddOn(object):
             attr = func_name.func_name
         
         self._det_config['property'][attr] = func_name 
+
+    def psplot(self, *attrs, **kwargs):
+        """Update psplot.
+           kwargs:
+              local: if True open psplot locally
+              eventCode: check if event code(s) are in data 
+                         (or alternatively not in date with - sign)
+                         see is_eventCodePresent
+        """
+        plot_error = '' 
+        alias = self._alias
+
+        if isinstance(attrs[0],list):
+            attrs = attrs[0]
+
+        attr_name = '_and_'.join(attrs)
+        attr = attrs[0]
+
+        if kwargs.get('local'):
+            local = True
+        else:
+            local = False
+        
+        if 'eventCode' in kwargs:
+            ecstrs = []
+            for ec in kwargs.get('eventCode'):
+                if ec > 0:
+                    ecstrs.append(str(ec))
+                else:
+                    ecstrs.append('not'+str(-ec))
+            ecname = '_'+'_and_'.join(ecstrs)
+            ectitle = ' '+' and '.join(ecstrs)
+        else:
+            ecname = ''
+            ectitle = ''
+
+        if 'name' in kwargs:
+            name = kwargs['name']
+        else:
+            name = alias+'_'+attr_name+ecname
+
+        if 'title' in kwargs:
+            title = kwargs['title']
+        else:
+            title = alias+' '+attr_name+ectitle
+        
+        if 'ts' in kwargs:
+            ts = kwargs['ts']
+        else:
+            ts = self._ds._ievent
+
+        if 'plot_type' in kwargs:
+            plot_type = kwargs['plot_type']
+        else:
+            plot_type = None
+
+        pub_opts = ['eventCode']
+        pub_kwargs = {key: item for key, item in kwargs.items() \
+                      if key in pub_opts}
+
+        detector = getattr(self._ds.events.current, alias)
+        
+        if not plot_error and plot_type not in ['Image','XYPlot']:
+            try:
+                ndim = getattr_complete(detector,attr).ndim
+                if ndim == 2:
+                    plot_type = 'Image'
+                elif ndim == 1:
+                    plot_type = 'XYPlot'
+                else:
+                    plot_error = 'Data with ndim = {:} not valid'.format(ndim)
+            except:
+                plot_error = 'Data must be numpy array of one or two dimensions.\n'               
+        
+        if not plot_error:
+            if plot_type is 'Image':
+                plt_opts = ['xlabel', 'ylabel', 'aspect_ratio', 'aspect_lock']
+                plt_kwargs = {key: item for key, item in kwargs.items() \
+                              if key in plt_opts}
+                plt_args = {'det': alias,
+                            'attr': attrs,  
+                            'name': name,
+                            'plot_function': Image,
+                            'ts': ts,
+                            'title': title,
+                            'kwargs': plt_kwargs,
+                            'pubargs': pub_kwargs}
+            
+            elif plot_type is 'XYPlot':
+                plt_opts = ['xlabel','ylabel','formats']
+                plt_kwargs = {key: item for key, item in kwargs.items() \
+                              if key in plt_opts}
+                if 'xdata' in kwargs:
+                    xdata = kwargs['xdata']
+                else:
+                    xdata = [np.arange(len(getattr_complete(detector, attr))) for attr in attrs]
+                plt_args = {'det': self._name,
+                            'attr': attrs,
+                            'xdata': xdata,
+                            'name': name,
+                            'plot_function': XYPlot,
+                            'ts': ts,
+                            'title': title,
+                            'kwargs': plt_kwargs,
+                            'pubargs': pub_kwargs}
+            else: 
+                plot_error = 'Unknown plot type {:} \n'.format(plot_type)
+
+        if plot_error:
+            print 'Error adding psplot:' 
+            print plot_error
+            return None
+        else:
+            print 'psmon plot added -- use the following to view: '
+            print '--> psplot -s {:} -p 12301 {:}'.format(os.uname()[1], name)
+            print 'WARNING -- see notice when adding for -p PORT specification'
+            print '           if default PORT=12301 not available'
+            if 'psplot' not in self._det_config:
+                self._det_config['psplot'] = {}
+
+            self._det_config['psplot'][name] = plt_args
+            publish.init(local=local)
+            #import psplot
+            #self._det_config['evtfunc'][name] = psplot.psmon_publish
 
 
 class IpimbData(object):
