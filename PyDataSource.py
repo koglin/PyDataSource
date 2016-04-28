@@ -1,4 +1,4 @@
-#--------------------------------------------------------------------------
+
 # File and Version Information:
 #  $HeaderURL$
 #  $Id$
@@ -329,15 +329,15 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
 
     return info
 
-def _new_EvtDetectors(ds, publish=False):
-    """Return EvtDetectors for ds object and perform relevant tasks for a new event.
-    """
-    import psplot
-    evt = EvtDetectors(ds)
-    if publish:
-        psplot.psmon_publish(evt)
-
-    return evt
+#def _new_EvtDetectors(ds, publish=True):
+#    """Return EvtDetectors for ds object and perform relevant tasks for a new event.
+#    """
+#    import psplot
+#    evt = EvtDetectors(ds)
+#    if publish:
+#        psmon_publish(evt)
+#
+#    return evt
 
 def psmon_publish(evt):
     eventCodes = evt.Evr.eventCodes
@@ -345,35 +345,36 @@ def psmon_publish(evt):
     for alias, item in evt._ds._device_sets.items():
         psplots = item.get('psplot')
         det = evt._dets.get(alias)
-        print det, psplots.keys()
         if psplots and det:
             for name, psmon_args in psplots.items():
-             
                 eventCode = psmon_args['pubargs'].get('eventCode', None)
-                print eventCode
+                #print eventCode
                 if eventCode is None or eventCode in eventCodes:
                     psplot_func = psmon_args['plot_function']
+                    psmon_fnc = None
                     if psplot_func is Image:
                         image = getattr_complete(det, psmon_args['attr'][0])
-
-                        psmon_fnc = psplot_func(
+                        if image is not None:
+                            psmon_fnc = psplot_func(
                                         event_info,
                                         psmon_args['title'],
                                         image, 
                                         **psmon_args['kwargs'])
+                    
                     elif psplot_func is XYPlot:
                         ydata = [getattr_complete(det, attr) for attr in psmon_args['attr']]
-                        psmon_fnc = psplot_func(
+                        if ydata is not None:
+                            psmon_fnc = psplot_func(
                                         event_info,
                                         psmon_args['title'],
                                         psmon_args['xdata'],
                                         ydata,
                                         **psmon_args['kwargs'])
 
-                    print 'publish', name, event_info, psmon_args
-                    print image
-                    print psmon_fnc
-                    publish.send(name,psmon_fnc)
+                    if psmon_fnc:
+                        #print 'publish', name, event_info, psmon_args
+                        #print psmon_fnc
+                        publish.send(name,psmon_fnc)
 
 
 class ScanData(object):
@@ -470,7 +471,7 @@ class ScanData(object):
         ds.reload()
 
     def show_info(self, **kwargs):
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         
         attrs = { 
             'nsteps':      {'unit': '',     'desc': 'Number of steps'}, 
@@ -684,6 +685,14 @@ class DataSource(object):
             self._load_ConfigData()
         
         return self._ConfigData
+
+    @property
+    def scanData(self):
+        return self.configData.ScanData
+
+    @property
+    def sources(self):
+        return self.configData.Sources
 
     def _init_detectors(self):
         """Initialize psana.Detector classes based on psana env information.
@@ -947,7 +956,7 @@ class RunEvents(object):
 
     @property
     def current(self):
-        return EvtDetectors(self._ds)
+        return EvtDetectors(self._ds, init=False)
 
     def next(self, evt_time=None, **kwargs):
         """Optionally pass either an integer for the event number in the data_source
@@ -969,7 +978,7 @@ class RunEvents(object):
                 self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
                 self._ds._current_evt = evt
 
-            return _new_EvtDetectors(self._ds, **kwargs)
+            return EvtDetectors(self._ds, **kwargs)
 
         except: 
             raise StopIteration()
@@ -1042,7 +1051,7 @@ class StepEvents(object):
 
     @property
     def current(self):
-        return EvtDetectors(self._ds)
+        return EvtDetectors(self._ds, init=False)
 
     def __iter__(self):
         return self
@@ -1101,7 +1110,8 @@ class StepEvents(object):
             except:
                 raise StopIteration()
 
-        return _new_EvtDetectors(self._ds, **kwargs)
+        return EvtDetectors(self._ds, **kwargs)
+
 
 class Events(object):
     """Event iterator
@@ -1128,7 +1138,7 @@ class Events(object):
         except:
             raise StopIteration()
 
-        return _new_EvtDetectors(self._ds, **kwargs)
+        return EvtDetectors(self._ds, **kwargs)
 
 
 class PsanaTypeList(object):
@@ -1192,7 +1202,7 @@ class PsanaTypeList(object):
     def show_info(self, prefix='', **kwargs):
         """Show a table of the attribute, value, unit and doc information
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
         for attr, item in items:
             if attr in self._attrs:
@@ -1263,7 +1273,7 @@ class PsanaTypeData(object):
     def show_info(self, prefix=None, **kwargs):
         """Show a table of the attribute, value, unit and doc information
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
         for attr, item in items:
             value = item.get('value')
@@ -1370,7 +1380,7 @@ class PsanaSrcData(object):
         """Show a table of the attribute, value, unit and doc information
            for all data types of the given source.
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         for type_data in self._types.values():
             type_data.show_info(append=True)
 
@@ -1637,6 +1647,12 @@ class ConfigData(object):
             self._smlData = config._values
 
     @property
+    def Sources(self):
+        """Source information including evr config.
+        """
+        return ConfigSources(self)
+
+    @property
     def ScanData(self):
         """Scan configuration from steps ControlData.  
            May take several seconds to load the first time.
@@ -1652,53 +1668,25 @@ class ConfigData(object):
         return self._ds._scanData
 
     def show_info(self, **kwargs):
-        message = Message(**kwargs)
-        message('*Detectors in group 0 are "BLD" data recorded at 120 Hz on event code 40')
-        if self._monshmserver:
-            message('*Detectors listed as Monitored are not being recorded (group -2).')
-        else:
-            message('*Detectors listed as Controls are controls devices with unknown event code (but likely 40).')
-        message('')
-        header =  '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
-                 'Rate', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
-        message(header)
-        message('-'*(len(header)+10))
-        cfg_srcs = self._config_srcs.values()
-        data_srcs = {item['alias']: s for s,item in self._sources.items() \
-                       if s in cfg_srcs or s.startswith('Bld')}
+        message = Message(quiet=True, **kwargs)
+        message('-'*80)
+        message('Source Information:')
+        message('-'*18)
+        self.Sources.show_info(append=True)
         
-        for alias, srcstr in sorted(data_srcs.items(), key = operator.itemgetter(0)):
-            item = self._sources.get(srcstr,{})
+        return message
 
-            polarity = item.get('evr_polarity', '')
-            if polarity == 1:
-                polarity = 'Pos'
-            elif polarity == 0:
-                polarity = 'Neg'
-
-            delay = item.get('evr_delay', '')
-            if delay:
-                delay = '{:11.9f}'.format(delay)
-
-            width = item.get('evr_width', '')
-            if width:
-                width = '{:11.9f}'.format(width)
-
-            group = item.get('group')
-            if group == -1:
-                group = 'Controls'
-            elif group == -2:
-                group = 'Monitor'
-
-            if group == 0:
-                eventCode = 40
-            else:
-                eventCode = item.get('eventCode', '')
-
-            rate = _eventCodes_rate.get(eventCode, '')
-
-            message('{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
-                   group, rate, eventCode, polarity, delay, width, srcstr))
+    def show_all(self, **kwargs):
+        message = Message(quiet=True, **kwargs)
+        message('-'*80)
+        message('Source Information:')
+        message('-'*18)
+        self.Sources.show_info(append=True)
+        message('') 
+        message('-'*80)
+        message('Scan Data:')
+        message('-'*18)
+        self.ScanData.show_info(append=True)
 
         return message
 
@@ -1708,7 +1696,7 @@ class ConfigData(object):
     def __repr__(self):
         repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self._ds.data_source))
         print '< '+repr_str+' >'
-        self.show_info()
+        print self.Sources.show_info()
         return '< '+repr_str+' >'
     
     def __getattr__(self, attr):
@@ -1734,12 +1722,19 @@ class EvtDetectors(object):
        Preserves get, keys and run method of items in psana events iterators.
     """
 
+    import psplot
     _init_attrs = ['get', 'keys'] #  'run' depreciated
     _event_attrs = ['EventId', 'Evr', 'L3T']
 
-    def __init__(self, ds): 
+    def __init__(self, ds, init=True): 
         self._ds = ds
-        
+        if init:
+            self._init()
+
+    def _init(self, publish=True):
+        if publish:
+            psmon_publish(self)
+ 
     @property
     def EventId(self):
         return EventId(self._ds._current_evt)
@@ -1776,8 +1771,9 @@ class EvtDetectors(object):
             return L3Ttrue(self._ds)
 
     def next(self, *args, **kwargs):
-        return self._ds.events.next(*args, **kwargs)
- 
+        evt = self._ds.events.next(*args, **kwargs)
+        return evt
+
     def __iter__(self):
         return self
 
@@ -1854,7 +1850,6 @@ class L3Ttrue(object):
         return list(sorted(all_attrs))
 
 
-
 class L3Tdata(PsanaTypeData):
 
     def __init__(self, ds):
@@ -1868,6 +1863,127 @@ class L3Tdata(PsanaTypeData):
 
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
+
+
+class ConfigSources(object):
+
+    def __init__(self, configData):
+        self._sources = configData._sources
+        self._aliases = {item['alias']: src for src, item in self._sources.items()}
+        self._cfg_srcs = configData._config_srcs.values()
+        self._repr = str(configData._ds) 
+
+    def show_info(self, **kwargs):
+        message = Message(quiet=True, **kwargs)
+        message('*Detectors in group 0 are "BLD" data recorded at 120 Hz on event code 40')
+        if self._monshmserver:
+            message('*Detectors listed as Monitored are not being recorded (group -2).')
+        else:
+            message('*Detectors listed as Controls are controls devices with unknown event code (but likely 40).')
+        message('')
+        header =  '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
+                 'Rate', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
+        message(header)
+        message('-'*(len(header)+10))
+        data_srcs = {item['alias']: s for s,item in self._sources.items() \
+                       if s in self._cfg_srcs or s.startswith('Bld')}
+        
+        for alias, srcstr in sorted(data_srcs.items(), key = operator.itemgetter(0)):
+            item = self._sources.get(srcstr,{})
+
+            polarity = item.get('evr_polarity', '')
+            if polarity == 1:
+                polarity = 'Pos'
+            elif polarity == 0:
+                polarity = 'Neg'
+
+            delay = item.get('evr_delay', '')
+            if delay:
+                delay = '{:11.9f}'.format(delay)
+
+            width = item.get('evr_width', '')
+            if width:
+                width = '{:11.9f}'.format(width)
+
+            group = item.get('group')
+            if group == -1:
+                group = 'Controls'
+            elif group == -2:
+                group = 'Monitor'
+
+            if group == 0:
+                eventCode = 40
+            else:
+                eventCode = item.get('eventCode', '')
+
+            rate = _eventCodes_rate.get(eventCode, '')
+
+            message('{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
+                   group, rate, eventCode, polarity, delay, width, srcstr))
+
+        return message
+
+    def __str__(self):
+        return  self._repr
+
+    def __repr__(self):
+        repr_str = '{:}: {:}'.format(self.__class__.__name__, self._repr)
+        return '< '+repr_str+' >'
+ 
+    def __getattr__(self, attr):
+        if attr in self._aliases:
+            srcstr = self._aliases[attr]
+            return SourceData(self._sources[srcstr])
+
+    def __dir__(self):
+        all_attrs =  set(self._aliases.keys() +
+                         self.__dict__.keys() + dir(ConfigSources))
+        
+        return list(sorted(all_attrs))
+
+
+class SourceData(object):
+
+    _units = {'evr_width': 's',
+              'evr_delay': 's'}
+
+    _doc = {'evr_width': 'Evr trigger width',
+            'evr_delay': 'Evr trigger delay',
+            'evr_polarity': 'Evr trigger polarity',
+            'group': 'Evr group',
+            'map_key': 'Evr configuation map key (card,channel)',
+            'eventCode': 'Evr event code',
+            }
+
+    def __init__(self, source):
+        self._source = source
+
+    def show_info(self, **kwargs):
+        message = Message(quiet=True, **kwargs)
+        for attr in self._source:
+            val = self._source[attr]
+            if attr in self._units:
+                val = '{:10.9f}'.format(val)
+            item = [attr, val, self._units.get(attr, ''), self._doc.get(attr, '')]
+            message('{:22} {:>12} {:3} {:40}'.format(*item))
+
+        return message
+
+    def __str__(self):
+        return '{:} = {:}'.format(self._source.get('alias'), self._source.get('src'))
+
+    def __repr__(self):
+        return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
+
+    def __getattr__(self, attr):
+        if attr in self._source:
+            return self._source[attr]
+
+    def __dir__(self):
+        all_attrs =  set(self._source.keys()+
+                         self.__dict__.keys() + dir(SourceData))
+        
+        return list(sorted(all_attrs))
 
 
 class EvrData(PsanaTypeData):
@@ -1952,7 +2068,7 @@ class EventId(object):
         return self.time[0]
 
     def show_info(self, **kwargs):
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         message(self.__repr__())
         for attr in self._attrs:
             if attr != 'idxtime': 
@@ -2212,7 +2328,14 @@ class Detector(object):
         return []
 
     def next(self, *args, **kwargs):
-        return getattr(self._ds.events.next(*args, **kwargs), self._alias)
+        """Return next event that contains the Detector in the event data.
+        """
+        in_keys = False
+        while not in_keys:
+            evt = self._ds.events.next(*args, **kwargs) 
+            in_keys = self._alias in evt._attrs
+
+        return getattr(evt, self._alias)
  
     def __iter__(self):
         return self
@@ -2225,7 +2348,7 @@ class Detector(object):
             while ievent != 0:
                 self.next()
                 try:
-                    self.show_info()
+                    print self.show_info()
                 except:
                     pass
                 
@@ -2276,7 +2399,7 @@ class Detector(object):
         return message
 
     def show_all(self, **kwargs):
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         message('-'*80)
         message(str(self))
         message('-'*80)
@@ -2312,7 +2435,7 @@ class Detector(object):
         return message
 
     def show_info(self, **kwargs):
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         message('-'*80)
         message(str(self))
         message('-'*80)
@@ -2320,6 +2443,10 @@ class Detector(object):
         self._show_user_info(append=True)
 
         return message
+
+    @property
+    def sourceData(self):
+        return getattr(self._ds.configData.Sources, self._alias)
 
     @property
     def configData(self):
@@ -2582,7 +2709,7 @@ class IpimbData(object):
     def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         try:
             items = sorted(self._attr_info.items(), key=operator.itemgetter(0))
             for attr, item in items:
@@ -2654,7 +2781,7 @@ class WaveformData(object):
     def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         try:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -2733,7 +2860,7 @@ class WaveformCalibData(object):
     def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         try:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -2827,7 +2954,7 @@ class ImageData(object):
     def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         if self.size > 0:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -2986,7 +3113,7 @@ class ImageCalibData(object):
     def show_info(self, **kwargs):
         """Show information for relevant detector attributes.
         """
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         if self.size > 0:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
@@ -3046,7 +3173,7 @@ class EpicsConfig(object):
                     self._pvs[pv.description()] = pvdict
 
     def show_info(self, **kwargs):
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         for alias, items in self._pvs.items():
             message('{:18s} {:}'.format(alias, item.pvId))
 
@@ -3145,7 +3272,7 @@ class PvData(object):
            the specified dictified base.
            (i.e. ':' replaced by '.' to make them tab accessible in python)
         """
-        message = Message(self.get_info(), **kwargs)
+        message = Message(self.get_info(), quiet=True, **kwargs)
         return message
 
     def get_info(self):
@@ -3225,7 +3352,7 @@ class EpicsStorePV(object):
         return info
 
     def show_info(self, **kwargs):
-        message = Message(self.get_info(), **kwargs)
+        message = Message(self.get_info(), quiet=True, **kwargs)
         return message
 
     def get(self, attr):
