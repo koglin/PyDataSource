@@ -329,16 +329,6 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
 
     return info
 
-#def _new_EvtDetectors(ds, publish=True):
-#    """Return EvtDetectors for ds object and perform relevant tasks for a new event.
-#    """
-#    import psplot
-#    evt = EvtDetectors(ds)
-#    if publish:
-#        psmon_publish(evt)
-#
-#    return evt
-
 def psmon_publish(evt):
     eventCodes = evt.Evr.eventCodes
     event_info = str(evt)
@@ -546,6 +536,8 @@ class DataSource(object):
     _ds_funcs = ['end', 'env']
     _ds_attrs = ['empty']
     _env_attrs = ['calibDir', 'instrument', 'experiment','expNum']
+    _plugins = {}
+    _default_plugins = ['psplot.Psplot']
     _default_modules = {
             'path': '',
             'devName': {
@@ -817,6 +809,9 @@ class DataSource(object):
 
         if initialized:
             self._init_dets.append(alias)
+
+    def add_plugin(self, cls, **kwargs):
+        self._plugins.update({cls.__name__: cls})
 
     def _add_dets(self, **kwargs):
         for alias, srcstr in kwargs.items():
@@ -1722,7 +1717,6 @@ class EvtDetectors(object):
        Preserves get, keys and run method of items in psana events iterators.
     """
 
-    import psplot
     _init_attrs = ['get', 'keys'] #  'run' depreciated
     _event_attrs = ['EventId', 'Evr', 'L3T']
 
@@ -2178,9 +2172,12 @@ class Detector(object):
             self._det_class = None
             self._tabclass = 'evtData'
 
-        self.add = AddOn(ds, alias)
         self._init = True
 
+    @property
+    def add(self):
+        return AddOn(self._ds, self._alias)
+   
     @property
     def _det_config(self):
         return self._ds._device_sets.get(self._alias)
@@ -2514,6 +2511,9 @@ class Detector(object):
 
 class AddOn(object):
 
+    _plugins = {}
+    _init_attrs = ['_ds', '_alias']
+
     def __init__(self, ds, alias):
         self._ds = ds
         self._alias = alias
@@ -2671,8 +2671,23 @@ class AddOn(object):
 
             self._det_config['psplot'][name] = plt_args
             publish.init(local=local)
-            #import psplot
-            #self._det_config['evtfunc'][name] = psplot.psmon_publish
+
+#    def __getattr__(self, attr):
+#        if attr in self._plugins:
+#            plugin = self._plugins.get(attr)
+#            return plugin(self._ds)._det_add(attr)
+#            if plugin:
+#                return getattr(plugin, 'add')
+
+#    def __setattr__(self, attr, val):
+#        if attr not in self._init_attrs:
+#            self._plugins.update({attr: val})
+
+    def __dir__(self):
+        all_attrs =  set(self._plugins.keys() +
+                         self.__dict__.keys() + dir(AddOn))
+        
+        return list(sorted(all_attrs))
 
 
 class IpimbData(object):
