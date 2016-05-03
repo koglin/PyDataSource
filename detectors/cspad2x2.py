@@ -47,6 +47,7 @@ class Cspad2x2(PyDataSource.Detector):
             if hasattr(self, 'roi'):
                 roi = self.roi
                 img = img[roi[0],roi[1][0]:roi[1][1],roi[2][0]:roi[2][1]]
+                #img = img[roi[0][0]:roi[0][1],roi[1][0]:roi[1][1]]
             
             return img
 
