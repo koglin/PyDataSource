@@ -92,7 +92,8 @@ import time
 import traceback
 import inspect
 
-import numpy as np
+#import numpy as np
+from pylab import *
 
 # psana modules
 import psana
@@ -338,7 +339,7 @@ def psmon_publish(evt):
         if psplots and det:
             for name, psmon_args in psplots.items():
                 eventCode = psmon_args['pubargs'].get('eventCode', None)
-                #print eventCode
+                #print eventCode, name, psmon_args
                 if eventCode is None or eventCode in eventCodes:
                     psplot_func = psmon_args['plot_function']
                     psmon_fnc = None
@@ -718,6 +719,7 @@ class DataSource(object):
                     'parameter': {}, 
                     'property': {},
                     'psplot': {},
+                    'roi': {},
                     'xarray': {},
                     }
 
@@ -989,7 +991,7 @@ class SmdEvents(object):
 
     @property
     def current(self):
-        return EvtDetectors(self._ds)
+        return EvtDetectors(self._ds, init=False)
 
     def __iter__(self):
         return self
@@ -1119,7 +1121,7 @@ class Events(object):
 
     @property
     def current(self):
-        return EvtDetectors(self._ds)
+        return EvtDetectors(self._ds, init=False)
 
     def __iter__(self):
         return self
@@ -2324,14 +2326,15 @@ class Detector(object):
 
         return []
 
-    def next(self, *args, **kwargs):
+    def next(self, **kwargs):
         """Return next event that contains the Detector in the event data.
         """
         in_keys = False
         while not in_keys:
-            evt = self._ds.events.next(*args, **kwargs) 
+            evt = self._ds.events.next(init=False, **kwargs) 
             in_keys = self._alias in evt._attrs
 
+        evt._init()
         return getattr(evt, self._alias)
  
     def __iter__(self):
@@ -2477,18 +2480,32 @@ class Detector(object):
         else:
             return None
 
+    def _get_roi(self, attr):
+        """Get roi from roi_name as defined by AddOn.
+        """
+        if attr in self._det_config['roi']:
+            item = self._det_config['roi'][attr]
+            img = getattr(self, item['attr'])
+            if img is not None:
+                roi = item['roi']
+                if len(roi) == 3:
+                    return img[roi[0],roi[1][0]:roi[1][1],roi[2][0]:roi[2][1]]
+                else:
+                    return img[roi[0][0]:roi[0][1],roi[1][0]:roi[1][1]]
+            else:
+                return None
+        else:
+            return None
+
     def __str__(self):
         return '{:} {:}'.format(self._alias, str(self._ds.events.current))
 
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
-
+   
     def __getattr__(self, attr):
         if attr in self._attrs:
             return getattr(getattr(self, self._tabclass), attr)
-
-        if attr in self._ds.events.current._event_attrs:
-            return getattr(self._ds.events.current, attr)
 
         if attr in self._det_config['parameter']:
             return self._det_config['parameter'].get(attr)
@@ -2499,10 +2516,18 @@ class Detector(object):
                 func_name = func_name(self)
             return func_name
 
+        if attr in self._det_config['roi']:
+            return self._get_roi(attr)
+        
+        if attr in self._ds.events.current._event_attrs:
+            return getattr(self._ds.events.current, attr)
+
+
     def __dir__(self):
         all_attrs =  set(self._attrs+
                          self._det_config['parameter'].keys() +
                          self._det_config['property'].keys() +
+                         self._det_config['roi'].keys() + 
                          self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
         
@@ -2550,10 +2575,74 @@ class AddOn(object):
         
         self._det_config['property'][attr] = func_name 
 
+    def roi(self, attr='image', roi=None, name=None, xaxis=None, yaxis=None, 
+                publish=True, **kwargs):       
+        """Make roi for given attribute, by default this is given the name img.
+           For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
+           For 3 dim objects (e.g., cspad raw, calib), roi is a tuple where
+           the first element provides the detector component.
+        """
+        if not roi:
+            try:
+                detector = getattr(self._ds.events.current, self._alias)
+                img = getattr_complete(detector,attr)
+                plotMax = np.percentile(img, 99.5)
+                plotMin = np.percentile(img, 5)
+                print 'using the 5/99.5% as plot min/max: (',plotMin,',',plotMax,')'
+                fig=plt.figure(figsize=(20,10))
+                gs=plt.matplotlib.gridspec.GridSpec(1,2,width_ratios=[2,1])
+                plt.subplot(gs[0]).imshow(img,clim=[plotMin,plotMax],interpolation='None')
+
+                print 'Select two points to form ROI to zoom in on target location.'
+                p = np.array(ginput(2))
+                roi = ([int(p[:,1].min()),int(p[:,1].max())],
+                       [int(p[:,0].min()),int(p[:,0].max())])
+                print 'Selected ROI [y, x] =', roi
+            except:
+                print 'Cannot get roi'
+                return None
+
+        if len(roi) == 3:
+            xroi = roi[2]
+            yroi = roi[1]
+        else:
+            xroi = roi[1]
+            yroi = roi[0]
+
+        if not name:
+            nroi = len(self._det_config['roi'])
+            if nroi == 0:
+                name = 'roi'
+            else:
+                name = 'roi'+str(nroi+1)
+
+        xaxis_name = 'x'+name
+        if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
+            xaxis = np.arange(xroi[0],xroi[1])    
+        
+        yaxis_name = 'y'+name
+        if not yaxis or len(yaxis) != yroi[1]-yroi[0]:
+            yaxis = np.arange(yroi[0],yroi[1])    
+         
+        self._det_config['xarray']['coords'].update({xaxis_name: xaxis, 
+                                            yaxis_name: yaxis})
+        self._det_config['xarray']['dims'].update(
+                {name: ([yaxis_name, xaxis_name], (yaxis.size, xaxis.size))})
+
+        self._det_config['roi'].update({name: {'attr': attr, 
+                                               'roi': roi,
+                                               'xaxis': xaxis,
+                                               'yaxis': yaxis}})
+
+        #self._xarray_info['dims'].update({'xrays': ([], ())})
+
+        if publish:
+            self.psplot(name)
+
     def psplot(self, *attrs, **kwargs):
         """Update psplot.
            kwargs:
-              local: if True open psplot locally
+              local: open psplot locally (default)
               eventCode: check if event code(s) are in data 
                          (or alternatively not in date with - sign)
                          see is_eventCodePresent
@@ -2567,10 +2656,11 @@ class AddOn(object):
         attr_name = '_and_'.join(attrs)
         attr = attrs[0]
 
-        if kwargs.get('local'):
-            local = True
-        else:
+        # by default 
+        if kwargs.get('local') is False:
             local = False
+        else:
+            local = True
         
         if 'eventCode' in kwargs:
             ecstrs = []
@@ -2609,7 +2699,8 @@ class AddOn(object):
         pub_kwargs = {key: item for key, item in kwargs.items() \
                       if key in pub_opts}
 
-        detector = getattr(self._ds.events.current, alias)
+        evt = self._ds.events.current
+        detector = getattr(evt, alias)
         
         if not plot_error and plot_type not in ['Image','XYPlot']:
             try:
@@ -2671,6 +2762,8 @@ class AddOn(object):
 
             self._det_config['psplot'][name] = plt_args
             publish.init(local=local)
+            if local:
+                psmon_publish(evt)  
 
 #    def __getattr__(self, attr):
 #        if attr in self._plugins:
@@ -2688,6 +2781,7 @@ class AddOn(object):
                          self.__dict__.keys() + dir(AddOn))
         
         return list(sorted(all_attrs))
+
 
 
 class IpimbData(object):
