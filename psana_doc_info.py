@@ -147,6 +147,8 @@ psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digCount']['func_method'] = hex
 psana_doc_info['CsPad2x2']['CsPad2x2ReadOnlyCfg']['version']['func_method'] = hex
 psana_doc_info['CsPad2x2']['CsPad2x2ReadOnlyCfg']['shiftTest']['func_method'] = hex
 
+psana_doc_info['UsdUsb']['FexConfigV1']['name']['func_shape'] = 4
+
 psana_doc_info['Ipimb']['ConfigV1']['capacitorValue']['func_index'] = 'capacitorValues'
 psana_doc_info['Ipimb']['ConfigV2']['capacitorValue']['func_index'] = 'capacitorValues'
 #Need to understand the diode scale and base arrays.

@@ -97,6 +97,7 @@ from pylab import *
 
 # psana modules
 import psana
+
 from psmon import publish
 publish.client_opts.daemon = True
 from psmon.plots import Image, XYPlot, MultiPlot
@@ -349,7 +350,7 @@ def psmon_publish(evt):
                             psmon_fnc = psplot_func(
                                         event_info,
                                         psmon_args['title'],
-                                        image, 
+                                        np.array(image, dtype='f'), 
                                         **psmon_args['kwargs'])
                     
                     elif psplot_func is XYPlot:
@@ -359,7 +360,7 @@ def psmon_publish(evt):
                                         event_info,
                                         psmon_args['title'],
                                         psmon_args['xdata'],
-                                        ydata,
+                                        np.array(ydata, dtype='f'),
                                         **psmon_args['kwargs'])
 
                     if psmon_fnc:
@@ -822,7 +823,41 @@ class DataSource(object):
             except Exception as err:
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
-    
+
+    def _get_config_file(self, path=None):
+        if not path:
+            path = '/reg/d/psdm/{:}/{:}/scratch/nc/'.format(self.instrument,self.experiment)
+
+        if not os.path.isdir(path):
+            os.mkdir(path)
+
+        return '{:}/run{:04}.config'.format(path, int(self.data_source.run))
+
+    def save_config(self, file_name=None, path=None, **kwargs):
+        """Save DataSource configuration.
+        """
+        import psutils
+        if not file_name:
+            file_name = self._get_config_file(path=path)
+
+        psutils.write_json(self._device_sets, file_name, **kwargs)
+
+    def load_config(self, file_name=None, path=None, **kwargs):
+        """Load DataSource configuration.
+        """
+        import psutils
+        if not file_name:
+            file_name = self._get_config_file(path=path)
+
+        attrs = ['parameter', 'property', 'psplot', 'roi', 'xarray']
+ 
+        config = psutils.read_json(file_name)
+        for alias, item in config.items():
+            if alias in self._device_sets:
+                for attr, config_dict in item.items():
+                    self._device_sets[alias][attr].update(**config_dict)
+        
+
     def show_info(self, **kwargs):
         return self.configData.show_info(**kwargs)
     
@@ -2101,6 +2136,8 @@ class Detector(object):
        Uses full ds in order to be able to access epicsData info on
        an event basis.
     """
+    #import Detector as psanaDetector
+    # dict of detectors in psana.DetectorTypes.detectors
    
     _tabclass = 'evtData'
     _calib_class = None
@@ -2109,6 +2146,7 @@ class Detector(object):
     _alias = ''
     src = ''
     _pydet = None
+    _pydet_name = None
     _init = False
 
     def __init__(self, ds, alias, verbose=False, **kwargs):
@@ -2140,39 +2178,58 @@ class Detector(object):
  
         try:
             self._pydet = psana.Detector(srcname, ds._ds.env())
+            self._pydet_name = self._pydet.__class__.__name__
         except:
             pass
 
-        if not hasattr(self._pydet, 'dettype'):
-            # PyDetector for Ipimb does not provide dettype
-            if hasattr(self._pydet, 'sum'):
-                self._det_class = IpimbData
-                self._calib_class = None
-                self._tabclass = 'detector'
-            else:
-                self._det_class = None
-                self._tabclass = 'evtData'
-        # Quartz camera not yet implemented as AreaDetector
-        elif self._pydet.dettype in [18]:
-            self._det_class = None
-            self._tabclass = 'evtData'
-        # Rayonix not yet implemented
-        elif self._pydet.dettype in [19]:
-            self._det_class = None
-            self._tabclass = 'evtData'
-        # WFDetector
-        elif self._pydet.dettype in [16, 17]:
-            self._det_class = WaveformData
-            self._calib_class = WaveformCalibData
+        _pydet_dict = {
+                'AreaDetector':  {'det_class': ImageData,
+                                  'calib_class': ImageCalibData},
+                'WFDetector':    {'det_class': WaveformData,
+                                  'calib_class': WaveformCalibData},
+                'IpimbDetector': {'det_class': IpimbData,
+                                  'calib_class': None},
+                }
+
+        item = _pydet_dict.get(self._pydet_name)
+        if item:
+            self._det_class = item.get('det_class')
+            self._calib_class = item.get('calib_class')
             self._tabclass = 'detector'
-        # AreaDetector
-        elif self._pydet.dettype:
-            self._det_class = ImageData
-            self._calib_class = ImageCalibData
-            self._tabclass = 'detector'
-        else:
-            self._det_class = None
-            self._tabclass = 'evtData'
+#        else:
+#            self._det_class = None
+#            self._tabclass = 'evtData'
+
+#        if not hasattr(self._pydet, 'dettype'):
+#            # PyDetector for Ipimb does not provide dettype
+#            if hasattr(self._pydet, 'sum'):
+#                self._det_class = IpimbData
+#                self._calib_class = None
+#                self._tabclass = 'detector'
+#            else:
+#                self._det_class = None
+#                self._tabclass = 'evtData'
+#        # Quartz camera not yet implemented as AreaDetector
+#        elif self._pydet.dettype in [18]:
+#            self._det_class = None
+#            self._tabclass = 'evtData'
+#        # Rayonix not yet implemented
+#        elif self._pydet.dettype in [19]:
+#            self._det_class = None
+#            self._tabclass = 'evtData'
+#        # WFDetector
+#        elif self._pydet.dettype in [16, 17]:
+#            self._det_class = WaveformData
+#            self._calib_class = WaveformCalibData
+#            self._tabclass = 'detector'
+#        # AreaDetector
+#        elif self._pydet.dettype:
+#            self._det_class = ImageData
+#            self._calib_class = ImageCalibData
+#            self._tabclass = 'detector'
+#        else:
+#            self._det_class = None
+#            self._tabclass = 'evtData'
 
         self._init = True
 
@@ -2576,7 +2633,7 @@ class AddOn(object):
         self._det_config['property'][attr] = func_name 
 
     def roi(self, attr='image', roi=None, name=None, xaxis=None, yaxis=None, 
-                publish=True, **kwargs):       
+                publish=False, **kwargs):       
         """Make roi for given attribute, by default this is given the name img.
            For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
            For 3 dim objects (e.g., cspad raw, calib), roi is a tuple where
@@ -2736,6 +2793,8 @@ class AddOn(object):
                     xdata = kwargs['xdata']
                 else:
                     xdata = [np.arange(len(getattr_complete(detector, attr))) for attr in attrs]
+                
+                xdata = np.array(xdata, dtype='f')
                 plt_args = {'det': self._name,
                             'attr': attrs,
                             'xdata': xdata,
@@ -2781,7 +2840,6 @@ class AddOn(object):
                          self.__dict__.keys() + dir(AddOn))
         
         return list(sorted(all_attrs))
-
 
 
 class IpimbData(object):
@@ -2859,6 +2917,72 @@ class IpimbData(object):
         
         return list(sorted(all_attrs))
 
+
+#class GenaricWaveformData(object):
+#    """Tab accessibile dictified psana.Detector object.
+#       
+#       Attributes come from psana.Detector 
+#       with low level implementation done in C++ or python.  
+#       Boost is used for the C++.
+#    """
+#
+#    _attrs = ['raw', 'wftime'] 
+#
+#    _attr_info = {
+#            'raw':    {'doc': 'Waveform array',
+#                            'unit': 'V'},
+#            'wftime':      {'doc': 'Waveform sample time',
+#                            'unit': 's'},
+#            } 
+#
+#    def __init__(self, det, evt):
+#        self._evt = evt
+#        self._det = det
+#
+#    def show_info(self, **kwargs):
+#        """Show information for relevant detector attributes.
+#        """
+#        message = Message(quiet=True, **kwargs)
+#        try:
+#            items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+#            for attr, item in items:
+#                fdict = {'attr': attr, 'unit': '', 'doc': ''}
+#                fdict.update(**item)
+#                value = getattr(self, attr)
+#                if isinstance(value, str):
+#                    fdict['str'] = value
+#                elif isinstance(value, list):
+#                    if len(value) < 5:
+#                        fdict['str'] = str(value)
+#                    else:
+#                        fdict['str'] = 'list'
+#                elif hasattr(value,'mean'):
+#                    if value.size < 5:
+#                        fdict['str'] = str(value)
+#                    else:
+#                        fdict['str'] = '<{:.5}>'.format(value.mean())
+#                else:
+#                    try:
+#                        fdict['str'] = '{:12.5g}'.format(value)
+#                    except:
+#                        fdict['str'] = str(value)
+#
+#                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+#        except:
+#            message('No Event')
+#
+#        return message
+#
+#    def __getattr__(self, attr):
+#        if attr in self._attrs:
+#            return getattr(self._det, attr)(self._evt)
+#
+#    def __dir__(self):
+#        all_attrs =  set(self._attrs +
+#                         self.__dict__.keys() + dir(WaveformData))
+#        
+#        return list(sorted(all_attrs))
+#
 
 class WaveformData(object):
     """Tab accessibile dictified psana.Detector object.
@@ -3064,7 +3188,7 @@ class ImageData(object):
         """Show information for relevant detector attributes.
         """
         message = Message(quiet=True, **kwargs)
-        if self.size > 0:
+        if self.size > 0 or self.raw is not None:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
                 fdict = {'attr': attr, 'unit': '', 'doc': ''}
