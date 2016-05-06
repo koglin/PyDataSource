@@ -395,24 +395,25 @@ def capture_print(executableStrThatPrints):
 
     return reportStr
 
-def write_json(dict_data, filename, indent=2, separators=(',',':'), 
-               overwrite=False, **kwargs):
-    """Wrapper for writing a dictionary to a json file.
-       Default indent and separators defined to make it more readable.
-    """
-    import json
-    if not overwrite and glob(filename):
-        print 'File already exists -- use overwrite=True to overwrite the file'
-
-    with open(filename, 'w') as outfile:
-        json.dump(dict_data, outfile, indent=2, separators=(',',':'))
-
-def read_json(filename):
-    """Wrapper for reading a json file.
-    """
-    import json
-    with open(filename, 'r') as infile:
-        return json.loads(infile)
-
+# Use pandas to_json and read_json instead.
+#def write_json(dict_data, filename, indent=2, separators=(',',':'), 
+#               overwrite=False, **kwargs):
+#    """Wrapper for writing a dictionary to a json file.
+#       Default indent and separators defined to make it more readable.
+#    """
+#    import json
+#    if not overwrite and glob(filename):
+#        print 'File already exists -- use overwrite=True to overwrite the file'
+#
+#    with open(filename, 'w') as outfile:
+#        json.dump(dict_data, outfile)
+#
+#def read_json(filename):
+#    """Wrapper for reading a json file.
+#    """
+#    import json
+#    with open(filename, 'r') as infile:
+#        return json.loads(infile)
+#
 
 
