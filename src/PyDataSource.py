@@ -92,8 +92,8 @@ import time
 import traceback
 import inspect
 
-#import numpy as np
 from pylab import *
+import pandas as pd
 
 # psana modules
 import psana
@@ -331,7 +331,7 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
 
     return info
 
-def psmon_publish(evt):
+def psmon_publish(evt, quiet=True):
     eventCodes = evt.Evr.eventCodes
     event_info = str(evt)
     for alias, item in evt._ds._device_sets.items():
@@ -340,23 +340,27 @@ def psmon_publish(evt):
         if psplots and det:
             for name, psmon_args in psplots.items():
                 eventCode = psmon_args['pubargs'].get('eventCode', None)
-                #print eventCode, name, psmon_args
+                if not quiet:
+                    print eventCode, name, psmon_args
+                
                 if eventCode is None or eventCode in eventCodes:
                     psplot_func = psmon_args['plot_function']
                     psmon_fnc = None
-                    if psplot_func is Image:
+                    if psplot_func is 'Image':
                         image = getattr_complete(det, psmon_args['attr'][0])
+                        if not quiet:
+                            print name, image
                         if image is not None:
-                            psmon_fnc = psplot_func(
+                            psmon_fnc = Image(
                                         event_info,
                                         psmon_args['title'],
                                         np.array(image, dtype='f'), 
                                         **psmon_args['kwargs'])
                     
-                    elif psplot_func is XYPlot:
+                    elif psplot_func is 'XYPlot':
                         ydata = [getattr_complete(det, attr) for attr in psmon_args['attr']]
                         if ydata is not None:
-                            psmon_fnc = psplot_func(
+                            psmon_fnc = XYPlot(
                                         event_info,
                                         psmon_args['title'],
                                         psmon_args['xdata'],
@@ -538,8 +542,8 @@ class DataSource(object):
     _ds_funcs = ['end', 'env']
     _ds_attrs = ['empty']
     _env_attrs = ['calibDir', 'instrument', 'experiment','expNum']
-    _plugins = {}
-    _default_plugins = ['psplot.Psplot']
+#    _plugins = {}
+#    _default_plugins = ['psplot.Psplot']
     _default_modules = {
             'path': '',
             'devName': {
@@ -836,26 +840,27 @@ class DataSource(object):
     def save_config(self, file_name=None, path=None, **kwargs):
         """Save DataSource configuration.
         """
-        import psutils
         if not file_name:
             file_name = self._get_config_file(path=path)
 
-        psutils.write_json(self._device_sets, file_name, **kwargs)
+        pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
 
     def load_config(self, file_name=None, path=None, **kwargs):
         """Load DataSource configuration.
         """
-        import psutils
         if not file_name:
             file_name = self._get_config_file(path=path)
 
         attrs = ['parameter', 'property', 'psplot', 'roi', 'xarray']
  
-        config = psutils.read_json(file_name)
+        config = pd.read_json(file_name).to_dict()
         for alias, item in config.items():
             if alias in self._device_sets:
                 for attr, config_dict in item.items():
-                    self._device_sets[alias][attr].update(**config_dict)
+                    if isinstance(config_dict, dict):
+                        self._device_sets[alias][attr].update(**config_dict)
+                    else:
+                        self._device_sets[alias][attr] = config_dict
         
 
     def show_info(self, **kwargs):
@@ -2779,7 +2784,7 @@ class AddOn(object):
                 plt_args = {'det': alias,
                             'attr': attrs,  
                             'name': name,
-                            'plot_function': Image,
+                            'plot_function': plot_type,
                             'ts': ts,
                             'title': title,
                             'kwargs': plt_kwargs,
@@ -2799,7 +2804,7 @@ class AddOn(object):
                             'attr': attrs,
                             'xdata': xdata,
                             'name': name,
-                            'plot_function': XYPlot,
+                            'plot_function': plot_type,
                             'ts': ts,
                             'title': title,
                             'kwargs': plt_kwargs,
