@@ -334,10 +334,10 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
 def psmon_publish(evt, quiet=True):
     eventCodes = evt.Evr.eventCodes
     event_info = str(evt)
-    for alias, item in evt._ds._device_sets.items():
-        psplots = item.get('psplot')
-        det = evt._dets.get(alias)
-        if psplots and det:
+    for alias in evt._attrs:
+        psplots = evt._ds._device_sets.get(alias, {}).get('psplot')
+        if psplots:
+            detector = evt._dets.get(alias)
             for name, psmon_args in psplots.items():
                 eventCode = psmon_args['pubargs'].get('eventCode', None)
                 if not quiet:
@@ -347,7 +347,7 @@ def psmon_publish(evt, quiet=True):
                     psplot_func = psmon_args['plot_function']
                     psmon_fnc = None
                     if psplot_func is 'Image':
-                        image = getattr_complete(det, psmon_args['attr'][0])
+                        image = getattr_complete(detector, psmon_args['attr'][0])
                         if not quiet:
                             print name, image
                         if image is not None:
@@ -358,13 +358,20 @@ def psmon_publish(evt, quiet=True):
                                         **psmon_args['kwargs'])
                     
                     elif psplot_func is 'XYPlot':
-                        ydata = [getattr_complete(det, attr) for attr in psmon_args['attr']]
+                        ydata = np.array([getattr_complete(detector, attr) \
+                                for attr in psmon_args['attr']], dtype='f').squeeze()
                         if ydata is not None:
+                            if not quiet:
+                                print event_info
+                                print psmon_args['title']
+                                print psmon_args['xdata'].shape
+                                print np.array(ydata, dtype='f')
+                            
                             psmon_fnc = XYPlot(
                                         event_info,
                                         psmon_args['title'],
                                         psmon_args['xdata'],
-                                        np.array(ydata, dtype='f'),
+                                        ydata,
                                         **psmon_args['kwargs'])
 
                     if psmon_fnc:
@@ -467,6 +474,8 @@ class ScanData(object):
         ds.reload()
 
     def show_info(self, **kwargs):
+        """Show scan information.
+        """
         message = Message(quiet=True, **kwargs)
         
         attrs = { 
@@ -725,6 +734,7 @@ class DataSource(object):
                     'property': {},
                     'psplot': {},
                     'roi': {},
+                    'projection': {},
                     'xarray': {},
                     }
 
@@ -851,7 +861,7 @@ class DataSource(object):
         if not file_name:
             file_name = self._get_config_file(path=path)
 
-        attrs = ['parameter', 'property', 'psplot', 'roi', 'xarray']
+        attrs = ['parameter', 'property', 'psplot', 'roi', 'projection', 'xarray']
  
         config = pd.read_json(file_name).to_dict()
         for alias, item in config.items():
@@ -2201,40 +2211,6 @@ class Detector(object):
             self._det_class = item.get('det_class')
             self._calib_class = item.get('calib_class')
             self._tabclass = 'detector'
-#        else:
-#            self._det_class = None
-#            self._tabclass = 'evtData'
-
-#        if not hasattr(self._pydet, 'dettype'):
-#            # PyDetector for Ipimb does not provide dettype
-#            if hasattr(self._pydet, 'sum'):
-#                self._det_class = IpimbData
-#                self._calib_class = None
-#                self._tabclass = 'detector'
-#            else:
-#                self._det_class = None
-#                self._tabclass = 'evtData'
-#        # Quartz camera not yet implemented as AreaDetector
-#        elif self._pydet.dettype in [18]:
-#            self._det_class = None
-#            self._tabclass = 'evtData'
-#        # Rayonix not yet implemented
-#        elif self._pydet.dettype in [19]:
-#            self._det_class = None
-#            self._tabclass = 'evtData'
-#        # WFDetector
-#        elif self._pydet.dettype in [16, 17]:
-#            self._det_class = WaveformData
-#            self._calib_class = WaveformCalibData
-#            self._tabclass = 'detector'
-#        # AreaDetector
-#        elif self._pydet.dettype:
-#            self._det_class = ImageData
-#            self._calib_class = ImageCalibData
-#            self._tabclass = 'detector'
-#        else:
-#            self._det_class = None
-#            self._tabclass = 'evtData'
 
         self._init = True
 
@@ -2439,6 +2415,21 @@ class Detector(object):
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
 
+#        if self._det_config['projection']:
+#            message('-'*80)
+#            message('User Defined Projections:')
+#            message('-'*18)
+#            for attr, item in self._det_config['projection'].items():
+#                val = getattr(self, attr)
+#                try:
+#                    val = val()
+#                except:
+#                    pass
+# 
+#                strval = _repr_value(val)
+#                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+#                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+ 
         if self._det_config['parameter']:
             message('-'*80)
             message('User Defined Parameters:')
@@ -2559,6 +2550,22 @@ class Detector(object):
         else:
             return None
 
+    def _get_projection(self, attr):
+        """Get projection as defined by AddOn.
+        """
+        if attr in self._det_config['projection']:
+            item = self._det_config['projection'][attr]
+            img = getattr(self, item['attr'])
+            if img is not None:
+                iaxis = item['iaxis']
+                method = item['method']
+                return getattr(img, method)(axis=iaxis)
+
+            else:
+                return None
+        else:
+            return None
+
     def __str__(self):
         return '{:} {:}'.format(self._alias, str(self._ds.events.current))
 
@@ -2580,16 +2587,19 @@ class Detector(object):
 
         if attr in self._det_config['roi']:
             return self._get_roi(attr)
-        
+       
+        if attr in self._det_config['projection']:
+            return self._get_projection(attr)
+
         if attr in self._ds.events.current._event_attrs:
             return getattr(self._ds.events.current, attr)
-
 
     def __dir__(self):
         all_attrs =  set(self._attrs+
                          self._det_config['parameter'].keys() +
                          self._det_config['property'].keys() +
                          self._det_config['roi'].keys() + 
+                         self._det_config['projection'].keys() + 
                          self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
         
@@ -2636,6 +2646,71 @@ class AddOn(object):
             attr = func_name.func_name
         
         self._det_config['property'][attr] = func_name 
+
+    def projection(self, attr='image', axis='x', name=None, 
+            axis_name=None, method='sum', publish=False, **kwargs):
+        """Make a projection along an axis.
+           method: by default the method is 'sum' but other numpy methods are
+                   also possible (e.g., 'mean', 'std', 'min', 'max', 'var').
+        """
+        _methods = ['sum', 'mean', 'std', 'min', 'max', 'var']
+        _iaxes = {'x': 1, 'y': 0}
+
+        if method not in _methods:
+            print 'ERROR: {:} is not a valid method'.format(method)
+            print ' - method must be in {:}'.format(_methods)
+
+        try:
+            detector = getattr(self._ds.events.current, self._alias)
+            img = getattr_complete(detector,attr)
+        except:
+            print 'Not valid'
+            return
+        
+        if len(img.shape) != 2:
+            print '{:} is not a 2D image -- cannot make projection'.format(attr)
+            return
+        
+        if isinstance(axis, str):
+            iaxis = _iaxes.get(axis.lower())
+            if iaxis is None:
+                print 'ERROR:  {:} is not a valid axis'.format(axis)
+                print ' - Enter either "x" ["y]" or 1 [0] for x [y] axis'
+        else:
+            iaxis = axis
+            if axis == 0:
+                axis = 'y'
+            elif axis == 1:
+                axis = 'x'
+            else:
+                print 'ERROR:  {:} is not a valid axis'.format(axis)
+                print ' - Enter either "x" ["y]" or 1 [0] for x [y] axis'
+                return
+
+        if not axis_name:
+            axis_name = axis+attr
+        
+        if not name:
+            name = attr+'_'+axis+'projection'
+ 
+        projaxis = self._det_config['xarray']['coords'].get(axis_name) 
+        if projaxis is None:
+            projaxis = np.arange(img.shape[iaxis])    
+            self._det_config['xarray']['coords'].update({axis_name: projaxis})
+        
+        self._det_config['xarray']['dims'].update(
+                {name: ([axis_name], (projaxis.size))})
+
+        self._det_config['projection'].update(
+                {name: {'attr': attr, 
+                        'axis': axis, 
+                        'iaxis': iaxis,
+                        'method': method,
+                        'axis_name': axis_name, 
+                        'xdata': projaxis}})
+
+        if publish:
+            self.psplot(name)
 
     def roi(self, attr='image', roi=None, name=None, xaxis=None, yaxis=None, 
                 publish=False, **kwargs):       
@@ -2797,10 +2872,10 @@ class AddOn(object):
                 if 'xdata' in kwargs:
                     xdata = kwargs['xdata']
                 else:
-                    xdata = [np.arange(len(getattr_complete(detector, attr))) for attr in attrs]
+                    xdata = np.arange(len(getattr_complete(detector, attrs[0])))
                 
                 xdata = np.array(xdata, dtype='f')
-                plt_args = {'det': self._name,
+                plt_args = {'det': alias,
                             'attr': attrs,
                             'xdata': xdata,
                             'name': name,
@@ -2825,7 +2900,8 @@ class AddOn(object):
                 self._det_config['psplot'] = {}
 
             self._det_config['psplot'][name] = plt_args
-            publish.init(local=local)
+            if not publish.initialized:
+                publish.init(local=local)
             if local:
                 psmon_publish(evt)  
 
