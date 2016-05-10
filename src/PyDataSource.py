@@ -734,6 +734,7 @@ class DataSource(object):
                     'property': {},
                     'psplot': {},
                     'roi': {},
+                    'peak': {},
                     'projection': {},
                     'xarray': {},
                     }
@@ -861,7 +862,8 @@ class DataSource(object):
         if not file_name:
             file_name = self._get_config_file(path=path)
 
-        attrs = ['parameter', 'property', 'psplot', 'roi', 'projection', 'xarray']
+        attrs = ['parameter', 'property', 'psplot', 'peak', 
+                 'roi', 'projection', 'xarray']
  
         config = pd.read_json(file_name).to_dict()
         for alias, item in config.items():
@@ -2299,7 +2301,12 @@ class Detector(object):
                 if npval.size > 1:
                     dims_dict[attr] = (['d{:}_{:}'.format(i,a) for i,a in enumerate(npval.shape)], npval.shape)
                 else:
-                    dims_dict[attr] = ([], ())
+                    info = self.evtData._attr_info.get(attr)
+                    if info:
+                        xattrs = {a: b for a, b in info.items() if a in ['doc','unit']}
+                    else:
+                        xattrs = {}
+                    dims_dict[attr] = ([], (), xattrs)
 
 #            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
                     
@@ -2382,8 +2389,8 @@ class Detector(object):
         """Monitor detector attributes continuously with show_info function.
         """ 
         ievent = nevents
-        try:
-            while ievent != 0:
+        while ievent != 0:
+            try:
                 self.next()
                 try:
                     print self.show_info()
@@ -2395,11 +2402,11 @@ class Detector(object):
 
                 ievent -= 1
 
-        except KeyboardInterrupt:
-            ievent = 0
+            except KeyboardInterrupt:
+                ievent = 0
 
     def _show_user_info(self, **kwargs):
-        message = Message(**kwargs)
+        message = Message(quiet=True, **kwargs)
         if self._det_config.get('module') and self._det_config['module'].get('dict'):
             message('-'*80)
             message('Class Properties:')
@@ -2437,6 +2444,19 @@ class Detector(object):
             for attr, val in self._det_config['parameter'].items():
                 strval = _repr_value(val)
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+ 
+        if self._det_config['peak']:
+            message('-'*80)
+            message('User Defined 1D Peak Result:')
+            message('-'*18)
+            items = sorted(self._det_config['peak'].items(), key=operator.itemgetter(0))
+            for attr, item in items:
+                val = getattr(self, attr)
+                strval = '{:10.5g}'.format(val)
+                doc = item.get('doc','')
+                unit = item.get('unit','')
+                fdict = {'attr': attr, 'str': strval, 'unit': unit, 'doc': doc}
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
  
         if self._det_config['property']:
@@ -2509,7 +2529,8 @@ class Detector(object):
     def evtData(self):
         """Tab accessible raw data from psana event keys.
         """
-        return PsanaSrcData(self._ds._current_evt, self._srcstr, key_info=self._ds._evt_keys)
+        return PsanaSrcData(self._ds._current_evt, self._srcstr, 
+                            key_info=self._ds._evt_keys)
 
     @property
     def epicsData(self):
@@ -2550,6 +2571,43 @@ class Detector(object):
         else:
             return None
 
+    def _get_peak(self, attr):
+        """Returns peak information as defined in AddOn class.
+        """
+        if attr in self._det_config['peak']:
+            item = self._det_config['peak'][attr]
+            wf = getattr(self, item['attr'])
+            channel = item.get('channel')
+            if channel is not None:
+                wf = wf[channel]
+
+            background = item.get('background')
+            if background:
+                wf -= background
+
+            scale = item.get('scale')
+            if scale:
+                wf *= scale
+
+            wf = list(wf)
+            maxval = max(wf)
+            method = item.get('method')
+            if method == 'index':
+                idx = wf.index(maxval) 
+                xaxis = item.get('xaxis')
+                if xaxis is not None:
+                    return xaxis[idx]
+                else:
+                    return idx
+
+            elif method == 'max':
+                return maxval
+            else:
+                return None
+
+        else:
+            return None
+ 
     def _get_projection(self, attr):
         """Get projection as defined by AddOn.
         """
@@ -2557,8 +2615,8 @@ class Detector(object):
             item = self._det_config['projection'][attr]
             img = getattr(self, item['attr'])
             if img is not None:
-                iaxis = item['iaxis']
-                method = item['method']
+                iaxis = {'x': 0, 'y': 1}.get(item['axis'],0)
+                method = item.get('method', 'sum')
                 return getattr(img, method)(axis=iaxis)
 
             else:
@@ -2588,6 +2646,9 @@ class Detector(object):
         if attr in self._det_config['roi']:
             return self._get_roi(attr)
        
+        if attr in self._det_config['peak']:
+            return self._get_peak(attr)
+       
         if attr in self._det_config['projection']:
             return self._get_projection(attr)
 
@@ -2599,6 +2660,7 @@ class Detector(object):
                          self._det_config['parameter'].keys() +
                          self._det_config['property'].keys() +
                          self._det_config['roi'].keys() + 
+                         self._det_config['peak'].keys() + 
                          self._det_config['projection'].keys() + 
                          self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
@@ -2618,6 +2680,14 @@ class AddOn(object):
     @property
     def _det_config(self):
         return self._ds._device_sets.get(self._alias)
+
+    @property
+    def _evt(self):
+        return self._ds.events.current
+
+    @property
+    def _det(self):
+        return getattr(self._evt, self._alias)
 
     def module(self, module=None, **kwargs):
         if module:
@@ -2661,8 +2731,7 @@ class AddOn(object):
             print ' - method must be in {:}'.format(_methods)
 
         try:
-            detector = getattr(self._ds.events.current, self._alias)
-            img = getattr_complete(detector,attr)
+            img = getattr_complete(self._det,attr)
         except:
             print 'Not valid'
             return
@@ -2704,7 +2773,6 @@ class AddOn(object):
         self._det_config['projection'].update(
                 {name: {'attr': attr, 
                         'axis': axis, 
-                        'iaxis': iaxis,
                         'method': method,
                         'axis_name': axis_name, 
                         'xdata': projaxis}})
@@ -2712,8 +2780,13 @@ class AddOn(object):
         if publish:
             self.psplot(name)
 
+    def _getattr(self, attr):
+        """Get detector attribute.
+        """
+        return getattr_complete(self._det,attr)
+
     def roi(self, attr='image', roi=None, name=None, xaxis=None, yaxis=None, 
-                publish=False, **kwargs):       
+                doc=None, publish=False, projection=None, **kwargs):       
         """Make roi for given attribute, by default this is given the name img.
            For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
            For 3 dim objects (e.g., cspad raw, calib), roi is a tuple where
@@ -2721,8 +2794,7 @@ class AddOn(object):
         """
         if not roi:
             try:
-                detector = getattr(self._ds.events.current, self._alias)
-                img = getattr_complete(detector,attr)
+                img = self._getattr(attr)
                 plotMax = np.percentile(img, 99.5)
                 plotMin = np.percentile(img, 5)
                 print 'using the 5/99.5% as plot min/max: (',plotMin,',',plotMax,')'
@@ -2773,8 +2845,161 @@ class AddOn(object):
 
         #self._xarray_info['dims'].update({'xrays': ([], ())})
 
-        if publish:
+        if projection:
+            if projection in [True, 'x']:
+                self.projection(name, axis='x', publish=publish, **kwargs)
+            if projection in [True, 'y']:
+                self.projection(name, axis='y', publish=publish, **kwargs)
+        
+        elif publish:
             self.psplot(name)
+
+    def peak(self, attr, channel=None, name=None,
+            xaxis=None, roi=None, scale=1, baseline=None,
+            methods={'index': 'index', 'max': 'max'},
+            docs={}, units={}):
+        """simple 1D peak locator.
+           mdethod: index = index at max channel.
+                    max = maximum value.
+        """
+        if not name:
+            name = attr
+            if channel is not None:
+                name += '_ch{:}'.format(channel)
+
+        for mname, method in methods.items():
+            doc = docs.get(mname, '')
+            if not doc:
+                doc = '{:} {:} {:} of peak'.format(self._alias, name, method)
+            self._det_config['peak'].update({'_'.join([name, mname]):   
+                    {'attr': attr,
+                     'channel': channel,
+                     'roi': roi,
+                     'baseline': baseline,
+                     'xaxis': xaxis,
+                     'scale': scale,
+                     'doc': doc,
+                     'unit': units.get(mname, ''),
+                     'method': method,
+                     }})
+        
+#    def mask(self, attr):
+#        img = self._getattr(attr)
+#        plotMax = np.percentile(img, 99.5)
+#        plotMin = np.percentile(img, 5)
+#        print 'using the 5/99.5% as plot min/max: (',plotMin,',',plotMax,')'
+#
+##        image = self.__dict__[detname].image(self.lda.run, img)
+##        det = self.__dict__[detname]
+##        x = self.__dict__[detname+'_x']
+##        y = self.__dict__[detname+'_y']
+##        iX = self.__dict__[detname+'_iX']
+##        iY = self.__dict__[detname+'_iY']
+#        x = self._getattr()
+#        extent=[x.min(), x.max(), y.min(), y.max()]
+#
+#        fig=plt.figure(figsize=(10,6))
+#        from matplotlib import gridspec
+#        gs=gridspec.GridSpec(1,2,width_ratios=[2,1])
+#        
+#        mask=None
+#        mask_r_nda=None
+#        select=True
+#        while select:
+#            plt.subplot(gs[0]).imshow(image,clim=[plotMin,plotMax],interpolation='None')
+#
+#            shape = raw_input("rectangle(r), circle(c) or polygon(p)?:\n")
+#            if shape=='r':
+#                print 'select two corners: '
+#                p =np.array(ginput(2))
+#                mask_roi=np.zeros_like(image)
+#                mask_roi[p[:,1].min():p[:,1].max(),p[:,0].min():p[:,0].max()]=1
+#                mask_r_nda = np.array( [mask_roi[ix, iy] for ix, iy in zip(iX,iY)] )
+#                plt.subplot(gs[1]).imshow(det.image(self.lda.run,mask_r_nda))
+#                print 'mask from rectangle (shape):',mask_r_nda.shape
+#                if raw_input("Done?\n") in ["y","Y"]:
+#                    select = False
+#            elif shape=='c':
+#                plt.subplot(gs[0]).imshow(np.rot90(image),clim=[plotMin,plotMax],interpolation='None',extent=(x.min(),x.max(),y.min(),y.max()))
+#                if raw_input("Select center by mouse?\n") in ["y","Y"]:
+#                    c=ginput(1)
+#                    cx=c[0][0];cy=c[0][1]
+#                    print 'center: ',cx,' ',cy
+#                else:
+#                    ctot = raw_input("center (x y)?\n")
+#                    c = ctot.split(' ');cx=float(c[0]);cy=float(c[1]);
+#                if raw_input("Select outer radius by mouse?\n") in ["y","Y"]: 
+#                    r=ginput(1)
+#                    rox=r[0][0];roy=r[0][1]
+#                    ro=np.sqrt((rox-cx)**2+(roy-cy)**2)
+#                    if raw_input("Select inner radius by mouse?\n") in ["y","Y"]:
+#                        r=ginput(1)
+#                        rix=r[0][0];riy=r[0][1]
+#                        ri=np.sqrt((rix-cx)**2+(riy-cy)**2)
+#                    else:
+#                        ri=0
+#                    print 'radii: ',ro,' ',ri
+#                else:
+#                    rtot = raw_input("radii (r_outer r_inner)?\n")
+#                    r = rtot.split(' ');ro=float(r[0]);ri=max(0.,float(r[1]));        
+#                mask_router_nda = np.array( [(ix-cx)**2+(iy-cy)**2<ro**2 for ix, iy in zip(x,y)] )
+#                mask_rinner_nda = np.array( [(ix-cx)**2+(iy-cy)**2<ri**2 for ix, iy in zip(x,y)] )
+#                mask_r_nda = mask_router_nda&~mask_rinner_nda
+#                print 'mask from circle (shape):',mask_r_nda.shape
+#                plt.subplot(gs[1]).imshow(det.image(self.lda.run,mask_r_nda))
+#                if raw_input("Done?\n") in ["y","Y"]:
+#                    select = False
+#            elif shape=='p':
+#                plt.subplot(gs[0]).imshow(np.rot90(image),clim=[plotMin,plotMax],interpolation='None',extent=(x.min(),x.max(),y.min(),y.max()))
+#                nPoints = int(raw_input("Number of Points (-1 until right click)?\n"))
+#                p=np.array(ginput(nPoints))
+#                print p
+#                mpath=path.Path(p)
+#                all_p = np.array([ (ix,iy) for ix,iy in zip(x.flatten(),y.flatten()) ] )
+#                mask_r_nda = np.array([mpath.contains_points(all_p)]).reshape(x.shape)
+#                plt.subplot(gs[1]).imshow(det.image(self.lda.run,mask_r_nda))
+#                print 'mask from polygon (shape):',mask_r_nda.shape
+#                print 'not implemented yet....'
+#                if raw_input("Done?\n") in ["y","Y"]:
+#                    select = False
+#
+#            if mask_r_nda is not None:
+#                print 'created a mask....'
+#                if mask is None:
+#                    mask = mask_r_nda.astype(bool).copy()
+#                else:
+#                    mask = np.logical_or(mask,mask_r_nda)
+#            print 'masked now: ',np.ones_like(x)[mask_r_nda.astype(bool)].sum()
+#            print 'masked tot: ',np.ones_like(x)[mask.astype(bool)].sum()
+#
+#            fig=plt.figure(figsize=(6,6))
+#            plt.show()
+#            image_mask = img.copy(); image_mask[mask]=0;
+#            plt.imshow(det.image(self.lda.run,image_mask),clim=[plotMin,plotMax])
+#
+#        if det.is_cspad2x2():
+#            mask=mask.reshape(2,185*388).transpose(1,0)
+#        else:
+#            mask=mask.reshape(32*185,388)
+#        #2x2 save as 71780 lines, 2 entries
+#        #cspad save as 5920 lines, 388 entries
+#        if raw_input("Save to calibdir?\n") in ["y","Y"]:
+#            if raw_input("Invert?\n") in ["n","N"]:
+#                mask = (~(mask.astype(bool))).astype(int)
+#            srcStr=det.source.__str__().replace('Source("DetInfo(','').replace(')")','')
+#            if det.is_cspad2x2():
+#                dirname='/reg/d/psdm/%s/%s/calib/CsPad2x2::CalibV1/%s/pixel_mask/'%(self.lda.expname[:3],self.lda.expname,srcStr)
+#            else:
+#                dirname='/reg/d/psdm/%s/%s/calib/CsPad::CalibV1/%s/pixel_mask/'%(self.lda.expname[:3],self.lda.expname,srcStr)        
+#            if not os.path.exists(dirname):
+#                os.makedirs(dirname)
+#            fname='%s-end.data'%self.lda.run
+#            np.savetxt(dirname+fname,mask)
+#        elif raw_input("Save to local?\n") in ["y","Y"]:
+#            if raw_input("Invert?\n") in ["n","N"]:
+#                mask = (~(mask.astype(bool))).astype(int)
+#            np.savetxt('%s_mask_run%s.data'%(self.lda.expname,self.lda.run),mask)
+#        return mask
 
     def psplot(self, *attrs, **kwargs):
         """Update psplot.
@@ -2836,12 +3061,9 @@ class AddOn(object):
         pub_kwargs = {key: item for key, item in kwargs.items() \
                       if key in pub_opts}
 
-        evt = self._ds.events.current
-        detector = getattr(evt, alias)
-        
         if not plot_error and plot_type not in ['Image','XYPlot']:
             try:
-                ndim = getattr_complete(detector,attr).ndim
+                ndim = self._getattr(attr).ndim
                 if ndim == 2:
                     plot_type = 'Image'
                 elif ndim == 1:
@@ -2872,7 +3094,7 @@ class AddOn(object):
                 if 'xdata' in kwargs:
                     xdata = kwargs['xdata']
                 else:
-                    xdata = np.arange(len(getattr_complete(detector, attrs[0])))
+                    xdata = np.arange(len(self._getattr(attrs[0])))
                 
                 xdata = np.array(xdata, dtype='f')
                 plt_args = {'det': alias,
@@ -2900,10 +3122,10 @@ class AddOn(object):
                 self._det_config['psplot'] = {}
 
             self._det_config['psplot'][name] = plt_args
-            if not publish.initialized:
-                publish.init(local=local)
+            #if not publish.initialized:
+            #    axis=projection, publish.init(local=local)
             if local:
-                psmon_publish(evt)  
+                psmon_publish(self._evt)  
 
 #    def __getattr__(self, attr):
 #        if attr in self._plugins:
