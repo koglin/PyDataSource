@@ -16,6 +16,11 @@ class Acqiris(PyDataSource.Detector):
             setattr(self, name, Channel(self,ch,name))
 
     @property
+    def foo(self):
+        for i in range(10):
+            print i, 'foo'
+
+    @property
     def nchannels(self):
         """Number of Acqiris channels.
         """
