@@ -2611,18 +2611,31 @@ class Detector(object):
     def _get_projection(self, attr):
         """Get projection as defined by AddOn.
         """
-        if attr in self._det_config['projection']:
-            item = self._det_config['projection'][attr]
-            img = getattr(self, item['attr'])
-            if img is not None:
-                iaxis = {'x': 0, 'y': 1}.get(item['axis'],0)
-                method = item.get('method', 'sum')
-                return getattr(img, method)(axis=iaxis)
-
-            else:
-                return None
-        else:
+        item = self._det_config['projection'].get(attr)
+        if item is None:
             return None
+
+        img = getattr(self, item['attr'])
+        if img is None:
+            return None
+
+        axis = item['axis']
+        if axis in ['r', 'az']:
+            # make a radial histogram
+            coord_hist = item['coord_hist']
+            bins = item['bins']
+            norm = item['norm']
+            # make 
+            img_masked = np.ma.masked_array(img, coord_hist.mask)
+            hst, hbins  = np.histogram(coord_hist.compressed(), bins=bins, 
+                                       weights=img_masked.compressed())
+            return hst/norm
+            
+        else:
+            iaxis = {'x': 0, 'y': 1}.get(axis,0)
+            method = item.get('method', 'sum')
+            return getattr(img, method)(axis=iaxis)
+
 
     def __str__(self):
         return '{:} {:}'.format(self._alias, str(self._ds.events.current))
@@ -2699,16 +2712,16 @@ class AddOn(object):
 
     def property(self, func_name, *args, **kwargs):
         """Add a property that operates on this detector object.
-                add_property(func_name [, attr])
+                property(func_name [, attr])
            The result will be added as an attribute to the detecor with the
            name of the function unless attr is provided.
            For example:
             > def myfunc(self):       
                   return self.ebeamL3Energy
-            > data.EBeam.add_property(myfunc, 'energy')
+            > data.EBeam.add.property(myfunc, 'energy')
 
            Or alternatively using lambda:
-            > data.EBeam.add_property(lambda self: self.ebeamL3Energy, 'energy')
+            > data.EBeam.add.property(lambda self: self.ebeamL3Energy, 'energy')
         """
         if len(args) > 0:
             attr = args[0]
@@ -2717,18 +2730,52 @@ class AddOn(object):
         
         self._det_config['property'][attr] = func_name 
 
-    def projection(self, attr='image', axis='x', name=None, 
-            axis_name=None, method='sum', publish=False, **kwargs):
+    def projection(self, attr=None, axis='x', name=None, 
+            axis_name=None, method=None, publish=False, 
+            mask=None, bins=None, bin_size=None, rmin=None, rmax=None, 
+            **kwargs):
         """Make a projection along an axis.
-           method: by default the method is 'sum' but other numpy methods are
-                   also possible (e.g., 'mean', 'std', 'min', 'max', 'var').
+           For x/y projections:
+              method: by default the method is 'sum' but other numpy methods are
+                      also possible (e.g., 'mean', 'std', 'min', 'max', 'var').
+           
+           Radial projection valid in limited circumstances.
+
         """
         _methods = ['sum', 'mean', 'std', 'min', 'max', 'var']
-        _iaxes = {'x': 1, 'y': 0}
+        _axes = {'x': 1, 'y': 0, 'r': 'radial', 'az': 'azimuthal'}
+        _polar_axes = ['r', 'az']
 
-        if method not in _methods:
-            print 'ERROR: {:} is not a valid method'.format(method)
-            print ' - method must be in {:}'.format(_methods)
+        if not attr:
+            if axis in _polar_axes:
+                attr = 'calib'
+
+            else:
+                if self._det.image is not None:
+                    attr = 'image'
+                elif self._det.calib is not None:
+                    attr = 'calib'
+                elif self._det.raw is not None:
+                    attr = 'raw'
+                elif self._det.evtData.data16 is not None:
+                    attr = 'evtData.data16'
+                else:
+                    attr = 'evtData.data8'
+
+        if axis in _polar_axes:
+            if not method:
+                method = 'norm'
+            elif method not in ['norm']:
+                print 'ERROR: {:} is not a valid method'.format(method)
+                print ' - only norm method is valid for radial projections'
+
+        else:
+            if not method:
+                method = 'sum'
+
+            elif method not in _methods:
+                print 'ERROR: {:} is not a valid method'.format(method)
+                print ' - method must be in {:}'.format(_methods)
 
         try:
             img = getattr_complete(self._det,attr)
@@ -2736,46 +2783,107 @@ class AddOn(object):
             print 'Not valid'
             return
         
-        if len(img.shape) != 2:
-            print '{:} is not a 2D image -- cannot make projection'.format(attr)
-            return
+        if axis not in _polar_axes:
+            if len(img.shape) != 2:
+                print '{:} is not a 2D image -- cannot make projection'.format(attr)
+                return
         
-        if isinstance(axis, str):
-            iaxis = _iaxes.get(axis.lower())
-            if iaxis is None:
-                print 'ERROR:  {:} is not a valid axis'.format(axis)
-                print ' - Enter either "x" ["y]" or 1 [0] for x [y] axis'
-        else:
-            iaxis = axis
-            if axis == 0:
-                axis = 'y'
-            elif axis == 1:
-                axis = 'x'
+            if isinstance(axis, str):
+                iaxis = _axes.get(axis.lower())
+                if iaxis is None:
+                    print 'ERROR:  {:} is not a valid axis'.format(axis)
+                    print ' - Valid Options = {:}'.format(_axes.keys())
+                    return
             else:
                 print 'ERROR:  {:} is not a valid axis'.format(axis)
-                print ' - Enter either "x" ["y]" or 1 [0] for x [y] axis'
-                return
+                return 
 
         if not axis_name:
             axis_name = axis+attr
         
         if not name:
-            name = attr+'_'+axis+'projection'
- 
-        projaxis = self._det_config['xarray']['coords'].get(axis_name) 
-        if projaxis is None:
-            projaxis = np.arange(img.shape[iaxis])    
-            self._det_config['xarray']['coords'].update({axis_name: projaxis})
-        
-        self._det_config['xarray']['dims'].update(
-                {name: ([axis_name], (projaxis.size))})
+            name = attr+'_'+axis
 
-        self._det_config['projection'].update(
-                {name: {'attr': attr, 
-                        'axis': axis, 
-                        'method': method,
-                        'axis_name': axis_name, 
-                        'xdata': projaxis}})
+        calibData = self._det.calibData
+        if axis in _polar_axes and calibData.coords_x is not None:
+            coords_x = calibData.coords_x
+            coords_y = calibData.coords_y
+            if not mask:
+                mask = -calibData.mask() 
+
+            coords_r = np.sqrt(coords_y**2+coords_x**2)
+            coords_az = np.degrees(np.arctan2(coords_y, coords_x))
+            
+            if axis == 'r':
+                coord_hist = np.ma.masked_array(coords_r, mask)
+                if not bins:
+                    if not bin_size:
+                        bin_size = calibData.pixel_size
+                    
+                    bins = np.arange(coord_hist.compressed().min()+bin_size*10, 
+                                     coord_hist.compressed().max()-bin_size*10., 
+                                     bin_size)
+     
+            else:
+                if rmin and rmax and np.array(rmin).size > 1 and np.array(rmax).size > 1:
+                    # in future
+                    print 'Vectors for rmin and rmax not yet supported'
+                    return
+
+                else:
+                    if rmin:
+                        # add logical or for rmin
+                        mask |= np.ma.masked_less(coords_r, rmin).mask
+
+                    if rmax:
+                        # add logical or for rmax
+                        mask |= np.ma.masked_greater_equal(coords_r, rmax).mask
+
+                    coord_hist = np.ma.masked_array(coords_az, mask)
+                
+                if not bins:
+                    if not bin_size:
+                        bin_size = 2.
+
+                    bins = np.arange(-180., 180., bin_size)
+
+            norm, hbins = np.histogram(coord_hist.compressed(), bins=bins)
+            if method != 'norm':
+                norm = 1.
+            
+            projaxis = (hbins[1:]+hbins[0:-1])/2.
+            self._det_config['xarray']['coords'].update({axis_name: projaxis})
+
+            self._det_config['xarray']['dims'].update(
+                    {name: ([axis_name], (projaxis.size))})
+
+            self._det_config['projection'].update(
+                    {name: {'attr': attr, 
+                            'axis': axis, 
+                            'method': method,
+                            'axis_name': axis_name,
+                            'coord_hist': coord_hist,
+                            'bins': bins,
+                            'rmin': rmin,
+                            'rmax': rmax,
+                            'norm': norm,
+                            'xdata': projaxis}})
+
+        else:
+            projaxis = self._det_config['xarray']['coords'].get(axis_name) 
+            if projaxis is None:
+                projaxis = np.arange(img.shape[iaxis])    
+                self._det_config['xarray']['coords'].update({axis_name: projaxis})
+        
+            self._det_config['xarray']['dims'].update(
+                    {name: ([axis_name], (projaxis.size))})
+
+            self._det_config['projection'].update(
+                    {name: {'attr': attr, 
+                            'axis': axis, 
+                            'method': method,
+                            'axis_name': axis_name, 
+                            'xdata': projaxis}})
 
         if publish:
             self.psplot(name)
@@ -2842,8 +2950,6 @@ class AddOn(object):
                                                'roi': roi,
                                                'xaxis': xaxis,
                                                'yaxis': yaxis}})
-
-        #self._xarray_info['dims'].update({'xrays': ([], ())})
 
         if projection:
             if projection in [True, 'x']:
@@ -3012,7 +3118,11 @@ class AddOn(object):
         plot_error = '' 
         alias = self._alias
 
-        if isinstance(attrs[0],list):
+        if len(attrs) == 0:
+            print 'A string value specifying the plot object must be suppied'
+            return
+
+        if isinstance(attrs[0], list):
             attrs = attrs[0]
 
         attr_name = '_and_'.join(attrs)
@@ -3094,7 +3204,11 @@ class AddOn(object):
                 if 'xdata' in kwargs:
                     xdata = kwargs['xdata']
                 else:
-                    xdata = np.arange(len(self._getattr(attrs[0])))
+                    if attr in self._det_config['projection']:
+                        xdata = self._det_config['projection'][attr]['xdata']
+
+                    else:
+                        xdata = np.arange(len(self._getattr(attrs[0])))
                 
                 xdata = np.array(xdata, dtype='f')
                 plt_args = {'det': alias,
@@ -3122,8 +3236,9 @@ class AddOn(object):
                 self._det_config['psplot'] = {}
 
             self._det_config['psplot'][name] = plt_args
-            #if not publish.initialized:
-            #    axis=projection, publish.init(local=local)
+            if not publish.initialized:
+                publish.init(local=local)
+            
             if local:
                 psmon_publish(self._evt)  
 
@@ -3615,9 +3730,9 @@ class ImageCalibData(object):
         """
         self._det.set_do_offset(do_offset=do_offset)
 
-    def mask(self, calib=False, status=False, 
-                   edges=False, central=False, 
-                   unbond=False, unbondnbrs=False):
+    def mask(self, calib=True, status=True, 
+                   edges=True, central=True, 
+                   unbond=True, unbondnbrs=True):
         """Returns combined mask.
                 calib:      mask from file in calib directory.
                 status:     pixel status from file in calib director.
@@ -3626,8 +3741,8 @@ class ImageCalibData(object):
                 unbond:     mask unbonded pixels (mbit +4 in mask_geo).
                 unbondnbrs: mask unbonded neighbour pixels (mbit +8 in mask_geo).
         """
-        return self._det.mask(self._evt, calib=False, status=False, edges=False, 
-                              central=False, unbond=False, unbondnbrs=False)
+        return self._det.mask(self._evt, calib=calib, status=status, edges=edges, 
+                              central=central, unbond=unbond, unbondnbrs=unbondnbrs)
 
     def mask_geo(self, mbits=15): 
         """Return geometry mask for given mbits keyword.
