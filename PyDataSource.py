@@ -2622,13 +2622,13 @@ class Detector(object):
         axis = item['axis']
         if axis in ['r', 'az']:
             # make a radial histogram
-            coord_hist = item['coord_hist']
+            coord_compressed = item['coord_compressed']
+            mask = item['mask']
             bins = item['bins']
             norm = item['norm']
-            # make 
-            img_masked = np.ma.masked_array(img, coord_hist.mask)
-            hst, hbins  = np.histogram(coord_hist.compressed(), bins=bins, 
-                                       weights=img_masked.compressed())
+            # make masked image with mask compressed
+            img_compressed = np.ma.masked_array(img, mask).compressed()
+            hst, hbins  = np.histogram(coord_compressed, bins=bins, weights=img_compressed)
             return hst/norm
             
         else:
@@ -2847,7 +2847,8 @@ class AddOn(object):
 
                     bins = np.arange(-180., 180., bin_size)
 
-            norm, hbins = np.histogram(coord_hist.compressed(), bins=bins)
+            coord_compressed = coord_hist.compressed()
+            norm, hbins = np.histogram(coord_compressed, bins=bins)
             if method != 'norm':
                 norm = 1.
             
@@ -2862,7 +2863,8 @@ class AddOn(object):
                             'axis': axis, 
                             'method': method,
                             'axis_name': axis_name,
-                            'coord_hist': coord_hist,
+                            'coord_compressed': coord_compressed,
+                            'mask': mask,
                             'bins': bins,
                             'rmin': rmin,
                             'rmax': rmax,
