@@ -354,7 +354,7 @@ def psmon_publish(evt, quiet=True):
                             psmon_fnc = Image(
                                         event_info,
                                         psmon_args['title'],
-                                        np.array(image, dtype='f'), 
+                                        np.array(image, dtype='f').transpose(), 
                                         **psmon_args['kwargs'])
                     
                     elif psplot_func is 'XYPlot':
@@ -2278,11 +2278,12 @@ class Detector(object):
            #     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
 
             else:
-                if self.calibData.ximage is not None and self.calibData.ximage.size > 0:
+                if self.calibData.xaxis is not None and self.calibData.xaxis.size > 0:
                     raw_dims = (['X', 'Y'], self.calibData.shape)
-                    image_shape = (len(self.calibData.ximage),len(self.calibData.yimage))
+                    image_shape = (len(self.calibData.xaxis),len(self.calibData.yaxis))
                     image_dims = (['X', 'Y'], image_shape)
-                    dims_dict = {'calib':     image_dims}
+                    #dims_dict = {'calib':     image_dims}
+                    dims_dict = {'raw':     image_dims}
                 else:
                     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
 
@@ -2330,7 +2331,8 @@ class Detector(object):
             if self.calibData.ndim == 3:
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
                 attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
-                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
+                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms'
+                         'xaxis', 'yaxis']
                 coords_dict = {}
 
             elif self.calibData.ndim == 2 and self.calibData.shape[0] > 0 and self.calib is None:
@@ -2343,8 +2345,8 @@ class Detector(object):
                 raw_dims = (['X', 'Y'], self.calibData.shape)
                 attrs = []
                 coords_dict = {
-                        'X': self.calibData.ximage,
-                        'Y': self.calibData.yimage}
+                        'X': self.calibData.xaxis,
+                        'Y': self.calibData.yaxis}
             else:
                 coords_dict = {}
                 attrs = []
@@ -2632,7 +2634,8 @@ class Detector(object):
             return hst/norm
             
         else:
-            iaxis = {'x': 0, 'y': 1}.get(axis,0)
+            # perform method on oposite axis where psana convention is images have coordinates (x, y)
+            iaxis = {'x': 1, 'y': 0}.get(axis,0)
             method = item.get('method', 'sum')
             return getattr(img, method)(axis=iaxis)
 
@@ -2743,8 +2746,10 @@ class AddOn(object):
 
         """
         _methods = ['sum', 'mean', 'std', 'min', 'max', 'var']
-        _axes = {'x': 1, 'y': 0, 'r': 'radial', 'az': 'azimuthal'}
+        _cartesian_axes = ['x', 'y']
         _polar_axes = ['r', 'az']
+
+        axis = axis.lower()
 
         if not attr:
             if axis in _polar_axes:
@@ -2762,6 +2767,12 @@ class AddOn(object):
                 else:
                     attr = 'evtData.data8'
 
+        try:
+            img = getattr_complete(self._det,attr)
+        except:
+            print 'Not valid'
+            return
+ 
         if axis in _polar_axes:
             if not method:
                 method = 'norm'
@@ -2769,34 +2780,23 @@ class AddOn(object):
                 print 'ERROR: {:} is not a valid method'.format(method)
                 print ' - only norm method is valid for radial projections'
 
-        else:
+        elif axis in _cartesian_axes:
             if not method:
                 method = 'sum'
 
             elif method not in _methods:
                 print 'ERROR: {:} is not a valid method'.format(method)
                 print ' - method must be in {:}'.format(_methods)
-
-        try:
-            img = getattr_complete(self._det,attr)
-        except:
-            print 'Not valid'
-            return
-        
-        if axis not in _polar_axes:
+            
             if len(img.shape) != 2:
                 print '{:} is not a 2D image -- cannot make projection'.format(attr)
                 return
         
-            if isinstance(axis, str):
-                iaxis = _axes.get(axis.lower())
-                if iaxis is None:
-                    print 'ERROR:  {:} is not a valid axis'.format(axis)
-                    print ' - Valid Options = {:}'.format(_axes.keys())
-                    return
-            else:
-                print 'ERROR:  {:} is not a valid axis'.format(axis)
-                return 
+        else:
+            print 'ERROR:  {:} is not a valid axis'.format(axis)
+            print ' - Valid Cartesian Options = {:}'.format(_cartesian_axes)
+            print ' - Valid Polar Options = {:}'.format(_polar_axes)
+            return 
 
         if not axis_name:
             axis_name = axis+attr
@@ -2874,6 +2874,7 @@ class AddOn(object):
         else:
             projaxis = self._det_config['xarray']['coords'].get(axis_name) 
             if projaxis is None:
+                iaxis = {'x': 0, 'y': 1}.get(axis)
                 projaxis = np.arange(img.shape[iaxis])    
                 self._det_config['xarray']['coords'].update({axis_name: projaxis})
         
@@ -3698,6 +3699,7 @@ class ImageCalibData(object):
     def __init__(self, det, evt):
         self._evt = evt
         self._det = det
+        self._info = {}
 
     @property
     def instrument(self):
@@ -3705,27 +3707,73 @@ class ImageCalibData(object):
         """
         return self._det.instrument()
 
-    @property
-    def ximage(self):
-        """X axis of image [um].
+    def _get_point_indexes(self, **kwargs):
         """
-        if self.indexes_x is not None:
-            n = self.indexes_x.max()+1
-            return (np.arange(n)-n/2.)*self.pixel_size
+        """
+        ixo, iyo = self._det.point_indexes(self._evt, **kwargs)
+        if self.indexes_y is not None:
+            ny = self.indexes_y.max()+1
+            yaxis = (np.arange(ny)-iyo)*self.pixel_size
         else:
             if len(self.shape) == 2:
-                return np.arange(self.shape[0])
+                yaxis = np.arange(self.shape[1])
+            else:
+                yaxis = None
+
+        if self.indexes_x is not None:
+            nx = self.indexes_x.max()+1
+            xaxis = (np.arange(nx)-ixo)*self.pixel_size
+        else:
+            if len(self.shape) == 2:
+                xaxis = np.arange(self.shape[0])
+            else:
+                xaxis = None
+        
+        self._info.update({'ixo': {'attr': 'ixo',
+                                   'doc':  'Image x index of origin',
+                                   'unit': '',
+                                   'value': ixo}})
+        if xaxis is not None:
+            self._info.update({'xaxis': {'attr': 'xaxis',
+                                         'doc':  'Reconstructed image xaxis',
+                                         'unit': '',
+                                         'value': xaxis}})
+
+        self._info.update({'iyo': {'attr': 'iyo',
+                                   'doc':  'Image y index of origin',
+                                   'unit': '',
+                                   'value': iyo}})
+        if yaxis is not None:
+            self._info.update({'yaxis': {'attr': 'yaxis',
+                                         'doc':  'Reconstructed image yaxis',
+                                         'unit': '',
+                                         'value': yaxis}})
+
+        return xaxis, yaxis
 
     @property
-    def yimage(self):
-        """Y axis of image [um].
+    def xaxis(self):
+        """Reconstructed image x axis.
         """
-        if self.indexes_y is not None:
-            n = self.indexes_y.max()+1
-            return (np.arange(n)-n/2.)*self.pixel_size
+        item = self._info.get('xaxis')
+        if item:
+            xaxis = item.get('value')
         else:
-            if len(self.shape) == 2:
-                return np.arange(self.shape[1])
+            xaxis, yaxis = self._get_point_indexes()
+            
+        return xaxis
+
+    @property
+    def yaxis(self):
+        """Reconstruced image y axis.
+        """
+        item = self._info.get('yaxis')
+        if item:
+            yaxis = item.get('value')
+        else:
+            xaxis, yaxis = self._get_point_indexes()
+            
+        return yaxis
 
     def set_do_offset(do_offset=True):
         """Not sure what do offset does?
@@ -3794,6 +3842,8 @@ class ImageCalibData(object):
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
         else:
             message('No Event')
+
+        return message
 
     def __getattr__(self, attr):
         if attr in self._attrs:
