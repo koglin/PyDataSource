@@ -73,6 +73,10 @@ psana_doc_info['Quartz']['ConfigV2']['gain_percent']['unit'] = ''
 psana_doc_info['Quartz']['ConfigV2']['max_taps']['unit'] = ''
 psana_doc_info['Quartz']['ConfigV2']['output_resolution']['unit'] = ''
 
+psana_doc_info['Generic1D']['DataV0']['data_u16']['func_shape'] = 8
+psana_doc_info['Generic1D']['DataV0']['data_u32']['func0'] = 8     # offset
+psana_doc_info['Generic1D']['DataV0']['data_u32']['func_shape'] = 8
+
 # Common mode not applicable?
 #psana_doc_info['CsPad']['ElementV2']['common_mode']['func_quads'] = 'quads_shape'
 psana_doc_info['Acqiris']['DataDescV1Elem']['timestamp']['func_len'] = 'nbrSegments'

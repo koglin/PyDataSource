@@ -255,9 +255,10 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
         nvals = info.get('func_shape')
         if isinstance(nvals, str):
             nvals = getattr(typ_func, nvals)()[0]
-        
+       
+        i0 = info.get('func0',0)
         try:
-            value = [value(i) for i in range(nvals)]
+            value = [value(i+i0) for i in range(nvals)]
         except:
             pass
 
@@ -354,7 +355,8 @@ def psmon_publish(evt, quiet=True):
                             psmon_fnc = Image(
                                         event_info,
                                         psmon_args['title'],
-                                        np.array(image, dtype='f').transpose(), 
+                                        np.array(image, dtype='f'), 
+                                        #np.array(image, dtype='f').transpose(), 
                                         **psmon_args['kwargs'])
                     
                     elif psplot_func is 'XYPlot':
@@ -1774,10 +1776,10 @@ class EvtDetectors(object):
     _init_attrs = ['get', 'keys'] #  'run' depreciated
     _event_attrs = ['EventId', 'Evr', 'L3T']
 
-    def __init__(self, ds, init=True): 
+    def __init__(self, ds, publish=True, init=True): 
         self._ds = ds
         if init:
-            self._init()
+            self._init(publish=publish)
 
     def _init(self, publish=True):
         if publish:
@@ -2635,7 +2637,7 @@ class Detector(object):
             
         else:
             # perform method on oposite axis where psana convention is images have coordinates (x, y)
-            iaxis = {'x': 1, 'y': 0}.get(axis,0)
+            iaxis = {'x': 0, 'y': 1}.get(axis,0)
             method = item.get('method', 'sum')
             return getattr(img, method)(axis=iaxis)
 
@@ -2874,7 +2876,7 @@ class AddOn(object):
         else:
             projaxis = self._det_config['xarray']['coords'].get(axis_name) 
             if projaxis is None:
-                iaxis = {'x': 0, 'y': 1}.get(axis)
+                iaxis = {'x': 1, 'y': 0}.get(axis)
                 projaxis = np.arange(img.shape[iaxis])    
                 self._det_config['xarray']['coords'].update({axis_name: projaxis})
         
