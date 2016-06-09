@@ -579,7 +579,11 @@ class DataSource(object):
 
     def __init__(self, data_source=None, **kwargs):
         self._device_sets = {}
-        self._default_modules.update({'path': os.path.dirname(__file__)+'/detectors'})
+        path = os.path.dirname(__file__)
+        if not path:
+            path = '.'
+
+        self._default_modules.update({'path': os.path.join(path,'detectors')})
         self.load_run(data_source=data_source, **kwargs)
         if self.data_source.smd:
             self._load_smd_config()
@@ -2167,6 +2171,7 @@ class Detector(object):
     _pydet = None
     _pydet_name = None
     _init = False
+    _xarray_init = False
 
     def __init__(self, ds, alias, verbose=False, **kwargs):
         """Initialize a psana Detector class for a given detector alias.
@@ -2234,6 +2239,7 @@ class Detector(object):
         """Update default xarray information
         """
         # attrs -- not valid yet for bld but should fix this to avoid try/except here
+        self._xarray_init = True
         try:
             attrs = {attr: item for attr, item in self.configData._all_values.items() \
                 if np.product(np.shape(item)) <= 17}
@@ -2596,21 +2602,19 @@ class Detector(object):
             wf = list(wf)
             maxval = max(wf)
             method = item.get('method')
+            if method == 'max':
+                return maxval
+            
+            idx = wf.index(maxval)
             if method == 'index':
-                idx = wf.index(maxval) 
+                return idx
+
+            if method == 'time':
                 xaxis = item.get('xaxis')
                 if xaxis is not None:
                     return xaxis[idx]
-                else:
-                    return idx
 
-            elif method == 'max':
-                return maxval
-            else:
-                return None
-
-        else:
-            return None
+        return None
  
     def _get_projection(self, attr):
         """Get projection as defined by AddOn.
@@ -2965,19 +2969,43 @@ class AddOn(object):
         elif publish:
             self.psplot(name)
 
-    def peak(self, attr, channel=None, name=None,
+    def peak(self, attr=None, channel=None, name=None,
             xaxis=None, roi=None, scale=1, baseline=None,
-            methods={'index': 'index', 'max': 'max'},
+            methods=None,
             docs={}, units={}):
         """simple 1D peak locator.
            mdethod: index = index at max channel.
                     max = maximum value.
         """
+        if not attr:
+            if self._det._pydet_name == 'WFDetector':
+                attr = 'waveform'
+                if channel is None and not name:
+                    for i in range(self._det.waveform.shape[0]):
+                        print 'adding channel', i
+                        self.peak(channel=i, xaxis=xaxis,roi=roi, scale=scale, 
+                                  baseline=baseline, methods=None,
+                                  docs=docs,units=units)
+                    
+                    return
+
+        if not methods:
+            methods = {'index': 'index', 'max': 'max'}
+            if attr == 'waveform':
+                methods.update({'time': 'time'})
+
         if not name:
-            name = attr
+            if attr == 'waveform':
+                name = 'peak'
+            else:
+                name = attr+'_peak'
+            
             if channel is not None:
                 name += '_ch{:}'.format(channel)
 
+        if not xaxis and attr == 'waveform' and channel is not None:
+            xaxis = self._det.wftime[channel]
+        
         for mname, method in methods.items():
             doc = docs.get(mname, '')
             if not doc:
