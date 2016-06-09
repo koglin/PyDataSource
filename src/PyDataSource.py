@@ -583,7 +583,8 @@ class DataSource(object):
         if not path:
             path = '.'
 
-        self._default_modules.update({'path': os.path.join(path,'detectors')})
+        self._default_modules.update({'path': path})
+        #self._default_modules.update({'path': os.path.join(path,'detectors')})
         self.load_run(data_source=data_source, **kwargs)
         if self.data_source.smd:
             self._load_smd_config()
