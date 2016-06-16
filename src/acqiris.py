@@ -14,7 +14,7 @@ class Acqiris(PyDataSource.Detector):
         for ch in range(self.nchannels):
             name = 'Ch'+str(ch+1) 
             setattr(self, name, Channel(self,ch,name))
-            self.add.peak(channel=ch)
+    #        self.add.peak(ichannel=ch)
 
     @property
     def nchannels(self):

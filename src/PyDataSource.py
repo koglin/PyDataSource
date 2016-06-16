@@ -558,17 +558,17 @@ class DataSource(object):
     _default_modules = {
             'path': '',
             'devName': {
-#                'Evr': 'evr', 
-#                'Imp': 'imp',
-##                'Acqiris': 'acqiris',
-#                'Epix': 'epix100',
-#                'Cspad': 'cspad',
-#                'Cspad2x2': 'cspad2x2',
-#                'Tm6740': 'pim',
-#                'Opal1000': 'camera',
-#                'Opal2000': 'camera',
-#                'Opal4000': 'camera',
-#                'Opal8000': 'camera',
+##                'Evr': 'evr', 
+##                'Imp': 'imp',
+#                'Acqiris': 'acqiris',
+##                'Epix': 'epix100',
+##                'Cspad': 'cspad',
+##                'Cspad2x2': 'cspad2x2',
+##                'Tm6740': 'pim',
+##                'Opal1000': 'camera',
+##                'Opal2000': 'camera',
+##                'Opal4000': 'camera',
+##                'Opal8000': 'camera',
                 },
              'srcname': {
 #                'XrayTransportDiagnostic.0:Opal1000.0': 'xtcav_det',
@@ -721,6 +721,7 @@ class DataSource(object):
     def add_detector(self, srcstr=None, alias=None, module=None, path=None, 
                      #pvs=None, desc=None, parameters={}, 
                      desc=None,
+                     quiet=False,
                      **kwargs):
         initialized = False
         if not alias:
@@ -737,6 +738,7 @@ class DataSource(object):
         if alias not in self._device_sets:
             self._device_sets[alias] = {
                     'alias': alias, 
+                    'module': {},
                     'parameter': {}, 
                     'property': {},
                     'psplot': {},
@@ -763,12 +765,15 @@ class DataSource(object):
                 module = module.split('.')[0]
 
             # First check for device configuration
-            if 'module' in det_dict:
-                module_name = det_dict['module']['name']
-                if 'path' in det_dict['module']:
-                    module_path = det_dict['module']['path']
-                else:
-                    module_path = ''
+            
+            if det_dict.get('module'):
+                module_name = det_dict['module'].get('name',None)
+                module_path = det_dict['module'].get('path','')
+#                module_name = det_dict['module'].get('name',None)
+#                if 'path' in det_dict['module']:
+#                    module_path = det_dict['module'].get('path','')
+#                else:
+#                    module_path = ''
             else:
                 module_name = None 
                 module_path = ''
@@ -776,9 +781,10 @@ class DataSource(object):
             # Then use module and path keywords if applicable
             if module:
                 if module_name:
-                    print 'Changing {alias} detector module from \
-                          {module_name} to {module}'.format(
-                           alias=alias,module=module,module_name=module_name)
+                    if not quiet:
+                        print 'Changing {alias} detector module from \
+                              {module_name} to {module}'.format(
+                               alias=alias,module=module,module_name=module_name)
                 else:
                     det_dict['module'] = {}
                 
@@ -804,8 +810,9 @@ class DataSource(object):
                     module_path = path
         
                 if module_path:
-                    print 'Using the path {module_path} for {module_name}'.format( \
-                           module_path=module_path, module_name=module_name)
+                    if not quiet:
+                        print 'Using the path {module_path} for {module_name}'.format( \
+                               module_path=module_path, module_name=module_name)
                 else:
                     module_path = self._default_modules['path']
                     
@@ -821,14 +828,18 @@ class DataSource(object):
                 det_dict['module']['dict'] = [attr for attr in new_class.__dict__ \
                                               if not attr.startswith('_')]
 
-                print 'Loading {alias} as {new_class} from {module_path}'.format(
-                       alias=alias,new_class=new_class,module_path=module_path)
+                if not quiet:
+                    print 'Loading {alias} as {new_class} from {module_path}'.format(
+                           alias=alias,new_class=new_class,module_path=module_path)
+                
                 nomodule = False
                 self._detectors[alias] = new_class(self, alias, **kwargs)
                 initialized = True
 
             if is_default_class:
-                print 'Loading {alias} as standard Detector class'.format(alias=alias)
+                if not quiet:
+                    print 'Loading {alias} as standard Detector class'.format(alias=alias)
+                
                 self._detectors[alias] = Detector(self, alias)
                 initialized = True
 
@@ -841,7 +852,7 @@ class DataSource(object):
     def _add_dets(self, **kwargs):
         for alias, srcstr in kwargs.items():
             try:
-                self.add_detector(srcstr, alias=alias)
+                self.add_detector(srcstr, alias=alias, quiet=True)
             except Exception as err:
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
@@ -1947,9 +1958,11 @@ class ConfigSources(object):
             item = self._sources.get(srcstr,{})
 
             polarity = item.get('evr_polarity', '')
-            if polarity == 1:
+            # Epics convention used -- has it always been this?
+            # I was previously using the opposite convetion here
+            if polarity == 0:
                 polarity = 'Pos'
-            elif polarity == 0:
+            elif polarity == 1:
                 polarity = 'Neg'
 
             delay = item.get('evr_delay', '')
@@ -2050,7 +2063,7 @@ class EvrData(PsanaTypeData):
         PsanaTypeData.__init__(self, typ_func)
         self.eventCodes = self.fifoEvents.eventCode
 
-    def present(self, eventCode):
+    def _present(self, eventCode):
         """Return True if the eventCode is present.
         """
         try:
@@ -2061,6 +2074,42 @@ class EvrData(PsanaTypeData):
                 return False
         except:
             return False
+
+    def present(self, *args):
+        """Check if the event has specified event code.
+           Multiple event codes can be tested.
+           e.g., 
+              assume: 
+                self.eventCodes = [41, 140]
+              then:
+                self.present(41, 140) = True
+                self.present(42, 140) = Flase
+            
+            To check if an event code is not present use a negative number:
+            e.g., 
+                self.present(-41) = False
+                self.present(-41, 140) = False
+                self.present(-42) = True
+                self.present(-42, 140) = True
+                self.present(-42, 41, 140) = True
+        """
+        if args[0] is None:
+            return True
+
+        if len(args) == 1:
+            if isinstance(args[0], list):
+                eventCodes = {arg for arg in args[0]}
+            else:
+                eventCodes = args
+        else:
+            eventCodes = args
+
+        for eventCode in eventCodes:
+            if (eventCode > 0 and not self._present(eventCode)) \
+                    or (eventCode < 0 and self._present(eventCode)):
+                return False
+
+        return True
 
     def __str__(self):
         try:
@@ -2464,7 +2513,14 @@ class Detector(object):
             items = sorted(self._det_config['peak'].items(), key=operator.itemgetter(0))
             for attr, item in items:
                 val = getattr(self, attr)
-                strval = '{:10.5g}'.format(val)
+                if hasattr(val, 'mean') and val.size > 1:
+                    strval = '<{:}>'.format(val.mean())
+                else:
+                    try:
+                        strval = '{:10.5g}'.format(val)
+                    except:
+                        strval = str(val)
+
                 doc = item.get('doc','')
                 unit = item.get('unit','')
                 fdict = {'attr': attr, 'str': strval, 'unit': unit, 'doc': doc}
@@ -2588,9 +2644,9 @@ class Detector(object):
         if attr in self._det_config['peak']:
             item = self._det_config['peak'][attr]
             wf = getattr(self, item['attr'])
-            channel = item.get('channel')
-            if channel is not None:
-                wf = wf[channel]
+            ichannel = item.get('ichannel')
+            if ichannel is not None:
+                wf = wf[ichannel]
 
             background = item.get('background')
             if background:
@@ -2600,13 +2656,20 @@ class Detector(object):
             if scale:
                 wf *= scale
 
+            method = item.get('method')
+            if method == 'waveform':
+                return wf
+            
             wf = list(wf)
             maxval = max(wf)
-            method = item.get('method')
             if method == 'max':
                 return maxval
             
-            idx = wf.index(maxval)
+            if max > item.get('threshold'):
+                idx = wf.index(maxval)
+            else:
+                idx = 0        
+    
             if method == 'index':
                 return idx
 
@@ -2970,22 +3033,29 @@ class AddOn(object):
         elif publish:
             self.psplot(name)
 
-    def peak(self, attr=None, channel=None, name=None,
+    def peak(self, attr=None, ichannel=None, name=None,
             xaxis=None, roi=None, scale=1, baseline=None,
             methods=None,
+            threshold=None, 
             docs={}, units={}):
         """simple 1D peak locator.
-           mdethod: index = index at max channel.
+           method: index = index at max channel.
                     max = maximum value.
+
+           acqiris waveform channels start with 1
+           by default threshold is 1.5% of full range for Acqiris
         """
         if not attr:
             if self._det._pydet_name == 'WFDetector':
+                if self._det.__class__.__name__ == 'Detector':
+                    self._det.add.module('acqiris')
+
                 attr = 'waveform'
-                if channel is None and not name:
+                if ichannel is None and not name:
                     for i in range(self._det.waveform.shape[0]):
-                        print 'adding channel', i
-                        self.peak(channel=i, xaxis=xaxis,roi=roi, scale=scale, 
-                                  baseline=baseline, methods=None,
+                        print 'adding ichannel', i
+                        self.peak(ichannel=i, xaxis=xaxis,roi=roi, scale=scale, 
+                                  theshold=threshold, baseline=baseline, methods=None,
                                   docs=docs,units=units)
                     
                     return
@@ -2993,7 +3063,10 @@ class AddOn(object):
         if not methods:
             methods = {'index': 'index', 'max': 'max'}
             if attr == 'waveform':
-                methods.update({'time': 'time'})
+                methods.pop('index')
+                methods.update({'time': 'time', 'waveform': 'waveform'})
+
+        units = {'time': 's', 'index': 'channel', 'max': 'V', 'waveform': 'V'}
 
         if not name:
             if attr == 'waveform':
@@ -3001,28 +3074,54 @@ class AddOn(object):
             else:
                 name = attr+'_peak'
             
-            if channel is not None:
-                name += '_ch{:}'.format(channel)
+            if ichannel is not None:
+                name += '_ch{:}'.format(ichannel+1)
 
-        if not xaxis and attr == 'waveform' and channel is not None:
-            xaxis = self._det.wftime[channel]
+        if not xaxis and attr == 'waveform' and ichannel is not None:
+            xaxis = self._det.wftime[ichannel]
         
+        if not threshold:
+            if self._det._pydet.dettype == 16:
+                threshold = self._det.configData.vert.fullScale[ichannel]*0.015
+            else:
+                threshold = 0.
+
         for mname, method in methods.items():
+            # make entry for each peak method
+            pname = '_'.join([name, mname])
             doc = docs.get(mname, '')
             if not doc:
-                doc = '{:} {:} {:} of peak'.format(self._alias, name, method)
-            self._det_config['peak'].update({'_'.join([name, mname]):   
+                doc = '{:} {:} {:}'.format(self._alias, name, method)
+                if method not in ['waveform']:
+                    doc+=' of peak'
+
+            unit = units.get(mname, '')
+
+            self._det_config['peak'].update({pname:   
                     {'attr': attr,
-                     'channel': channel,
+                     'ichannel': ichannel,
                      'roi': roi,
                      'baseline': baseline,
+                     'threshold': threshold, 
                      'xaxis': xaxis,
                      'scale': scale,
                      'doc': doc,
-                     'unit': units.get(mname, ''),
+                     'unit': unit,
                      'method': method,
                      }})
-        
+
+            if method in ['waveform']:
+                axis_name = '_'.join([name,'t'])
+                projaxis = self._det.wftime[ichannel]
+                self._det_config['xarray']['coords'].update({axis_name: projaxis})
+                self._det_config['xarray']['dims'].update(
+                    {pname: ([axis_name], (projaxis.size))})
+                
+            else:
+                self._det_config['xarray']['dims'].update(
+                        {pname: ([], (), {'doc': doc, 'unit': unit})}
+                        )
+
 #    def mask(self, attr):
 #        img = self._getattr(attr)
 #        plotMax = np.percentile(img, 99.5)
