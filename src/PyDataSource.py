@@ -404,8 +404,12 @@ class ScanData(object):
         ievent_end = []
         ievent_start = []
         for istep, events in enumerate(ds.steps):
-            evt = events.next()
-            ttup = (evt.EventId.sec, evt.EventId.nsec, evt.EventId.fiducials)
+            okevt = False
+            while not okevt:
+                evt = events.next()
+                ttup = (evt.EventId.sec, evt.EventId.nsec, evt.EventId.fiducials)
+                okevt = ttup in ds._idx_times_tuple
+
             ievent = ds._idx_times_tuple.index(ttup)
             ievent_start.append(ievent)
             if istep > 0:
@@ -440,7 +444,7 @@ class ScanData(object):
             if 'pvControls_name' in self._attrs:
                 self.pvControls = self._scanData['pvControls_name'][0]
             else:
-                self.pvControls = None
+                self.pvControls = []
             
             if 'pvMonitors_name' in self._attrs:
                 self.pvMonitors = self._scanData['pvMonitors_name'][0]
