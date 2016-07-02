@@ -150,6 +150,7 @@ psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['biasTuning']['func_method'] = hex
 psana_doc_info['CsPad2x2']['ConfigV2QuadReg']['digCount']['func_method'] = hex
 psana_doc_info['CsPad2x2']['CsPad2x2ReadOnlyCfg']['version']['func_method'] = hex
 psana_doc_info['CsPad2x2']['CsPad2x2ReadOnlyCfg']['shiftTest']['func_method'] = hex
+psana_doc_info['CsPad2x2']['ElementV1']['common_mode']['func_shape'] = 2
 
 psana_doc_info['UsdUsb']['FexConfigV1']['name']['func_shape'] = 4
 

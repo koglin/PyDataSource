@@ -218,11 +218,16 @@ def _repr_value(value):
                 return 'list'
             else:
                 return str(value)
-        elif hasattr(value, 'mean'):
+        
+        elif isinstance(value, int):
+            return str(value)
+        
+        elif hasattr(value, 'mean') and value.size > 4:
             try:
                 return '<{:.4}>'.format(value.mean())
             except:
                 return str(value)
+        
         else:
             try:
                 return '{:10.5g}'.format(value)
@@ -743,6 +748,7 @@ class DataSource(object):
                     'property': {},
                     'psplot': {},
                     'roi': {},
+                    'count': {},
                     'peak': {},
                     'projection': {},
                     'xarray': {},
@@ -2106,7 +2112,7 @@ class EvrData(PsanaTypeData):
 
         for eventCode in eventCodes:
             if (eventCode > 0 and not self._present(eventCode)) \
-                    or (eventCode < 0 and self._present(eventCode)):
+                    or (eventCode < 0 and self._present(abs(eventCode))):
                 return False
 
         return True
@@ -2419,6 +2425,27 @@ class Detector(object):
 
         self._xarray_info['coords'].update(**coords_dict)
 
+    def _add_xarray_evtData(self, attrs=[]):
+        """Add evtData xarray information.
+        """
+        dims_dict = {}
+        for attr in attrs:
+            if attr in self.evtData._all_values:
+                val = self.evtData._all_values.get(attr)
+                npval = np.array(val)
+                if npval.size > 1:
+                    dims_dict[attr] = (['d{:}_{:}'.format(i,a) for i,a in enumerate(npval.shape)], npval.shape)
+                else:
+                    info = self.evtData._attr_info.get(attr)
+                    if info:
+                        xattrs = {a: b for a, b in info.items() if a in ['doc','unit']}
+                    else:
+                        xattrs = {}
+                    dims_dict[attr] = ([], (), xattrs)
+
+        self._xarray_info['dims'].update(**dims_dict)
+
+
     @property
     def _attrs(self):
         """Attributes of psana.Detector functions if relevant, and otherwise
@@ -2482,20 +2509,31 @@ class Detector(object):
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
 
-#        if self._det_config['projection']:
-#            message('-'*80)
-#            message('User Defined Projections:')
-#            message('-'*18)
-#            for attr, item in self._det_config['projection'].items():
-#                val = getattr(self, attr)
-#                try:
-#                    val = val()
-#                except:
-#                    pass
-# 
-#                strval = _repr_value(val)
-#                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
-#                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+        if self._det_config['projection']:
+            message('-'*80)
+            message('User Defined Projections:')
+            message('-'*18)
+            for attr, item in self._det_config['projection'].items():
+                val = getattr(self, attr)
+                try:
+                    val = val()
+                except:
+                    pass
+ 
+                strval = _repr_value(val)
+                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+ 
+        if self._det_config['count']:
+            message('-'*80)
+            message('Detector Counts:')
+            message('-'*18)
+            for attr, item in self._det_config['count'].items():
+                fdict = item.copy()
+                val = getattr(self, attr)
+                strval = _repr_value(val)
+                fdict.update({'attr': attr, 'str': strval})
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
  
         if self._det_config['parameter']:
             message('-'*80)
@@ -2638,6 +2676,18 @@ class Detector(object):
         else:
             return None
 
+    def _get_count(self, attr):
+        """Get counts from count_name as defined by AddOn.
+        """
+        if attr in self._det_config['count']:
+            item = self._det_config['count'][attr]
+            img = getattr(self, item['attr'])
+            gain = item.get('gain', 1.)
+            return img.sum()*gain
+
+        else:
+            return None
+
     def _get_peak(self, attr):
         """Returns peak information as defined in AddOn class.
         """
@@ -2729,6 +2779,9 @@ class Detector(object):
                 func_name = func_name(self)
             return func_name
 
+        if attr in self._det_config['count']:
+            return self._get_count(attr)
+
         if attr in self._det_config['roi']:
             return self._get_roi(attr)
        
@@ -2746,6 +2799,7 @@ class Detector(object):
                          self._det_config['parameter'].keys() +
                          self._det_config['property'].keys() +
                          self._det_config['roi'].keys() + 
+                         self._det_config['count'].keys() + 
                          self._det_config['peak'].keys() + 
                          self._det_config['projection'].keys() + 
                          self._ds.events.current._event_attrs +
@@ -2967,7 +3021,7 @@ class AddOn(object):
         return getattr_complete(self._det,attr)
 
     def roi(self, attr='image', roi=None, name=None, xaxis=None, yaxis=None, 
-                doc=None, publish=False, projection=None, **kwargs):       
+                doc=None, unit='ADU', publish=False, projection=None, **kwargs):       
         """Make roi for given attribute, by default this is given the name img.
            For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
            For 3 dim objects (e.g., cspad raw, calib), roi is a tuple where
@@ -3014,15 +3068,19 @@ class AddOn(object):
         if not yaxis or len(yaxis) != yroi[1]-yroi[0]:
             yaxis = np.arange(yroi[0],yroi[1])    
          
+        xattrs = {}
+        xattrs.update({'doc': doc, 'unit': unit})
         self._det_config['xarray']['coords'].update({xaxis_name: xaxis, 
                                             yaxis_name: yaxis})
         self._det_config['xarray']['dims'].update(
-                {name: ([yaxis_name, xaxis_name], (yaxis.size, xaxis.size))})
+                {name: ([yaxis_name, xaxis_name], (yaxis.size, xaxis.size), xattrs)})
 
         self._det_config['roi'].update({name: {'attr': attr, 
                                                'roi': roi,
                                                'xaxis': xaxis,
-                                               'yaxis': yaxis}})
+                                               'yaxis': yaxis, 
+                                               'doc': doc,
+                                               'unit': unit}})
 
         if projection:
             if projection in [True, 'x']:
@@ -3032,6 +3090,53 @@ class AddOn(object):
         
         elif publish:
             self.psplot(name)
+
+        return name
+
+    def count(self, attr=None, gain=None, unit=None, doc=None, 
+            roi=None, name=None, **kwargs):
+        """Count (i.e., sum) of detector within optional roi.
+            gain: optional converion from ADU to for example X-rays.
+        """
+        if gain:
+            if not unit:
+                unit = 'ADUx{:}'.format(gain)
+
+        else:
+            gain = 1
+            if not unit:
+                unit = 'ADU'
+
+        if roi:
+            roi_name = self.roi(attr, roi=roi, unit=unit, doc=doc, **kwargs)
+            xattrs = self._det_config['xarray']['dims'][roi_name][2]
+            if not doc:
+                doc = 'Sum of {:} within roi={:}'.format(attr, roi)
+        
+        else:
+            roi_name = attr
+            xattrs = {}
+            if not doc:
+                doc = 'Sum of {:}'.format(attr)
+
+
+        if not name:
+            ncount = len(self._det_config['count'])
+            if ncount == 0:
+                name = roi_name+'_count'
+            
+            else:
+                name = roi_name+'_count'+str(ncount+1)
+
+
+        self._det_config['count'].update({name: {'attr': attr, 
+                                                 'gain': gain, 
+                                                 'unit': unit,
+                                                 'doc': doc}})
+
+        xattrs.update({'doc': doc, 'unit': unit})
+        self._det_config['xarray']['dims'].update(
+                {name: ([], (), xattrs)})
 
     def peak(self, attr=None, ichannel=None, name=None,
             xaxis=None, roi=None, scale=1, baseline=None,
@@ -3742,27 +3847,29 @@ class ImageData(object):
         if self.size > 0 or self.raw is not None:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
-                fdict = {'attr': attr, 'unit': '', 'doc': ''}
-                fdict.update(**item)
                 value = getattr(self, attr)
-                if isinstance(value, str):
-                    fdict['str'] = value
-                elif isinstance(value, list):
-                    if len(value) < 5:
-                        fdict['str'] = str(value)
-                    else:
-                        fdict['str'] = 'list'
-                elif hasattr(value,'mean'):
-                    if value.size < 5:
-                        fdict['str'] = str(value)
-                    else:
-                        fdict['str'] = '<{:.5}>'.format(value.mean())
-                else:
-                    try:
-                        fdict['str'] = '{:12.5g}'.format(value)
-                    except:
-                        fdict['str'] = str(value)
-
+                strval = _repr_value(value)
+                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                fdict.update(**item)
+                
+#                if isinstance(value, str):
+#                    fdict['str'] = value
+#                elif isinstance(value, list):
+#                    if len(value) < 5:
+#                        fdict['str'] = str(value)
+#                    else:
+#                        fdict['str'] = 'list'
+#                elif hasattr(value,'mean'):
+#                    if value.size < 5:
+#                        fdict['str'] = str(value)
+#                    else:
+#                        fdict['str'] = '<{:.5}>'.format(value.mean())
+#                else:
+#                    try:
+#                        fdict['str'] = '{:12.5g}'.format(value)
+#                    except:
+#                        fdict['str'] = str(value)
+#
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
         else:
             message('No Event')
