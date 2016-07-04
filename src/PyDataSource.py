@@ -1054,6 +1054,8 @@ class RunEvents(object):
                 evt = self._ds._ds_run.event(self.times[self._ds._ievent]) 
                 self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
                 self._ds._current_evt = evt
+                self._ds._current_data = {}
+                self._ds._current_evtData = {}
 
             return EvtDetectors(self._ds, **kwargs)
 
@@ -1169,6 +1171,8 @@ class StepEvents(object):
                     
                 self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
                 self._ds._current_evt = evt
+                self._ds._current_data = {}
+                self._ds._current_evtData = {}
             
             except:
                 print evt_time, 'is not a valid event time'
@@ -1184,6 +1188,8 @@ class StepEvents(object):
                 evt = self._ds._ds_step.events().next()
                 self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
                 self._ds._current_evt = evt 
+                self._ds._current_data = {}
+                self._ds._current_evtData = {}
             except:
                 raise StopIteration()
 
@@ -1212,6 +1218,9 @@ class Events(object):
             evt = self._ds._ds.events().next()
             self._ds._evt_keys, self._ds._evt_modules = get_keys(evt)
             self._ds._current_evt = evt 
+            self._ds._current_data = {}
+            self._ds._current_evtData = {}
+
         except:
             raise StopIteration()
 
@@ -2573,7 +2582,8 @@ class Detector(object):
             message('User Defined Properties:')
             message('-'*18)
             for attr, func_name in self._det_config['property'].items():
-                val = getattr(self, func_name)
+                #val = getattr(self, func_name)
+                val = self._get_property(attr)
                 strval = _repr_value(val)
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
@@ -2638,8 +2648,11 @@ class Detector(object):
     def evtData(self):
         """Tab accessible raw data from psana event keys.
         """
-        return PsanaSrcData(self._ds._current_evt, self._srcstr, 
-                            key_info=self._ds._evt_keys)
+        if self._alias not in self._ds._current_evtData:
+            self._ds._current_evtData.update({self._alias: 
+                PsanaSrcData(self._ds._current_evt, self._srcstr, key_info=self._ds._evt_keys)})
+
+        return self._ds._current_evtData.get(self._alias)
 
     @property
     def epicsData(self):
@@ -2647,10 +2660,16 @@ class Detector(object):
 
     @property
     def detector(self):
-        """Raw, calib and image data using psana.Detector class
+        """Raw, calib and image data using psana.Detector class.
+           Improved speed with data cashing when accessing the same object multiple times for
+           the same event (e.g., multiple roi or other access for same data).
         """
         if self._pydet:
-            return self._det_class(self._pydet, self._ds._current_evt)
+            if self._alias not in self._ds._current_data:
+                self._ds._current_data.update({self._alias: self._det_class(self._pydet, self._ds._current_evt)})
+             
+            return self._ds._current_data.get(self._alias)
+
         else:
             return None
 
@@ -2763,6 +2782,11 @@ class Detector(object):
             method = item.get('method', 'sum')
             return getattr(img, method)(axis=iaxis)
 
+    def _get_property(self, attr):
+        func_name = self._det_config['property'].get(attr)
+        if hasattr(func_name,'__call__'):
+            func_name = func_name(self)
+        return func_name
 
     def __str__(self):
         return '{:} {:}'.format(self._alias, str(self._ds.events.current))
@@ -2778,11 +2802,8 @@ class Detector(object):
             return self._det_config['parameter'].get(attr)
 
         if attr in self._det_config['property']:
-            func_name = self._det_config['property'].get(attr)
-            if hasattr(func_name,'__call__'):
-                func_name = func_name(self)
-            return func_name
-
+            return self._get_property(attr)
+            
         if attr in self._det_config['count']:
             return self._get_count(attr)
 
@@ -3025,7 +3046,7 @@ class AddOn(object):
         return getattr_complete(self._det,attr)
 
     def roi(self, attr='image', roi=None, name=None, xaxis=None, yaxis=None, 
-                doc=None, unit='ADU', publish=False, projection=None, **kwargs):       
+                doc='', unit='ADU', publish=False, projection=None, **kwargs):       
         """Make roi for given attribute, by default this is given the name img.
            For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
            For 3 dim objects (e.g., cspad raw, calib), roi is a tuple where
@@ -3071,9 +3092,12 @@ class AddOn(object):
         yaxis_name = 'y'+name
         if not yaxis or len(yaxis) != yroi[1]-yroi[0]:
             yaxis = np.arange(yroi[0],yroi[1])    
-         
+        
+        if doc == '':
+            doc = "{:} ROI of {:} data".format(name, attr)
+
         xattrs = {}
-        xattrs.update({'doc': doc, 'unit': unit})
+        xattrs.update({'doc': doc, 'unit': unit, 'roi': roi})
         self._det_config['xarray']['coords'].update({xaxis_name: xaxis, 
                                             yaxis_name: yaxis})
         self._det_config['xarray']['dims'].update(
@@ -3526,7 +3550,8 @@ class IpimbData(object):
     def __init__(self, det, evt):
         self._evt = evt
         self._det = det
-
+        self._data = {}
+    
     @property
     def instrument(self):
         """Instrument to which this detector belongs.
@@ -3569,7 +3594,11 @@ class IpimbData(object):
 
     def __getattr__(self, attr):
         if attr in self._attrs:
-            return getattr(self._det, attr)(self._evt)
+            if attr not in self._data:
+                self._data.update({attr: getattr(self._det, attr)(self._evt)})
+             
+            return self._data.get(attr)
+
 
     def __dir__(self):
         all_attrs =  set(self._attrs +
@@ -3664,6 +3693,7 @@ class WaveformData(object):
     def __init__(self, det, evt):
         self._evt = evt
         self._det = det
+        self._data = {}
 
     @property
     def instrument(self):
@@ -3706,8 +3736,13 @@ class WaveformData(object):
         return message
 
     def __getattr__(self, attr):
+        """Only access psana.Detector data once.
+        """
         if attr in self._attrs:
-            return getattr(self._det, attr)(self._evt)
+            if attr not in self._data:
+                self._data.update({attr: getattr(self._det, attr)(self._evt)})
+             
+            return self._data.get(attr)
 
     def __dir__(self):
         all_attrs =  set(self._attrs +
@@ -3819,6 +3854,7 @@ class ImageData(object):
     def __init__(self, det, evt):
         self._evt = evt
         self._det = det
+        self._data = {}
 
     @property
     def instrument(self):
@@ -3881,9 +3917,14 @@ class ImageData(object):
         return message
 
     def __getattr__(self, attr):
+        """Only access psana.Detector data once.
+        """
         if attr in self._attrs:
-            return getattr(self._det, attr)(self._evt)
-        
+            if attr not in self._data:
+                self._data.update({attr: getattr(self._det, attr)(self._evt)})
+             
+            return self._data.get(attr)
+
     def __dir__(self):
         all_attrs =  set(self._attrs +
                          self.__dict__.keys() + dir(ImageData))

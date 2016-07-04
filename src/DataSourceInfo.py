@@ -142,7 +142,7 @@ class DataSourceInfo(object):
             self.instrument = self.exp[0:3]
 
         if self.exp and self.monshmserver:
-            calibDir = '/reg/d/psdm/cxi/{:}/calib'.format(self.exp)
+            calibDir = '/reg/d/psdm/{:}/{:}/calib'.format(self.instrument,self.exp)
             print 'setting calibDir', self.exp, calibDir
             psana.setOption('psana.calib-dir', calibDir)
 
