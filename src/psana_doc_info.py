@@ -33,12 +33,18 @@ def get_type_from_doc(doc):
 psana_omit_list = ['logging', 'os', 'setConfigFile', 'setOption', 'setOptions']
 psana_doc_info = {a: {} for a in dir(psana) if not a.startswith('_') \
               and not a.startswith('ndarray') and a not in psana_omit_list}
+psana_attrs = {a: {} for a in dir(psana) if not a.startswith('_') \
+              and not a.startswith('ndarray') and a not in psana_omit_list}
+
 for mod_name in psana_doc_info:
     mod = getattr(psana,mod_name)
     psana_doc_info[mod_name] = {a: {} for a in dir(mod) if not a.startswith('_')}
     for typ_name in psana_doc_info[mod_name]:
         typ = getattr(mod, typ_name)
         psana_doc_info[mod_name][typ_name] = {a: {} for a in dir(typ) if not a.startswith('_') }
+        # Default convention is that attributes have lower case.  
+        # Configure exceptions below (e.g. Generic1D)
+        psana_attrs[mod_name][typ_name] = [a for a in dir(typ) if not a.startswith('_') and not a[0].isupper() ]
         for attr in psana_doc_info[mod_name][typ_name]:
             if attr in ['TypeId','Version']:
                 info = {'doc': '', 'unit': '', 'type': ''}
@@ -76,6 +82,17 @@ psana_doc_info['Quartz']['ConfigV2']['output_resolution']['unit'] = ''
 psana_doc_info['Generic1D']['DataV0']['data_u16']['func_shape'] = 8
 psana_doc_info['Generic1D']['DataV0']['data_u32']['func0'] = 8     # offset
 psana_doc_info['Generic1D']['DataV0']['data_u32']['func_shape'] = 8
+
+psana_attrs['Generic1D']['ConfigV0'] = [
+                                         'Depth',
+                                         'Length',
+                                         'NChannels',
+                                         'Offset',
+                                         'Period',
+                                         'SampleType',
+                                         'Sample_Type',
+                                         'data_offset']
+
 
 # Common mode not applicable?
 #psana_doc_info['CsPad']['ElementV2']['common_mode']['func_quads'] = 'quads_shape'

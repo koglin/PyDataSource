@@ -748,6 +748,7 @@ class DataSource(object):
             self._device_sets[alias] = {
                     'alias': alias, 
                     'module': {},
+                    'opts': {}, 
                     'parameter': {}, 
                     'property': {},
                     'psplot': {},
@@ -1327,7 +1328,10 @@ class PsanaTypeData(object):
 
         if type_name in psana_doc_info[module]:
             self._info = psana_doc_info[module][type_name].copy()
+            self._attrs_new = [key for key in psana_attrs[module][type_name]] 
             self._attrs = [key for key in self._info.keys() if not key[0].isupper()]
+            #print module,        
+ 
         else:
             self._attrs = [attr for attr in dir(typ_func) if not attr.startswith('_')]
             self._info = {}
@@ -1335,6 +1339,10 @@ class PsanaTypeData(object):
         self._attr_info = {}
         for attr in self._attrs:
             self._attr_info[attr] = _get_typ_func_attr(typ_func, attr, nolist=nolist)
+        
+#        self._attr_info_new = {}
+#        for attr in self._attrs_new:
+#            self._attr_info_new[attr] = _get_typ_func_attr(typ_func, attr, nolist=nolist)
 
     @property
     def _values(self):
@@ -2666,6 +2674,8 @@ class Detector(object):
         """
         if self._pydet:
             if self._alias not in self._ds._current_data:
+                #opts = self._det_config.get('opts', {})
+                #self._ds._current_data.update({self._alias: self._det_class(self._pydet, self._ds._current_evt, opts=opts)})
                 self._ds._current_data.update({self._alias: self._det_class(self._pydet, self._ds._current_evt)})
              
             return self._ds._current_data.get(self._alias)
@@ -2682,6 +2692,18 @@ class Detector(object):
         else:
             return None
 
+    def set_cmpars(self, cmpars):
+        """Set common mode.
+        """
+        if 'calib' not in self._det_config['opts']:
+            self._det_config['opts']['calib'] = {}
+        
+        # reset current data
+        self._ds._current_data = {}
+        # save opts for calib object
+        self._det_config['opts']['calib'].update({'cmpars': cmpars})
+        self._pydet.calib(self._ds._current_evt, cmpars=cmpars)
+
     def _get_roi(self, attr):
         """Get roi from roi_name as defined by AddOn.
         """
@@ -2690,10 +2712,13 @@ class Detector(object):
             img = getattr(self, item['attr'])
             if img is not None:
                 roi = item['roi']
-                if len(roi) == 3:
-                    return img[roi[0],roi[1][0]:roi[1][1],roi[2][0]:roi[2][1]]
-                else:
-                    return img[roi[0][0]:roi[0][1],roi[1][0]:roi[1][1]]
+                sensor = item.get('sensor')
+                #if len(roi) == 3:
+                if sensor is not None:
+                    img = img[sensor]
+                    #return img[roi[0],roi[1][0]:roi[1][1],roi[2][0]:roi[2][1]]
+                    
+                return img[roi[0][0]:roi[0][1],roi[1][0]:roi[1][1]]
             else:
                 return None
         else:
@@ -3045,16 +3070,25 @@ class AddOn(object):
         """
         return getattr_complete(self._det,attr)
 
-    def roi(self, attr='image', roi=None, name=None, xaxis=None, yaxis=None, 
+    def roi(self, attr=None, sensor=None, roi=None, name=None, xaxis=None, yaxis=None, 
                 doc='', unit='ADU', publish=False, projection=None, **kwargs):       
         """Make roi for given attribute, by default this is given the name img.
            For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
            For 3 dim objects (e.g., cspad raw, calib), roi is a tuple where
            the first element provides the detector component.
         """
+        if not attr:
+            if sensor is not None:
+                attr = 'calib'
+            else:
+                attr = 'image'
+
         if not roi:
             try:
                 img = self._getattr(attr)
+                if sensor is not None:
+                    img = img[sensor]
+
                 plotMax = np.percentile(img, 99.5)
                 plotMin = np.percentile(img, 5)
                 print 'using the 5/99.5% as plot min/max: (',plotMin,',',plotMax,')'
@@ -3071,12 +3105,12 @@ class AddOn(object):
                 print 'Cannot get roi'
                 return None
 
-        if len(roi) == 3:
-            xroi = roi[2]
-            yroi = roi[1]
-        else:
-            xroi = roi[1]
-            yroi = roi[0]
+        #if len(roi) == 3:
+        #    xroi = roi[2]
+        #    yroi = roi[1]
+        #else:
+        xroi = roi[1]
+        yroi = roi[0]
 
         if not name:
             nroi = len(self._det_config['roi'])
@@ -3098,6 +3132,9 @@ class AddOn(object):
 
         xattrs = {}
         xattrs.update({'doc': doc, 'unit': unit, 'roi': roi})
+        if sensor is not None:
+            xattrs.update({'sensor': sensor})
+        
         self._det_config['xarray']['coords'].update({xaxis_name: xaxis, 
                                             yaxis_name: yaxis})
         self._det_config['xarray']['dims'].update(
@@ -3105,6 +3142,7 @@ class AddOn(object):
 
         self._det_config['roi'].update({name: {'attr': attr, 
                                                'roi': roi,
+                                               'sensor': sensor,
                                                'xaxis': xaxis,
                                                'yaxis': yaxis, 
                                                'doc': doc,
@@ -3851,10 +3889,12 @@ class ImageData(object):
                             'unit': 'ADU'},
             } 
 
+    #def __init__(self, det, evt, opts={}):
     def __init__(self, det, evt):
         self._evt = evt
         self._det = det
         self._data = {}
+        #self._opts = opts
 
     @property
     def instrument(self):
@@ -3921,6 +3961,8 @@ class ImageData(object):
         """
         if attr in self._attrs:
             if attr not in self._data:
+#                opts = self._opts.get(attr, {})
+#                self._data.update({attr: getattr(self._det, attr)(self._evt, **opts)})
                 self._data.update({attr: getattr(self._det, attr)(self._evt)})
              
             return self._data.get(attr)
@@ -4357,11 +4399,16 @@ class EpicsStorePV(object):
             return None
 
     def __str__(self):
-        return '{:}'.format(self.value)
+        if len(self.data) > 1 and isinstance(self.data, np.ndarray):
+            value = '<{:}>'.format(mean(self.data))
+        else:
+            value = self.value
+
+        return '{:}'.format(value)
 
     def __repr__(self):
         return '< {:} = {:}, {:} -- {:} >'.format(self._pvname, \
-                self.value, self.stamp, \
+                str(self), self.stamp.time, \
                 self.__class__.__name__)
 
     def __getattr__(self, attr):
