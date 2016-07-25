@@ -384,7 +384,8 @@ def psmon_publish(evt, quiet=True):
                     if psmon_fnc:
                         #print 'publish', name, event_info, psmon_args
                         #print psmon_fnc
-                        publish.send(name,psmon_fnc)
+                        pub_info = publish.send(name,psmon_fnc)
+                        psmon_args['psmon_fnc'] = psmon_fnc
 
 
 class ScanData(object):
@@ -2723,6 +2724,25 @@ class Detector(object):
                 return None
         else:
             return None
+
+    @property
+    def psplots(self):
+        """To kill a plot that has been created with self.add.psplot, del self.psplots[name]
+           and close the plot window.  
+           
+           If you only close the plot window it will automatically reopen on the next event.
+           If the plot is not updating as expected, simply close the window and it will refresh
+           on the next event.
+
+           e.g., 
+                evt.DscCsPad.add.projection('calib','r',publish=True)
+                del evt.DscCsPad.psplots['DscCsPad_calib_r']
+                
+                evt.DscCsPad.add.psplot('image')                
+                del evt.DscCsPad.psplots['DscCsPad_image']
+
+        """
+        return self._det_config['psplot']
 
     def _get_count(self, attr):
         """Get counts from count_name as defined by AddOn.
