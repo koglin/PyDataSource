@@ -2516,20 +2516,20 @@ class Detector(object):
 
     def _show_user_info(self, **kwargs):
         message = Message(quiet=True, **kwargs)
-        if self._det_config.get('module') and self._det_config['module'].get('dict'):
-            message('-'*80)
-            message('Class Properties:')
-            message('-'*18)
-            for attr in self._det_config['module'].get('dict', []):
-                val = getattr(self, attr)
-                try:
-                    val = val()
-                except:
-                    pass
-                
-                strval = _repr_value(val)
-                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
-                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+#        if self._det_config.get('module') and self._det_config['module'].get('dict'):
+#            message('-'*80)
+#            message('Class Properties:')
+#            message('-'*18)
+#            for attr in self._det_config['module'].get('dict', []):
+#                val = getattr(self, attr)
+#                try:
+#                    val = val()
+#                except:
+#                    pass
+#                
+#                strval = _repr_value(val)
+#                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+#                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
 
         if self._det_config['projection']:
             message('-'*80)
@@ -2710,14 +2710,17 @@ class Detector(object):
         """
         if attr in self._det_config['roi']:
             item = self._det_config['roi'][attr]
-            img = getattr(self, item['attr'])
+            #img = getattr(self, item['attr'])
+            #img = self._getattr(item['attr'])
+            img = getattr_complete(self, item['attr'])
             if img is not None:
                 roi = item['roi']
+                if len(img.shape) == 1:
+                    return img[roi[0]:roi[1]]
+
                 sensor = item.get('sensor')
-                #if len(roi) == 3:
                 if sensor is not None:
                     img = img[sensor]
-                    #return img[roi[0],roi[1][0]:roi[1][1],roi[2][0]:roi[2][1]]
                     
                 return img[roi[0][0]:roi[0][1],roi[1][0]:roi[1][1]]
             else:
@@ -2749,7 +2752,9 @@ class Detector(object):
         """
         if attr in self._det_config['count']:
             item = self._det_config['count'][attr]
-            img = getattr(self, item['attr'])
+            #img = getattr(self, item['attr'])
+            #img = self._getattr(item['attr'])
+            img = getattr_complete(self, item['attr'])
             gain = item.get('gain', 1.)
             return img.sum()*gain
 
@@ -2805,7 +2810,9 @@ class Detector(object):
         if item is None:
             return None
 
-        img = getattr(self, item['attr'])
+        #img = getattr(self, item['attr'])
+        img = getattr_complete(self, item['attr'])
+        #img = self._getattr(item['attr'])
         if img is None:
             return None
 
@@ -3093,9 +3100,10 @@ class AddOn(object):
     def roi(self, attr=None, sensor=None, roi=None, name=None, xaxis=None, yaxis=None, 
                 doc='', unit='ADU', publish=False, projection=None, **kwargs):       
         """Make roi for given attribute, by default this is given the name img.
+           For 1 dim objects, roi is a tuple (xstart, xend)
            For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
-           For 3 dim objects (e.g., cspad raw, calib), roi is a tuple where
-           the first element provides the detector component.
+           For 3 dim objects (e.g., cspad raw, calib), use sensor keyword to 
+              sepcify the sensor and roi as ((ystart, yend), (xstart, xend)).
         """
         if not attr:
             if sensor is not None:
@@ -3129,9 +3137,6 @@ class AddOn(object):
         #    xroi = roi[2]
         #    yroi = roi[1]
         #else:
-        xroi = roi[1]
-        yroi = roi[0]
-
         if not name:
             nroi = len(self._det_config['roi'])
             if nroi == 0:
@@ -3139,34 +3144,64 @@ class AddOn(object):
             else:
                 name = 'roi'+str(nroi+1)
 
-        xaxis_name = 'x'+name
-        if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
-            xaxis = np.arange(xroi[0],xroi[1])    
-        
-        yaxis_name = 'y'+name
-        if not yaxis or len(yaxis) != yroi[1]-yroi[0]:
-            yaxis = np.arange(yroi[0],yroi[1])    
-        
-        if doc == '':
-            doc = "{:} ROI of {:} data".format(name, attr)
+        img = self._getattr(attr)
+        if len(img.shape) == 1:
+            xroi = roi
+            xaxis_name = 'x'+name
+            if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
+                xaxis = np.arange(xroi[0],xroi[1])    
+            
+            if doc == '':
+                doc = "{:} ROI of {:} data".format(name, attr)
 
-        xattrs = {}
-        xattrs.update({'doc': doc, 'unit': unit, 'roi': roi})
-        if sensor is not None:
-            xattrs.update({'sensor': sensor})
-        
-        self._det_config['xarray']['coords'].update({xaxis_name: xaxis, 
-                                            yaxis_name: yaxis})
-        self._det_config['xarray']['dims'].update(
-                {name: ([yaxis_name, xaxis_name], (yaxis.size, xaxis.size), xattrs)})
+            xattrs = {}
+            xattrs.update({'doc': doc, 'unit': unit, 'roi': roi})
+            if sensor is not None:
+                xattrs.update({'sensor': sensor})
+            
+            self._det_config['xarray']['coords'].update({xaxis_name: xaxis})
+            self._det_config['xarray']['dims'].update(
+                    {name: ([xaxis_name], (xaxis.size), xattrs)})
 
-        self._det_config['roi'].update({name: {'attr': attr, 
-                                               'roi': roi,
-                                               'sensor': sensor,
-                                               'xaxis': xaxis,
-                                               'yaxis': yaxis, 
-                                               'doc': doc,
-                                               'unit': unit}})
+            self._det_config['roi'].update({name: {'attr': attr, 
+                                                   'roi': roi,
+                                                   'sensor': sensor,
+                                                   'xaxis': xaxis,
+                                                   'doc': doc,
+                                                   'unit': unit}})
+ 
+        else:
+            xroi = roi[1]
+            yroi = roi[0]
+
+            xaxis_name = 'x'+name
+            if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
+                xaxis = np.arange(xroi[0],xroi[1])    
+            
+            yaxis_name = 'y'+name
+            if not yaxis or len(yaxis) != yroi[1]-yroi[0]:
+                yaxis = np.arange(yroi[0],yroi[1])    
+            
+            if doc == '':
+                doc = "{:} ROI of {:} data".format(name, attr)
+
+            xattrs = {}
+            xattrs.update({'doc': doc, 'unit': unit, 'roi': roi})
+            if sensor is not None:
+                xattrs.update({'sensor': sensor})
+            
+            self._det_config['xarray']['coords'].update({xaxis_name: xaxis, 
+                                                yaxis_name: yaxis})
+            self._det_config['xarray']['dims'].update(
+                    {name: ([yaxis_name, xaxis_name], (yaxis.size, xaxis.size), xattrs)})
+
+            self._det_config['roi'].update({name: {'attr': attr, 
+                                                   'roi': roi,
+                                                   'sensor': sensor,
+                                                   'xaxis': xaxis,
+                                                   'yaxis': yaxis, 
+                                                   'doc': doc,
+                                                   'unit': unit}})
 
         if projection:
             if projection in [True, 'x']:
@@ -3194,11 +3229,16 @@ class AddOn(object):
                 unit = 'ADU'
 
         if roi:
-            roi_name = self.roi(attr, roi=roi, unit=unit, doc=doc, **kwargs)
+            if name:
+                roi_name = 'roi_'+name
+            else:
+                roi_name = None
+
+            roi_name = self.roi(attr, roi=roi, unit=unit, doc=doc, name=roi_name, **kwargs)
             xattrs = self._det_config['xarray']['dims'][roi_name][2]
             if not doc:
                 doc = 'Sum of {:} within roi={:}'.format(attr, roi)
-        
+       
         else:
             roi_name = attr
             xattrs = {}
@@ -3215,7 +3255,7 @@ class AddOn(object):
                 name = roi_name+'_count'+str(ncount+1)
 
 
-        self._det_config['count'].update({name: {'attr': attr, 
+        self._det_config['count'].update({name: {'attr': roi_name, 
                                                  'gain': gain, 
                                                  'unit': unit,
                                                  'doc': doc}})
