@@ -1019,14 +1019,22 @@ class DataSource(object):
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
 
-    def _get_config_file(self, path=None):
+    def _get_config_file(self, run=None, exp=None, instrument=None, path=None):
         if not path:
-            path = '/reg/d/psdm/{:}/{:}/scratch/nc/'.format(self.instrument,self.experiment)
+            if not exp:
+                exp = self.experiment
+            if not instrument:
+                instrument = self.instrument
+
+            path = '/reg/d/psdm/{:}/{:}/scratch/nc/'.format(instrument,experiment)
 
         if not os.path.isdir(path):
             os.mkdir(path)
 
-        return '{:}/run{:04}.config'.format(path, int(self.data_source.run))
+        if not run:
+            run = self.data_source.run
+
+        return '{:}/run{:04}.config'.format(path, int(run))
 
     def save_config(self, file_name=None, path=None, **kwargs):
         """
@@ -1044,19 +1052,23 @@ class DataSource(object):
 
         pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
 
-    def load_config(self, file_name=None, path=None, **kwargs):
+    def load_config(self, run=None, exp=None, file_name=None, path=None, **kwargs):
         """
         Load DataSource configuration.
         
         Parameters
         ----------
-        file_name : str
+        run : int, optional
+            Run number 
+        exp : str, optional
+            Experiment name
+        file_name : str, optional
             Name of file
-        path : str
+        path : str, optional
             Path of file
         """
         if not file_name:
-            file_name = self._get_config_file(path=path)
+            file_name = self._get_config_file(run=run, path=path)
 
         attrs = ['parameter', 'property', 'psplot', 'peak', 
                  'roi', 'projection', 'xarray']

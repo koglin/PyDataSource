@@ -4,9 +4,9 @@ export PYTHONPATH=
 
 args="$@"
 
-.  /reg/g/psdm/etc/ana_env.sh
+#.  /reg/g/psdm/etc/ana_env.sh
 
-source conda_setup ""
+source /reg/g/psdm/bin/conda_setup ""
 
 #_CONDA_SETUP_DIR=/reg/g/psdm/bin/
 #export PS1=$PS1
