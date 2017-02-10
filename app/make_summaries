@@ -1,0 +1,114 @@
+#!/bin/bash
+
+export PYTHONPATH=
+
+args="$@"
+
+.  /reg/g/psdm/etc/ana_env.sh
+
+source conda_setup ""
+
+#_CONDA_SETUP_DIR=/reg/g/psdm/bin/
+#export PS1=$PS1
+#FNAME=`mktemp`
+#$_CONDA_SETUP_DIR/conda_setup_details --file $FNAME 
+#source $FNAME
+#rm -f $FNAME
+
+SOURCE="${BASH_SOURCE[0]}"
+# resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do 
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" 
+  # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+# options from xppmodules littledata
+# not all are used
+while getopts "e:d:r:n:q:j:c:hxsm" OPTION
+do
+    case $OPTION in
+    h)
+        usage
+        exit 1
+        ;;
+    r) 
+        RUN=$OPTARG
+        ;;
+    e)
+        EXP=$OPTARG
+        ;;
+    n)
+        NUMBER_OF_EVENTS=$OPTARG
+        ;;
+    q)
+        QUEUEREQ=$OPTARG
+        ;;
+    d)
+        DIRNAME=$OPTARG
+        ;;
+    j)
+        NJOBS=$OPTARG
+        ;;
+    s)
+        SINGLEJOB=1
+        ;;
+    m)
+        USEMPI=1
+        ;;
+    x)
+        XTCAV=1
+        ;;
+    c)
+        CHUNK=$OPTARG
+        ;;
+    ?)
+        exit
+        ;;
+    esac
+done
+
+cd $DIR
+
+: ${EXP:=`echo $DIR | awk '{split($0,a,"/"); print a[6]}'`}
+INSTRUMENT=${EXP:0:3}
+OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc/"
+PYFILE="$EXP.py"
+#PYDIR="$DIR/../src/"
+PYDIR="$DIR"
+STEPS=`python "$PYDIR/PyDataSource" nsteps --exp=$EXP --run=$RUN`
+PYTHONPATH=$PYTHONPATH:$PYDIR:$DIR
+echo '==============================='
+echo 'Starting Batch job'
+echo '-------------------------------'
+echo 'outputdir': $OUTDIR
+echo 'pyfile:' $PYFILE
+echo 'pydir:' $PYDIR
+echo 'Run:' $RUN
+echo 'Steps:' $STEPS
+echo '==============================='
+: ${CHUNK:="$STEPS"}
+CHUNK_MIN=1
+CHUNK_MAX=$((CHUNK + 1))
+CHUNKS="$((CHUNK_MIN))-$((CHUNK_MAX))"
+
+echo bsub -q psanaq -J "myArray[$CHUNKS]" -o "$OUTDIR/"$EXP_Run$RUN-%I.out python "$PYDIR/$PYFILE" --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX
+
+echo $PYTHONPATH
+
+python $PYDIR/test.py
+echo 'test works.'
+
+bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTDIR/$EXP_Run"-%I.out python "$PYDIR/$PYFILE" --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX
+
+
+#bsub -q psanaq -J "myArray[$CHUNKS]" -o "$OUTDIR/"$EXP_$RUN-%I.out python "$PYDIR/$PYFILE" --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX
+#bsub -q psanaq -J "myArray[$RUN]" -o "$OUTDIR/"myjobs-%I.out python "$PYDIR/$PYFILE" --exp="$EXP" --run=\$LSB_JOBINDEX
+#bsub -q psfehq -J "myArray[$RUN]" -o "$OUTDIR/"myjobs-%I.out python "$PYFILE" --exp="$EXP" --run=\$LSB_JOBINDEX --nevents=100
+
+#python RunSummary/src/"$EXP".py --exp="$EXP" --run="$RUN" --nevents=100
+#python RunSummary/src/"$EXP".py --exp="$EXP" --run="$RUN" 
+

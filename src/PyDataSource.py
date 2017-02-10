@@ -7,7 +7,8 @@
 # Description:
 #  module PyDataSource
 #--------------------------------------------------------------------------
-"""Python implementation of psana DataSource object.
+"""
+Python implementation of psana DataSource object.
 
 Example:
 
@@ -128,7 +129,16 @@ _eventCodes_rate = {
         }
 
 def getattr_complete(base, args):
-    """Recursive getattr
+    """
+    Recursive getattr
+    
+    Parameters
+    ----------
+    base : object
+        Object
+
+    args : str
+        Argument to get from object
     """
     attrs = args.split('.')
     while len(attrs) > 0:
@@ -137,7 +147,15 @@ def getattr_complete(base, args):
     return base
 
 def import_module(module_name, module_path):
-    """Import a module from a given path.
+    """
+    Import a module from a given path.
+
+    Parameters
+    ----------
+    module_name : str
+        Name of module
+    module_path : str
+        Path of module
     """
     try:
         if not isinstance(module_path,list):
@@ -153,6 +171,18 @@ def import_module(module_name, module_path):
     sys.exit()
 
 def get_module(module_name, module_path, reload=False):
+    """
+    Get module from path
+
+    Parameters
+    ----------
+    module_name : str
+        Name of module
+    module_path : str
+        Path of module
+    reload : bool
+        Reload module
+    """
     if reload or module_name not in globals():
         import_module(module_name, module_path)
     
@@ -390,6 +420,21 @@ def psmon_publish(evt, quiet=True):
 
 class ScanData(object):
     """
+    Scan configuration for Run
+    
+    Information from daq-scan, where things like motor positions are changed during a run 
+    in "steps" or "calibcycles".
+
+    Parameters
+    ----------
+    ds : object
+        PyDataSource.DataSource object
+
+    Attributes
+    ----------
+    nevents : list
+        Number of events for each step
+
     """
     _array_attrs = ['pvControls_value', 'pvMonitors_loValue', 'pvMonitors_hiValue']
     _uses_attrs = ['uses_duration', 'uses_events', 'uses_l3t_events']
@@ -535,7 +580,7 @@ class ScanData(object):
                 self._control_format[name] = ' {:'+str(name_len)+'}'
 
         message(header1)
-        message('-'*(21+sum(self._name_len.values())))
+        message('-'*(21+int(sum(self._name_len.values()))))
         for i, nevents in enumerate(self.nevents):
             a = '{:4} {:6} {:8.3f}'.format(i, nevents, self.step_times[i])
             for name, vals in self.control_values.items():
@@ -556,8 +601,39 @@ class ScanData(object):
 
 
 class DataSource(object):
-    """Python version of psana.DataSource with support for event and config
-       data as well as PyDetector functions to access calibrated data.
+    """
+    Python version of psana.DataSource with support for event and config
+    data as well as PyDetector functions to access calibrated data.
+
+    data_source string is build by DataSourceInfo object if not passed 
+    directly as data_source string.
+    
+    Parameters 
+    ----------
+    data_source : str
+        name of data source using psana convention (e.g., 'exp=xpptut15:run=54:smd')
+
+    exp : str
+        experiment name (e.g., exp='xpptut15')
+
+    run : int
+        run number (e.g., run=54)
+
+    smd : bool , optional
+        small data support -- default for experiments after Oct 2015 when this feature became standard 
+
+    Attributes
+    ----------
+    data_source :  object
+        DataSourceInfo object
+
+    steps : object
+        Steps object
+
+    epicsData : object
+
+    configData : object
+
     """
 
     _ds_funcs = ['end', 'env']
@@ -699,11 +775,43 @@ class DataSource(object):
     def _load_ConfigData(self):
         self._ConfigData = ConfigData(self)
 
+    def to_xarray(self, **kwargs):
+        """
+        Build xarray object from PyDataSource.DataSource object.
+        
+        See Also
+        --------
+        PyDataSource.psxarray.to_xarray
+
+        Example
+        -------
+        import PyDataSource
+        ds = PyDataSource.DataSource(exp='xpptut15',run=200)
+        evt = ds.events.next()
+        evt.opal_1.add.projection('raw', axis='x', roi=((0,300),(1024,400)))
+        evt.cs140_rob.add.roi('calib',sensor=1,roi=((104,184),(255,335)))
+        evt.cs140_rob.add.count('roi')
+        x = ds.to_xarray()
+        # Takes ~30 min to create in single core.
+        # Saved file 2 GB
+ 
+        """
+        from psxarray import to_xarray
+        return to_xarray(self, **kwargs)
+
     @property
     def configData(self):
-        """Configuration Data from ds.env().configStore().
-           For effieciency only loaded at beginning of run or step unless
-           working with shared memory.
+        """
+        Configuration Data from ds.env().configStore().
+        For effieciency only loaded at beginning of run or step unless
+        working with shared memory.
+        
+        See Also
+        --------
+        ConfigData : class
+            Configuation Data Access  
+        
+          
         """
         if self.data_source.monshmserver:
             self._load_ConfigData()
@@ -712,10 +820,27 @@ class DataSource(object):
 
     @property
     def scanData(self):
+        """
+        ScanData
+        
+        See Also
+        --------
+        ScanData : class
+            Scan Data Access  
+        """
         return self.configData.ScanData
 
     @property
     def sources(self):
+        """
+        Detector sources
+        
+        See Also
+        --------
+        Sources : class
+            Event data sources
+
+        """
         return self.configData.Sources
 
     def _init_detectors(self):
@@ -733,6 +858,30 @@ class DataSource(object):
                      desc=None,
                      quiet=False,
                      **kwargs):
+        """
+        Add a detector 
+        
+        Parameters
+        ----------
+
+        srcstr : str
+            Source string name or alias of detector
+
+        alias : str
+            Detector alias -- default uses srcstr
+
+        module : str
+            Name of python module that contains a user defined PyDataSource.Detector class
+            with the same name as the module.  e.g., 'acqiris' loads 'acqiris.py' file 
+            which must have class Acqiris(PyDatasource.Detector)
+
+        path : str
+            Name of path for python module (default is the path of PyDataSource)
+
+        desc : str
+            Description 
+
+        """
         initialized = False
         if not alias:
             if not srcstr:
@@ -756,6 +905,7 @@ class DataSource(object):
                     'roi': {},
                     'count': {},
                     'peak': {},
+                    'histogram': {},
                     'projection': {},
                     'xarray': {},
                     }
@@ -858,8 +1008,8 @@ class DataSource(object):
         if initialized:
             self._init_dets.append(alias)
 
-    def add_plugin(self, cls, **kwargs):
-        self._plugins.update({cls.__name__: cls})
+#    def add_plugin(self, cls, **kwargs):
+#        self._plugins.update({cls.__name__: cls})
 
     def _add_dets(self, **kwargs):
         for alias, srcstr in kwargs.items():
@@ -879,7 +1029,15 @@ class DataSource(object):
         return '{:}/run{:04}.config'.format(path, int(self.data_source.run))
 
     def save_config(self, file_name=None, path=None, **kwargs):
-        """Save DataSource configuration.
+        """
+        Save DataSource configuration.
+        
+        Parameters
+        ----------
+        file_name : str
+            Name of file
+        path : str
+            Path of file
         """
         if not file_name:
             file_name = self._get_config_file(path=path)
@@ -887,7 +1045,15 @@ class DataSource(object):
         pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
 
     def load_config(self, file_name=None, path=None, **kwargs):
-        """Load DataSource configuration.
+        """
+        Load DataSource configuration.
+        
+        Parameters
+        ----------
+        file_name : str
+            Name of file
+        path : str
+            Path of file
         """
         if not file_name:
             file_name = self._get_config_file(path=path)
@@ -906,6 +1072,9 @@ class DataSource(object):
         
 
     def show_info(self, **kwargs):
+        """
+        Show DataSource information.
+        """
         return self.configData.show_info(**kwargs)
     
     def __str__(self):
@@ -937,7 +1106,8 @@ class DataSource(object):
 
 
 class Runs(object):
-    """psana DataSource Run iterator from ds.runs().
+    """
+    psana DataSource Run iterator from ds.runs().
     """
     def __init__(self, ds, **kwargs):
         self._ds_runs = []
@@ -952,6 +1122,17 @@ class Runs(object):
         return self._ds._current_run
 
     def next(self, **kwargs):
+        """
+        Returns
+        -------
+        iterator
+            Run iterator
+        
+        See Also
+        --------
+        Run : class
+            
+        """
         self._ds._ds_run = self._ds._ds.runs().next()
         self._ds_runs.append(self._ds._ds_run)
         self._ds._irun +=1
@@ -964,7 +1145,8 @@ class Runs(object):
 
 
 class Run(object):
-    """Python psana.Run class from psana.DataSource.runs().next().
+    """
+    Python psana.Run class from psana.DataSource.runs().next().
     """
     _run_attrs = ['nsteps', 'times']
     _run_funcs = ['end', 'env']
@@ -974,6 +1156,17 @@ class Run(object):
 
     @property
     def events(self):
+        """RunEvents Iterator.
+
+        Returns
+        -------
+        iterator
+            Events in current run of DataSource.
+        
+        See Also
+        --------
+        RunEvents : class
+        """
         return RunEvents(self._ds)
 
 #    @property
@@ -1020,9 +1213,10 @@ class Run(object):
 
 
 class RunEvents(object):
-    """Event iterator from ds.runs() for indexed idx data 
+    """
+    Event iterator from ds.runs() for indexed idx data 
 
-       No support yet for multiple runs in a data_source
+    No support yet for multiple runs in a data_source
     """
     def __init__(self, ds, **kwargs):
         self._kwargs = kwargs
@@ -1035,11 +1229,31 @@ class RunEvents(object):
 
     @property
     def current(self):
+        """
+        Current event.
+        
+        See Also
+        --------
+        EvtDetectors
+        """
         return EvtDetectors(self._ds, init=False)
 
     def next(self, evt_time=None, **kwargs):
         """Optionally pass either an integer for the event number in the data_source
            or a psana.EventTime time stamp to jump to an event.
+        
+        Parameters
+        ----------
+        evt_time : object or int
+            psana.EventTime time stamp to jump to specific event,
+            if int is supplied goto event number in DataSource (may not be exactly
+            same event depending on how the data_source string is corresponding
+            keywords to define the data_source is defined and also may differ
+            for fast feedback and offline analysis environments.
+        
+        Returns
+        -------
+        EventDetectors : object
         """
         try:
             if evt_time is not None:
@@ -1066,21 +1280,41 @@ class RunEvents(object):
 
 
 class SmdEvents(object):
-    """Event iterator for smd xtc data that iterates first over steps and then
-       events in steps (to make sure configData is updated for each step since
-       it is possible that it changes).
+    """
+    Event iterator for smd xtc data that iterates first over steps and then
+    events in steps (to make sure configData is updated for each step since
+    it is possible that it changes).
     """
     def __init__(self, ds, **kwargs):
         self._ds = ds
 
     @property
     def current(self):
+        """Current event.
+        """
         return EvtDetectors(self._ds, init=False)
 
     def __iter__(self):
         return self
 
     def next(self, evt_time=None, **kwargs):
+        """
+        Parameters
+        ----------
+        evt_time : object or int
+            psana.EventTime time stamp (second, nanosecond, fiducial) to jump to 
+            specific event,
+            If int is supplied goto event number in DataSource (may not be exactly
+            same event depending on how the data_source string is corresponding
+            keywords to define the data_source is defined and also may differ
+            for fast feedback and offline analysis environments.
+        
+        Returns
+        -------
+        EventDetectors object
+            Returns next event in current step.  
+            If at end of step goes to next step and returns first event.
+        """
         try:
             return self._ds._current_step.next(evt_time=evt_time)
         except:
@@ -1092,7 +1326,8 @@ class SmdEvents(object):
 
 
 class Steps(object):
-    """Step iterator from ds.steps().
+    """
+    Step iterator from ds.steps().
     """
     def __init__(self, ds, **kwargs):
         self._ds = ds
@@ -1101,12 +1336,22 @@ class Steps(object):
 
     @property
     def current(self):
+        """
+        Current step.
+        """
         return self._ds._current_step
 
     def __iter__(self):
         return self
 
     def next(self, **kwargs):
+        """
+        Step iteration method
+
+        Returns
+        -------
+        StepEvents object
+        """
         try:
             if self._ds._istep == self._ds._idx_run.nsteps()-1:
                 raise StopIteration()
@@ -1124,7 +1369,8 @@ class Steps(object):
 
 
 class StepEvents(object):
-    """Event iterator from ds.steps().events() 
+    """
+    Event iterator from ds.steps().events() 
     """
     def __init__(self, ds, **kwargs):
         self._kwargs = kwargs
@@ -1132,18 +1378,33 @@ class StepEvents(object):
 
     @property
     def current(self):
+        """Current event.
+        """
         return EvtDetectors(self._ds, init=False)
 
     def __iter__(self):
         return self
 
     def next(self, evt_time=None, **kwargs):
-        """Next event in step.  Optionally pass either an integer for the 
-           event number in the data_source, a psana.EventTime time stamp
-           or a time stamp tupple (second, nanosecond, fiducial)
-           to jump to an event.  If no event time or number is passed, the
-           event loop will procede from the last event in the step regardless
-           of which event was previously jumped to.
+        """
+        Next event in step.  If no evt_time provided, the event loop will
+        procede from the last event in the step regardless of which event 
+        was previously jumped to.
+
+        Optional Parameters
+        ----------
+        evt_time : object or int
+            psana.EventTime time stamp (second, nanosecond, fiducial) to jump to 
+            specific event,
+            If int is supplied goto event number in DataSource (may not be exactly
+            same event depending on how the data_source string is corresponding
+            keywords to define the data_source is defined and also may differ
+            for fast feedback and offline analysis environments.
+ 
+        Returns
+        -------
+        EventDetectors object
+            Returns next event in current step.  
         """
         if evt_time is not None:
             # Jump to the specified event
@@ -1199,7 +1460,8 @@ class StepEvents(object):
 
 
 class Events(object):
-    """Event iterator
+    """
+    Event iterator
     """
 
     def __init__(self, ds, **kwargs):
@@ -1209,12 +1471,21 @@ class Events(object):
 
     @property
     def current(self):
+        """
+        Current event
+        """
         return EvtDetectors(self._ds, init=False)
 
     def __iter__(self):
         return self
 
     def next(self, **kwargs):
+        """
+        Returns
+        -------
+        EventDetectors : object
+            Returns next event in DataSource.  
+        """
         try:
             self._ds._ievent += 1
             evt = self._ds._ds.events().next()
@@ -1230,6 +1501,9 @@ class Events(object):
 
 
 class PsanaTypeList(object):
+    """
+    Python representation for lists of psana data objects.
+    """
 
     def __init__(self, type_list):
 
@@ -1315,7 +1589,8 @@ class PsanaTypeList(object):
 
 
 class PsanaTypeData(object):
-    """Python representation of a psana data object (event or configStore data).
+    """
+    Python representation of a psana data object (event or configStore data).
     """
 
     def __init__(self, typ_func, nolist=False):
@@ -1329,8 +1604,11 @@ class PsanaTypeData(object):
 
         if type_name in psana_doc_info[module]:
             self._info = psana_doc_info[module][type_name].copy()
-            self._attrs_new = [key for key in psana_attrs[module][type_name]] 
-            self._attrs = [key for key in self._info.keys() if not key[0].isupper()]
+            if psana_attrs.get(module,{}).get(type_name):
+                self._attrs = [key for key in psana_attrs[module][type_name] if key in self._info.keys()] 
+            else:
+                self._attrs = [key for key in self._info.keys() if not key[0].isupper()]
+            
             #print module,        
  
         else:
@@ -1353,7 +1631,8 @@ class PsanaTypeData(object):
 
     @property
     def _all_values(self):
-        """All values in a flattened dictionary.
+        """
+        All values in a flattened dictionary.
         """
         avalues = {}
         items = sorted(self._values.items(), key = operator.itemgetter(0))
@@ -1366,7 +1645,8 @@ class PsanaTypeData(object):
         return avalues
 
     def show_info(self, prefix=None, **kwargs):
-        """Show a table of the attribute, value, unit and doc information
+        """
+        Show a table of the attribute, value, unit and doc information
         """
         message = Message(quiet=True, **kwargs)
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
@@ -1405,8 +1685,13 @@ class PsanaTypeData(object):
 
 
 class PsanaSrcData(object):
-    """Dictify psana data for a given detector source.
-       key_info: get_key_info(objclass) for faster evt data access.
+    """
+    Python represenation of psana data for a given detector source.
+       
+    Parameters
+    ----------
+    key_info : get_key_info(objclass) 
+        for faster evt data access.
     """
     def __init__(self, objclass, srcstr, key_info=None, nolist=False):
         self._srcstr = srcstr
@@ -1508,7 +1793,12 @@ class PsanaSrcData(object):
 
 
 class ConfigData(object):
-    """ConfigData
+    """
+    Configuration Data representation of configStore within psana.DataSource.env object
+
+    Parameters
+    ----------
+    ds : DataSource object
     """
     _configStore_attrs = ['get','put','keys']
     # Alias default provides way to keep aliases consistent for controls devices like the FEE_Spec
@@ -1516,6 +1806,7 @@ class ConfigData(object):
             'BldInfo(FEE-SPEC0)':       'FEE_Spec',
             'BldInfo(NH2-SB1-IPM-01)':  'Nh2Sb1_Ipm1',
             'BldInfo(NH2-SB1-IPM-02)':  'Nh2Sb1_Ipm2',
+            'BldInfo(MFX-BEAMMON-01)':  'MfxBeammon',
             }
 
     def __init__(self, ds):
@@ -1743,15 +2034,26 @@ class ConfigData(object):
 
     @property
     def Sources(self):
-        """Source information including evr config.
+        """
+        Source information including evr config.
+        
+        Returns
+        -------
+        ConfigSources object
+        
         """
         return ConfigSources(self)
 
     @property
     def ScanData(self):
-        """Scan configuration from steps ControlData.  
-           May take several seconds to load the first time.
-           Only relevant for smd data.
+        """
+        Scan configuration from steps ControlData.  
+        May take several seconds to load the first time.
+        Only relevant for smd data.
+        
+        Returns
+        -------
+        ScanData object
         """
         #if self._ds.data_source.monshmserver is not None:
         if not self._ds.data_source.smd:
@@ -1763,6 +2065,8 @@ class ConfigData(object):
         return self._ds._scanData
 
     def show_info(self, **kwargs):
+        """Show Detector Source information.
+        """
         message = Message(quiet=True, **kwargs)
         message('-'*80)
         message('Source Information:')
@@ -1772,6 +2076,8 @@ class ConfigData(object):
         return message
 
     def show_all(self, **kwargs):
+        """Show Detector Source and ScanData information.
+        """
         message = Message(quiet=True, **kwargs)
         message('-'*80)
         message('Source Information:')
@@ -1809,12 +2115,18 @@ class ConfigData(object):
 
 
 class EvtDetectors(object):
-    """Psana tab accessible event detectors.
-       All detectors in Partition or defined in any configStore Alias object 
-       (i.e., recording nodes as well as daq) return the relevant attributes of 
-       a PyDetector object for that src, but only the sources in the evt.keys()
-       show up in the ipython tab accessible dir.
-       Preserves get, keys and run method of items in psana events iterators.
+    """
+    Psana tab accessible event detectors.
+    All detectors in Partition or defined in any configStore Alias object 
+    (i.e., recording nodes as well as daq) return the relevant attributes of 
+    a PyDetector object for that src, but only the sources in the evt.keys()
+    show up in the ipython tab accessible dir.
+    
+    Preserves get, keys and run method of items in psana events iterators.
+    
+    Parameters
+    ----------
+    ds : DataSource object
     """
 
     _init_attrs = ['get', 'keys'] #  'run' depreciated
@@ -1831,24 +2143,38 @@ class EvtDetectors(object):
  
     @property
     def EventId(self):
+        """
+        EventId object
+        """
         return EventId(self._ds._current_evt)
 
     @property
     def _attrs(self):
-        """List of detector names in current evt data.
+        """
+        List of detector names in current evt data.
         """
         return [alias for alias, srcstr in self._ds._aliases.items() \
                                         if srcstr in self._ds._evt_keys]
 
     @property
     def _dets(self):
-        """Dictionary of detectors.
+        """
+        Dictionary of detectors.
+        
+        Returns
+        -------
+        DataSource._detectors dict
         """
         return self._ds._detectors
 
     @property
     def Evr(self):
-        """Master evr from psana evt data.
+        """
+        Master evr from psana evt data.
+        
+        Returns
+        -------
+        EvrData object
         """
         if 'EvrData' in self._ds._evt_modules:
             return EvrData(self._ds)
@@ -1857,7 +2183,12 @@ class EvtDetectors(object):
 
     @property
     def L3T(self):
-        """L3T Level 3 trigger.
+        """
+        L3T Level 3 trigger.
+        
+        Returns
+        -------
+        L3Tdata object
         """
         if 'L3T' in self._ds._evt_modules:
             return L3Tdata(self._ds)
@@ -1865,6 +2196,12 @@ class EvtDetectors(object):
             return L3Ttrue(self._ds)
 
     def next(self, *args, **kwargs):
+        """
+        Returns
+        -------
+        EvtDetectors : object
+            Next event in DataSource (behavior depends on if smd, idx options used in data_source)
+        """
         evt = self._ds.events.next(*args, **kwargs)
         return evt
 
@@ -1896,6 +2233,10 @@ class EvtDetectors(object):
 
 
 class L3Ttrue(object):
+    """
+    L3 Trigger default if no L3 Trigger data is in DataSource.
+    Typically only used for older data where no L3 Trigger data was generated.
+    """
 
     def __init__(self, ds):
 
@@ -1909,12 +2250,14 @@ class L3Ttrue(object):
 
     @property
     def _values(self):
-        """Dictionary of attributes: values. 
+        """
+        Dictionary of attributes: values. 
         """
         return {attr: self._attr_info[attr]['value'] for attr in self._attrs}
 
     def show_info(self, **kwargs):
-        """Show a table of the attribute, value, unit and doc information
+        """
+        Show a table of the attribute, value, unit and doc information
         """
         message = Message(**kwargs)
         items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
@@ -1945,7 +2288,9 @@ class L3Ttrue(object):
 
 
 class L3Tdata(PsanaTypeData):
-
+    """
+    L3 Trigger data
+    """
     def __init__(self, ds):
 
         self._typ, self._src, key = ds._evt_modules['L3T'].values()[0][0]
@@ -1960,6 +2305,14 @@ class L3Tdata(PsanaTypeData):
 
 
 class ConfigSources(object):
+    """
+    Configuration Sources
+
+    Parameters
+    ----------
+    configData : ConfigData object
+
+    """
 
     def __init__(self, configData):
         self._sources = configData._sources
@@ -2039,6 +2392,29 @@ class ConfigSources(object):
 
 
 class SourceData(object):
+    """
+    Source information for a daq device.
+
+    Parameters
+    ----------
+    source : str
+        Source name
+
+    Attributes
+    ----------
+    evr_width : float
+        Detector evr trigger width ['s']
+    evr_delay : float
+        Detector evr trigger delay ['s']
+    evr_polarity : bool
+        Detector evr trigger polarity
+    group: int
+        Daq evr group
+    map_key: int tuple
+        Evr configuation map key (card,channel)
+    eventCode: int
+        Evr event code
+    """
 
     _units = {'evr_width': 's',
               'evr_delay': 's'}
@@ -2083,6 +2459,13 @@ class SourceData(object):
 
 
 class EvrData(PsanaTypeData):
+    """
+    Evr eventCode information for current event in DataSource 
+
+    Parameters
+    ----------
+    ds : DataSource object
+    """
 
     def __init__(self, ds):
 
@@ -2104,22 +2487,25 @@ class EvrData(PsanaTypeData):
             return False
 
     def present(self, *args):
-        """Check if the event has specified event code.
-           Multiple event codes can be tested.
-           e.g., 
-              assume: 
-                self.eventCodes = [41, 140]
-              then:
-                self.present(41, 140) = True
-                self.present(42, 140) = Flase
+        """
+        Check if the event has specified event code.
+        Multiple event codes can be tested.
+        
+        Example
+        -------
+        
+        Assume: 
+            self.eventCodes = [41, 140]
+        Then:
+            self.present(41, 140) = True
+            self.present(42, 140) = Flase
             
-            To check if an event code is not present use a negative number:
-            e.g., 
-                self.present(-41) = False
-                self.present(-41, 140) = False
-                self.present(-42) = True
-                self.present(-42, 140) = True
-                self.present(-42, 41, 140) = True
+        To check if an event code is not present use a negative number:
+            self.present(-41) = False
+            self.present(-41, 140) = False
+            self.present(-42) = True
+            self.present(-42, 140) = True
+            self.present(-42, 41, 140) = True
         """
         if args[0] is None:
             return True
@@ -2139,6 +2525,17 @@ class EvrData(PsanaTypeData):
 
         return True
 
+    def show_table(self, **kwargs):
+        """Show table of event codes present'
+        """
+        message = Message(quiet=True, **kwargs)
+        ecs = self.fifoEvents
+        message('{:>8} {:>10} {:>10}'.format('Code','TS_high', 'TS_low'))
+        for i in range(self.numFifoEvents):
+            message('{:8} {:10} {:10}'.format(ecs.eventCode[i], 
+                            ecs.timestampHigh[i], ecs.timestampLow[i]))
+        return message
+
     def __str__(self):
         try:
             eventCodeStr = '{:}'.format(self.eventCodes)
@@ -2148,8 +2545,9 @@ class EvrData(PsanaTypeData):
         return eventCodeStr
 
 class EvrNullData(object):
-    """Evr data class when no EvrData type is in event keys.
-       Occurs for controls cameras with no other daq data present.
+    """
+    Evr data class when no EvrData type is in event keys.
+    Occurs for controls cameras with no other daq data present.
     """
 
     def __init__(self, ds):
@@ -2160,7 +2558,8 @@ class EvrNullData(object):
 
 
 class EventId(object):
-    """Time stamp information from psana EventId. 
+    """
+    Time stamp information from psana EventId. 
     """
 
     _attrs = ['fiducials', 'idxtime', 'run', 'ticks', 'time', 'vector']
@@ -2172,34 +2571,52 @@ class EventId(object):
 
     @property
     def datetime64(self):
-        """NumPy datetime64 representation of EventTime.
-           see:  http://docs.scipy.org/doc/numpy/reference/arrays.datetime.html
+        """
+        NumPy datetime64 representation of EventTime.
+        
+        References 
+        ----------
+
+        http://docs.scipy.org/doc/numpy/reference/arrays.datetime.html
+        
         """
         return np.datetime64(int(self.sec*1e9+self.nsec), 'ns')
 
     @property
     def EventTime(self):
-        """psana.EventTime for use in indexed idx xtc files.
+        """
+        psana.EventTime for use in indexed idx xtc files.
         """
         return psana.EventTime(int((self.sec<<32)|self.nsec), self.fiducials)
 
     @property
     def timef64(self):
+        """
+        Event time represented as float64
+        """
         return np.float64(self.sec)+np.float64(self.nsec)/1.e9 
 
     @property
     def nsec(self):
-        """nanosecond part of event time.
+        """
+        Nanosecond part of event time.
         """
         return self.time[1]
 
     @property
     def sec(self):
-        """second part of event time.
+        """
+        Second part of event time.
         """
         return self.time[0]
 
     def show_info(self, **kwargs):
+        """
+        Returns
+        -------
+        Message object
+            Time stamp information for event 
+        """
         message = Message(quiet=True, **kwargs)
         message(self.__repr__())
         for attr in self._attrs:
@@ -2233,9 +2650,10 @@ class EventId(object):
 
 
 class Detector(object):
-    """Includes epicsData, configData, evrConfig info 
-       Uses full ds in order to be able to access epicsData info on
-       an event basis.
+    """
+    Includes epicsData, configData, evrConfig info 
+    Uses full ds in order to be able to access epicsData info on
+    an event basis.
     """
     #import Detector as psanaDetector
     # dict of detectors in psana.DetectorTypes.detectors
@@ -2252,10 +2670,11 @@ class Detector(object):
     _xarray_init = False
 
     def __init__(self, ds, alias, verbose=False, **kwargs):
-        """Initialize a psana Detector class for a given detector alias.
-           Provides the attributes of the PyDetector functions for the current 
-           event if applicable.  Otherwise provides the attributes from the
-           raw data in the psana event keys for the given detector.
+        """
+        Initialize a psana Detector class for a given detector alias.
+        Provides the attributes of the PyDetector functions for the current 
+        event if applicable.  Otherwise provides the attributes from the
+        raw data in the psana event keys for the given detector.
         """
 
         self._alias = alias
@@ -2303,18 +2722,39 @@ class Detector(object):
 
     @property
     def add(self):
+        """
+        Add data processing methods.
+
+        See Also
+        --------
+        AddOn : class
+            Methods to add parameters, properties, and reduction/proccesing of data 
+            with roi, projection, histogram methods.
+        """
         return AddOn(self._ds, self._alias)
    
     @property
     def _det_config(self):
+        """
+        Detector configuration
+
+        See Also
+        --------
+        _device_sets : dict
+            Dictionary of detector devices in DataSource object.
+        """
         return self._ds._device_sets.get(self._alias)
 
     @property
     def _xarray_info(self):
+        """
+        Dictionary of information to build xarray data summaries.
+        """
         return self._det_config['xarray']
 
     def _update_xarray_info(self):
-        """Update default xarray information
+        """
+        Update default xarray information
         """
         # attrs -- not valid yet for bld but should fix this to avoid try/except here
         self._xarray_init = True
@@ -2354,8 +2794,10 @@ class Detector(object):
         elif self._det_class == ImageData:
             if self.calibData.ndim == 3:
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
+                image_shape = (self.calibData.image_xaxis.size, self.calibData.image_yaxis.size)
+                image_dims = (['X', 'Y'], image_shape) 
                 dims_dict = {
-#                    'image':     image_dims,
+                    'image':     image_dims,
                     'calib':     raw_dims,
 #                    'raw':       raw_dims,
                     }
@@ -2364,9 +2806,9 @@ class Detector(object):
            #     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
 
             else:
-                if self.calibData.xaxis is not None and self.calibData.xaxis.size > 0:
+                if self.calibData.image_xaxis is not None and self.calibData.image_xaxis.size > 0:
                     raw_dims = (['X', 'Y'], self.calibData.shape)
-                    image_shape = (len(self.calibData.xaxis),len(self.calibData.yaxis))
+                    image_shape = (len(self.calibData.image_xaxis),len(self.calibData.image_yaxis))
                     image_dims = (['X', 'Y'], image_shape)
                     #dims_dict = {'calib':     image_dims}
                     dims_dict = {'raw':     image_dims}
@@ -2418,8 +2860,11 @@ class Detector(object):
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
                 attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
                          'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms'
-                         'xaxis', 'yaxis']
-                coords_dict = {}
+                         'image_xaxis', 'image_yaxis']
+                coords_dict = {
+                        'X': self.calibData.image_xaxis,
+                        'Y': self.calibData.image_yaxis
+                        }
 
             elif self.calibData.ndim == 2 and self.calibData.shape[0] > 0 and self.calib is None:
                 attrs = []
@@ -2431,8 +2876,9 @@ class Detector(object):
                 raw_dims = (['X', 'Y'], self.calibData.shape)
                 attrs = []
                 coords_dict = {
-                        'X': self.calibData.xaxis,
-                        'Y': self.calibData.yaxis}
+                        'X': self.calibData.image_xaxis,
+                        'Y': self.calibData.image_yaxis
+                        }
             else:
                 coords_dict = {}
                 attrs = []
@@ -2448,7 +2894,8 @@ class Detector(object):
         self._xarray_info['coords'].update(**coords_dict)
 
     def _add_xarray_evtData(self, attrs=[]):
-        """Add evtData xarray information.
+        """
+        Add evtData xarray information.
         """
         dims_dict = {}
         for attr in attrs:
@@ -2470,8 +2917,9 @@ class Detector(object):
 
     @property
     def _attrs(self):
-        """Attributes of psana.Detector functions if relevant, and otherwise
-           attributes of raw psana event keys for the given detector.
+        """
+        Attributes of psana.Detector functions if relevant, and otherwise
+        attributes of raw psana event keys for the given detector.
         """
         if self._tabclass:
             tabclass = getattr(self, self._tabclass)
@@ -2481,7 +2929,8 @@ class Detector(object):
         return []
 
     def next(self, **kwargs):
-        """Return next event that contains the Detector in the event data.
+        """
+        Return next event that contains the Detector in the event data.
         """
         in_keys = False
         while not in_keys:
@@ -2495,7 +2944,8 @@ class Detector(object):
         return self
 
     def monitor(self, nevents=-1, sleep=0.2):
-        """Monitor detector attributes continuously with show_info function.
+        """
+        Monitor detector attributes continuously with show_info function.
         """ 
         ievent = nevents
         while ievent != 0:
@@ -2515,6 +2965,9 @@ class Detector(object):
                 ievent = 0
 
     def _show_user_info(self, **kwargs):
+        """
+        Show user defined information from AddOn methods.
+        """
         message = Message(quiet=True, **kwargs)
 #        if self._det_config.get('module') and self._det_config['module'].get('dict'):
 #            message('-'*80)
@@ -2536,6 +2989,7 @@ class Detector(object):
             message('User Defined Projections:')
             message('-'*18)
             for attr, item in self._det_config['projection'].items():
+                fdict = item.copy()
                 val = getattr(self, attr)
                 try:
                     val = val()
@@ -2543,7 +2997,23 @@ class Detector(object):
                     pass
  
                 strval = _repr_value(val)
-                fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                fdict.update({'attr': attr, 'str': strval})
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+ 
+        if self._det_config['histogram']:
+            message('-'*80)
+            message('User Defined Histograms:')
+            message('-'*18)
+            for attr, item in self._det_config['histogram'].items():
+                fdict = item.copy()
+                val = getattr(self, attr)
+                try:
+                    val = val()
+                except:
+                    pass
+ 
+                strval = _repr_value(val)
+                fdict.update({'attr': attr, 'str': strval})
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
  
         if self._det_config['count']:
@@ -2599,7 +3069,25 @@ class Detector(object):
 
         return message
 
+    def _get_info(self, attr):
+        info = self.detector._attr_info.get(attr)
+        if info:
+            info({'type': 'detector'})
+            return info
+
+        for typ in ['count','histogram','parameter','peak','projection','property']:
+            info = self._det_config.get(typ).get(attr)
+            if info:
+                info.update({'type': typ})
+                return info
+
+        return {}
+
+
     def show_all(self, **kwargs):
+        """
+        Show detailed detector information for current event.
+        """
         message = Message(quiet=True, **kwargs)
         message('-'*80)
         message(str(self))
@@ -2636,6 +3124,10 @@ class Detector(object):
         return message
 
     def show_info(self, **kwargs):
+        """
+        Show basic detector information, including from user defined AddOn methods, 
+        for current event.
+        """
         message = Message(quiet=True, **kwargs)
         message('-'*80)
         message(str(self))
@@ -2647,15 +3139,22 @@ class Detector(object):
 
     @property
     def sourceData(self):
+        """
+        Source information for detector.
+        """
         return getattr(self._ds.configData.Sources, self._alias)
 
     @property
     def configData(self):
+        """
+        Configuration data for detector.
+        """
         return getattr(self._ds.configData, self._alias)
 
     @property
     def evtData(self):
-        """Tab accessible raw data from psana event keys.
+        """
+        Tab accessible raw data from psana event keys.
         """
         if self._alias not in self._ds._current_evtData:
             self._ds._current_evtData.update({self._alias: 
@@ -2665,13 +3164,26 @@ class Detector(object):
 
     @property
     def epicsData(self):
+        """
+        Epics information for current detector.
+        """
         return getattr(self._ds.epicsData, self._alias)
 
     @property
     def detector(self):
-        """Raw, calib and image data using psana.Detector class.
-           Improved speed with data cashing when accessing the same object multiple times for
-           the same event (e.g., multiple roi or other access for same data).
+        """
+        Raw, calib and image data using psana.Detector class.
+        Improved speed with data cashing when accessing the same object multiple times for
+        the same event (e.g., multiple roi or other access for same data).
+        
+        See Also
+        --------
+        ImageData object
+        ImageCalibData object
+        WaveformData object
+        WaveformCalibData object
+        IpimbData object
+        
         """
         if self._pydet:
             if self._alias not in self._ds._current_data:
@@ -2686,7 +3198,8 @@ class Detector(object):
 
     @property
     def calibData(self):
-        """Calibration data using psana.Detector class
+        """
+        Calibration data using psana.Detector class
         """
         if self._pydet:
             return self._calib_class(self._pydet, self._ds._current_evt)
@@ -2694,7 +3207,8 @@ class Detector(object):
             return None
 
     def set_cmpars(self, cmpars):
-        """Set common mode.
+        """
+        Set common mode.
         """
         if 'calib' not in self._det_config['opts']:
             self._det_config['opts']['calib'] = {}
@@ -2706,7 +3220,8 @@ class Detector(object):
         self._pydet.calib(self._ds._current_evt, cmpars=cmpars)
 
     def _get_roi(self, attr):
-        """Get roi from roi_name as defined by AddOn.
+        """
+        Get roi from roi_name as defined by AddOn.
         """
         if attr in self._det_config['roi']:
             item = self._det_config['roi'][attr]
@@ -2730,25 +3245,33 @@ class Detector(object):
 
     @property
     def psplots(self):
-        """To kill a plot that has been created with self.add.psplot, del self.psplots[name]
-           and close the plot window.  
+        """
+        To kill a plot that has been created with self.add.psplot, del self.psplots[name]
+        and close the plot window.  
            
-           If you only close the plot window it will automatically reopen on the next event.
-           If the plot is not updating as expected, simply close the window and it will refresh
-           on the next event.
+        If you only close the plot window it will automatically reopen on the next event.
+        If the plot is not updating as expected, simply close the window and it will refresh
+        on the next event.
 
-           e.g., 
-                evt.DscCsPad.add.projection('calib','r',publish=True)
-                del evt.DscCsPad.psplots['DscCsPad_calib_r']
-                
-                evt.DscCsPad.add.psplot('image')                
-                del evt.DscCsPad.psplots['DscCsPad_image']
+        Example
+        -------
+        evt.DscCsPad.add.projection('calib','r',publish=True)
+        del evt.DscCsPad.psplots['DscCsPad_calib_r']
+        
+        evt.DscCsPad.add.psplot('image')                
+        del evt.DscCsPad.psplots['DscCsPad_image']
 
         """
         return self._det_config['psplot']
 
     def _get_count(self, attr):
-        """Get counts from count_name as defined by AddOn.
+        """
+        Get counts from count_name as defined by AddOn.
+        
+        Parameters
+        ----------
+        attr : str
+            Attribute name
         """
         if attr in self._det_config['count']:
             item = self._det_config['count'][attr]
@@ -2756,13 +3279,38 @@ class Detector(object):
             #img = self._getattr(item['attr'])
             img = getattr_complete(self, item['attr'])
             gain = item.get('gain', 1.)
-            return img.sum()*gain
+            limits = item.get('limits')
+            if limits:
+                return img[(img >= limits[0]) & (img < limits[1])].sum()*gain
+            else:
+                return img.sum()*gain
 
         else:
             return None
 
+    def _get_histogram(self, attr):
+        """
+        Returns histogram as defined by AddOn.
+        """
+        if attr in self._det_config['histogram']:
+            item = self._det_config['histogram'][attr]
+            img = getattr_complete(self, item['attr'])
+            gain = item.get('gain', 1.)
+            hst, hbins = np.histogram(img*gain, item.get('bins'), 
+                    weights=item.get('weights'), density=item.get('density'))
+
+            return hst
+        else:
+            return None
+
     def _get_peak(self, attr):
-        """Returns peak information as defined in AddOn class.
+        """
+        Returns peak information as defined in AddOn class.
+        
+        Parameters
+        ----------
+        attr : str
+            Attribute name
         """
         if attr in self._det_config['peak']:
             item = self._det_config['peak'][attr]
@@ -2783,6 +3331,10 @@ class Detector(object):
             if method == 'waveform':
                 return wf
             
+            roi = item.get('roi')
+            if roi:
+                wf = wf[roi[0]:roi[1]]
+
             wf = list(wf)
             maxval = max(wf)
             if method == 'max':
@@ -2790,13 +3342,15 @@ class Detector(object):
             
             if max > item.get('threshold'):
                 idx = wf.index(maxval)
+                if roi:
+                    idx += roi[0] 
             else:
                 idx = 0        
     
             if method == 'index':
                 return idx
 
-            if method == 'time':
+            if method in ['time', 'pos']:
                 xaxis = item.get('xaxis')
                 if xaxis is not None:
                     return xaxis[idx]
@@ -2804,7 +3358,13 @@ class Detector(object):
         return None
  
     def _get_projection(self, attr):
-        """Get projection as defined by AddOn.
+        """
+        Get projection as defined by AddOn.
+        
+        Parameters
+        ----------
+        attr : str
+            Attribute name
         """
         item = self._det_config['projection'].get(attr)
         if item is None:
@@ -2835,6 +3395,14 @@ class Detector(object):
             return getattr(img, method)(axis=iaxis)
 
     def _get_property(self, attr):
+        """
+        Get property as defined by AddOn.
+
+        Parameters
+        ----------
+        attr : str
+            Attribute name
+        """
         func_name = self._det_config['property'].get(attr)
         if hasattr(func_name,'__call__'):
             func_name = func_name(self)
@@ -2859,6 +3427,9 @@ class Detector(object):
         if attr in self._det_config['count']:
             return self._get_count(attr)
 
+        if attr in self._det_config['histogram']:
+            return self._get_histogram(attr)
+
         if attr in self._det_config['roi']:
             return self._get_roi(attr)
        
@@ -2877,6 +3448,7 @@ class Detector(object):
                          self._det_config['property'].keys() +
                          self._det_config['roi'].keys() + 
                          self._det_config['count'].keys() + 
+                         self._det_config['histogram'].keys() + 
                          self._det_config['peak'].keys() + 
                          self._det_config['projection'].keys() + 
                          self._ds.events.current._event_attrs +
@@ -2886,6 +3458,10 @@ class Detector(object):
 
 
 class AddOn(object):
+    """
+    Collection of methods to add parameters, properties, and reduction/proccesing of data 
+    with roi, projection, histogram methods.
+    """
 
     _plugins = {}
     _init_attrs = ['_ds', '_alias']
@@ -2907,25 +3483,74 @@ class AddOn(object):
         return getattr(self._evt, self._alias)
 
     def module(self, module=None, **kwargs):
+        """Add detector module
+
+        Parameters
+        ----------
+        module : str
+            Name of python module that contains a user defined PyDataSource.Detector class
+            with the same name as the module.  e.g., 'acqiris' loads 'acqiris.py' file 
+            which must have class Acqiris(PyDatasource.Detector)
+        
+        Keywords
+        --------
+        path : str
+            Name of path for python module (default is the path of PyDataSource)
+        desc : str
+            Description 
+
+        Example
+        -------
+        >>> evt.acqiris.add.module('acqiris')
+
+        See Also
+        --------
+        DataSource.add_detector
+
+        """
         if module:
             self._ds.add_detector(self._alias, module=module, **kwargs)
 
     def parameter(self, **kwargs):
+        """
+        Add parameters as keword arguments.  
+        Will be perserved if module is added or DataSource is reloaded
+        and is saved along with other AddOn information with save_config.
+
+        Examples
+        --------
+        
+        >>> evt.acqiris.add.parameter(foo='bar', backlevel=1.)
+        
+        or alternatively
+
+        >>> params = {foo='bar', backlevel=1.}
+        >>> evt.acqiris.add.parameter(**params)
+
+        """
         for param, value in kwargs.items():
             self._det_config['parameter'][param] = value 
 
     def property(self, func_name, *args, **kwargs):
-        """Add a property that operates on this detector object.
-                property(func_name [, attr])
-           The result will be added as an attribute to the detecor with the
-           name of the function unless attr is provided.
-           For example:
-            > def myfunc(self):       
-                  return self.ebeamL3Energy
-            > data.EBeam.add.property(myfunc, 'energy')
+        """
+        Add a property that operates on this detector object.
+        
+        The result will be added as an attribute to the detecor with the
+        name of the function unless attr is provided.
+       
+        Examples
+        --------
+        Import or create a method acting on self as the Detector object and add it as a property
+        
+        >>> def myfunc(self):       
+                return self.ebeamL3Energy
+        
+        >>> evt.EBeam.add.property(myfunc, 'energy')
 
-           Or alternatively using lambda:
-            > data.EBeam.add.property(lambda self: self.ebeamL3Energy, 'energy')
+        Or alternatively using lambda:
+        
+        >>> evt.EBeam.add.property(lambda self: self.ebeamL3Energy, 'energy')
+        
         """
         if len(args) > 0:
             attr = args[0]
@@ -2934,23 +3559,65 @@ class AddOn(object):
         
         self._det_config['property'][attr] = func_name 
 
-    def projection(self, attr=None, axis='x', name=None, 
-            axis_name=None, method=None, publish=False, 
-            mask=None, bins=None, bin_size=None, rmin=None, rmax=None, 
-            **kwargs):
-        """Make a projection along an axis.
-           For x/y projections:
-              method: by default the method is 'sum' but other numpy methods are
-                      also possible (e.g., 'mean', 'std', 'min', 'max', 'var').
-           
-           Radial projection valid in limited circumstances.
 
+    def projection(self, attr=None, axis='x', name=None, 
+            axis_name=None, method=None, 
+            mask=None, bins=None, bin_size=None, rmin=None, rmax=None, 
+            unit='ADU', doc='', publish=False,
+            **kwargs):
+        """
+        Make a projection along an axis.
+        
+        Options implemented for x/y projections (i.e., axis='x' or axis='y')
+        But radial (axis='r') and azimuth (axis='az') projections are valid 
+        in limited circumstances.
+        
+        Parameters
+        ----------
+        attr : str
+            Name of data object on which to make projection
+        axis : str
+            Projection axis
+                'x': x-axis 
+                'y': y-axis
+                'r': radial
+                'az': azimuth
+                True: both 'x' and 'y' projections
+        name : str
+            Name of projection object [Default is to append '_'+axis and sequential number
+            to input attr name.
+        axis_name : str
+            name of axis [default = axis+name]
+        method : str
+            by default the method is 'sum' but other numpy methods are
+            also possible (e.g., 'mean', 'std', 'min', 'max', 'var').
+        roi : tuple, optional
+            Region of interest (roi) parameters passed to roi method.
+            roi method then acts on this reduced data
+        mask : str, optional
+            Name of mask to apply before making projection.
+        bins : int or sequence of scalars, optional
+            If `bins` is an int, it defines the number of equal-width
+            bins in the given range (10, by default). If `bins` is a sequence,
+            it defines the bin edges, including the rightmost edge, allowing
+            for non-uniform bin widths. (used with np.histogram)
+        bin_size : float, optional
+            Size of bins for polar coordinate projections.
+            Default = pixelsize
+        doc : str, optional
+            Doc string for resulting projection data
+        unit : str, optional
+            Units of roi data [Default assumes same as attr data]
+        publish : bool, optional
+            Make psplot of roi data
+ 
         """
         _methods = ['sum', 'mean', 'std', 'min', 'max', 'var']
         _cartesian_axes = ['x', 'y']
         _polar_axes = ['r', 'az']
 
         axis = axis.lower()
+        xunit = ''
 
         if not attr:
             if axis in _polar_axes:
@@ -3014,8 +3681,10 @@ class AddOn(object):
 
             coords_r = np.sqrt(coords_y**2+coords_x**2)
             coords_az = np.degrees(np.arctan2(coords_y, coords_x))
-            
+
             if axis == 'r':
+                if not xunit:
+                    xunit = 'um'
                 coord_hist = np.ma.masked_array(coords_r, mask)
                 if not bins:
                     if not bin_size:
@@ -3053,6 +3722,9 @@ class AddOn(object):
             if method != 'norm':
                 norm = 1.
             
+            if doc == '':
+                doc = "{:}-axis projection of {:} data".format(axis, attr)
+            
             projaxis = (hbins[1:]+hbins[0:-1])/2.
             self._det_config['xarray']['coords'].update({axis_name: projaxis})
 
@@ -3070,40 +3742,73 @@ class AddOn(object):
                             'rmin': rmin,
                             'rmax': rmax,
                             'norm': norm,
+                            'xunit': xunit,
+                            'unit': unit,
+                            'doc': doc,
                             'xdata': projaxis}})
 
         else:
             projaxis = self._det_config['xarray']['coords'].get(axis_name) 
+           
+            # Need to add in auto axis for Data Arrays
+            if not xunit and not projaxis:
+                xunit = 'pixel'
+
             if projaxis is None:
                 iaxis = {'x': 1, 'y': 0}.get(axis)
                 projaxis = np.arange(img.shape[iaxis])    
                 self._det_config['xarray']['coords'].update({axis_name: projaxis})
-        
+
+
             self._det_config['xarray']['dims'].update(
                     {name: ([axis_name], (projaxis.size))})
 
             self._det_config['projection'].update(
                     {name: {'attr': attr, 
                             'axis': axis, 
+                            'xunit': xunit, 
                             'method': method,
                             'axis_name': axis_name, 
+                            'unit': unit,
+                            'doc': doc,
                             'xdata': projaxis}})
 
         if publish:
-            self.psplot(name)
 
-    def _getattr(self, attr):
-        """Get detector attribute.
-        """
-        return getattr_complete(self._det,attr)
+            self.psplot(name)
 
     def roi(self, attr=None, sensor=None, roi=None, name=None, xaxis=None, yaxis=None, 
                 doc='', unit='ADU', publish=False, projection=None, **kwargs):       
-        """Make roi for given attribute, by default this is given the name img.
-           For 1 dim objects, roi is a tuple (xstart, xend)
-           For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
-           For 3 dim objects (e.g., cspad raw, calib), use sensor keyword to 
-              sepcify the sensor and roi as ((ystart, yend), (xstart, xend)).
+        """
+        Make roi for given attribute, by default this is given the name img.
+
+        Parameters
+        ----------
+        attr : str
+            Name of data object on which to make roi
+        sensor : int
+            First array element for 3 dim objects
+        roi : tuple
+            For 1 dim objects, roi is a tuple (xstart, xend)
+            For 2 dim objects, roi is a tuple ((ystart, yend), (xstart, xend))
+            For 3 dim objects (e.g., cspad raw, calib), use sensor keyword to 
+            sepcify the sensor and roi as ((ystart, yend), (xstart, xend)).
+        name : str
+            Name of roi object [Default is to append '_roi' and sequential number
+            to input attr name.
+        xaxis: array_like
+            X-axis coordinate of roi
+        yaxis: array_like
+            Y-axis coordinate of roi
+        doc : str
+            Doc string for resulting roi data
+        unit : str
+            Units of roi data [Default assumes same as attr data]
+        publish : bool
+            Make psplot of roi data
+        projection : bool
+            Make projection(s) of data.  See projection method. 
+        
         """
         if not attr:
             if sensor is not None:
@@ -3215,13 +3920,30 @@ class AddOn(object):
         return name
 
     def count(self, attr=None, gain=None, unit=None, doc=None, 
-            roi=None, name=None, **kwargs):
-        """Count (i.e., sum) of detector within optional roi.
-            gain: optional converion from ADU to for example X-rays.
+            roi=None, name=None, limits=None, **kwargs):
+        """
+        Count (i.e., sum) of detector within optional roi.
+
+        Parameters
+        ----------
+        attr : str
+            Name of data object in detector object on which to act
+        gain: float
+            optional converion from ADU to for example X-rays.
+        limits: tuple
+            (low, high) values to be counted.
+        doc : str
+            Doc string for resulting roi data
+        unit : str
+            Units of histogramed data.  Default ADU (times gain factor if supplied) 
+        roi : tuple, optional
+            Region of interest (roi) parameters passed to roi method.
+            roi method then acts on this reduced data
+        
         """
         if gain:
             if not unit:
-                unit = 'ADUx{:}'.format(gain)
+                unit = 'ADUx{:.2g}'.format(gain)
 
         else:
             gain = 1
@@ -3258,24 +3980,177 @@ class AddOn(object):
         self._det_config['count'].update({name: {'attr': roi_name, 
                                                  'gain': gain, 
                                                  'unit': unit,
+                                                 'limits': limits,
                                                  'doc': doc}})
 
         xattrs.update({'doc': doc, 'unit': unit})
         self._det_config['xarray']['dims'].update(
                 {name: ([], (), xattrs)})
 
+    def histogram(self, attr=None, bins=None, gain=None, 
+            unit=None, doc=None, roi=None, name=None, 
+            weights=None, density=None, publish=None,
+            **kwargs):
+        """
+        Make a histogram.
+        
+        Parameters
+        ----------
+        
+        attr : str
+            Name of data object in detector object on which to act
+        bins : int or sequence of scalars, optional
+            If `bins` is an int, it defines the number of equal-width
+            bins in the given range (10, by default). If `bins` is a sequence,
+            it defines the bin edges, including the rightmost edge, allowing
+            for non-uniform bin widths. (used with np.histogram)
+        gain : float, optional
+            converion from ADU to for example X-rays.
+        doc : str, optional
+            Doc string for resulting roi data
+        unit : str, optional
+            Units of histogramed data.  Default ADU (times gain factor if supplied) 
+        roi : tuple, optional
+            Region of interest (roi) parameters passed to roi method.
+            Histogram acts on this reduced data
+        name : str, optional
+            Name of histogram data object
+        weights : array_like, optional
+            An array of weights, of the same shape as `a`.  Each value in `a`
+            only contributes its associated weight towards the bin count
+            (instead of 1).  If `normed` is True, the weights are normalized,
+            so that the integral of the density over the range remains 1
+            (used with np.histogram)
+        density : bool, optional
+            If False, the result will contain the number of samples
+            in each bin.  If True, the result is the value of the
+            probability *density* function at the bin, normalized such that
+            the *integral* over the range is 1. Note that the sum of the
+            histogram values will not be equal to 1 unless bins of unity
+            width are chosen; it is not a probability *mass* function.
+            Overrides the `normed` keyword if given.
+            (used with np.histogram)
+        publish : bool
+            Make psplot of histogram
+        
+        See Also
+        --------
+        np.histogram
+
+        """
+#        range : (float, float), optional
+#            The lower and upper range of the bins.  If not provided, range
+#            is simply ``(a.min(), a.max())``.  Values outside the range are
+#            An array of weights, of the same shape as `a`.  Each value in `a`
+#            only contributes its associated weight towards the bin count
+#            (instead of 1).  If `normed` is True, the weights are normalized,
+#            so that the integral of the density over the range remains 1
+#            (used with np.histogram)
+
+        if gain:
+            if not unit:
+                unit = 'ADUx{:}'.format(gain)
+
+        else:
+            gain = 1
+            if not unit:
+                unit = 'ADU'
+
+        if roi:
+            if name:
+                roi_name = 'roi_'+name
+            else:
+                roi_name = None
+
+            roi_name = self.roi(attr, roi=roi, unit=unit, doc=doc, name=roi_name, **kwargs)
+            xattrs = self._det_config['xarray']['dims'][roi_name][2]
+            if not doc:
+                doc = 'Histogram of {:} within roi={:}'.format(attr, roi)
+       
+        else:
+            roi_name = attr
+            xattrs = {}
+            if not doc:
+                doc = 'Histogram of {:}'.format(attr)
+
+
+        if not name:
+            ncount = len(self._det_config['histogram'])
+            if ncount == 0:
+                name = roi_name+'_hist'
+            
+            else:
+                name = roi_name+'_hist'+str(ncount+1)
+            
+        if not hasattr(bins, 'shape') or bins.shape[0] < 3:
+            img = self._getattr(roi_name)
+            hst, bins = np.histogram(img, bins, 
+                    weights=weights, density=density)
+
+        xaxis = (bins[1:]+bins[:-1])/2.
+
+        self._det_config['histogram'].update({name: {'attr': roi_name, 
+                                                     'gain': gain, 
+                                                     'unit': unit,
+                                                     'bins': bins,
+                                                     'xaxis': xaxis, 
+                                                     'weights': weights,
+                                                     'density': density,
+                                                     'doc': doc}})
+
+        xattrs.update({'doc': doc, 'unit': unit})
+        self._det_config['xarray']['coords'].update({name+'_xaxis': xaxis})
+        self._det_config['xarray']['dims'].update(
+                {name: ([name+'_xaxis'], (xaxis.shape), xattrs)})
+
+        if publish:
+            xlabel = '[{:}]'.format(unit)
+            self.psplot(name, 
+                        xdata=xaxis, 
+                        xlabel=xlabel)
+
+
     def peak(self, attr=None, ichannel=None, name=None,
             xaxis=None, roi=None, scale=1, baseline=None,
             methods=None,
             threshold=None, 
             docs={}, units={}):
-        """simple 1D peak locator.
-           method: index = index at max channel.
-                    max = maximum value.
-
-           acqiris waveform channels start with 1
-           by default threshold is 1.5% of full range for Acqiris
         """
+        Simple 1D peak locator.
+           
+        Parameters
+        ----------
+        
+        attr : str
+            Name of data object on which to find peaks
+        ichannel : int
+            acqiris waveform channels start with 1.  
+            If not present, peak locators will be created for alll chanels
+        name : str
+            Name of peak object [Default is to append '_peak' and sequential number
+            to input attr name.
+        xaxis: array_like
+            X-axis coordinate of data object
+            Default is to use wftime for attr='waveform'
+        threshold : float
+            Peak threshold.  default threshold is 1.5% of full range for Acqiris
+        baseline : float
+            Baseline level to subtract
+        scale : float
+            Peak scale factor
+        method : str
+            Peak finding method options include:
+            'index': index at max channel.
+            'max': maximum value.
+        roi : tuple, optional
+            Region of interest 
+        docs : dict
+            Doc strings for resulting peaks
+        units : dict
+            Units of peaks data [Default assumes same as attr data]
+ 
+        """
+        
         if not attr:
             if self._det._pydet_name == 'WFDetector':
                 if self._det.__class__.__name__ == 'Detector':
@@ -3285,19 +4160,26 @@ class AddOn(object):
                 if ichannel is None and not name:
                     for i in range(self._det.waveform.shape[0]):
                         print 'adding ichannel', i
-                        self.peak(ichannel=i, xaxis=xaxis,roi=roi, scale=scale, 
+                        self.peak(ichannel=i, xaxis=xaxis, roi=roi, scale=scale, 
                                   theshold=threshold, baseline=baseline, methods=None,
                                   docs=docs,units=units)
                     
                     return
 
         if not methods:
-            methods = {'index': 'index', 'max': 'max'}
+            methods = {'index': 'index', 'max': 'max', 'pos': 'pos'}
             if attr == 'waveform':
                 methods.pop('index')
                 methods.update({'time': 'time', 'waveform': 'waveform'})
 
-        units = {'time': 's', 'index': 'channel', 'max': 'V', 'waveform': 'V'}
+        attr_info = self._det._get_info(attr)
+
+        if not units:
+            if attr == 'waveform':
+                units = {'time': 's', 'index': 'channel', 'max': 'V', 'waveform': 'V'}
+            else:
+                units = {'max': '', 'index': ''}
+                #units = {'max': attr_info.get('unit'), 'index': 'bin'}
 
         if not name:
             if attr == 'waveform':
@@ -3308,9 +4190,14 @@ class AddOn(object):
             if ichannel is not None:
                 name += '_ch{:}'.format(ichannel+1)
 
-        if not xaxis and attr == 'waveform' and ichannel is not None:
-            xaxis = self._det.wftime[ichannel]
-        
+        if not xaxis:
+            if attr == 'waveform' and ichannel is not None:
+                xaxis = self._det.wftime[ichannel]
+            elif 'xaxis' in attr_info:
+                xaxis = attr_info.get('xaxis')
+            elif 'bins' in attr_info:
+                xaxis = attr_info.get('bins')
+
         if not threshold:
             if self._det._pydet.dettype == 16:
                 threshold = self._det.configData.vert.fullScale[ichannel]*0.015
@@ -3472,12 +4359,26 @@ class AddOn(object):
 #        return mask
 
     def psplot(self, *attrs, **kwargs):
-        """Update psplot.
-           kwargs:
-              local: open psplot locally (default)
-              eventCode: check if event code(s) are in data 
-                         (or alternatively not in date with - sign)
-                         see is_eventCodePresent
+        """
+        Add psplot.
+
+        Parameters
+        ----------
+              
+        local: bool
+            open psplot locally (default)
+        eventCode: int
+            check if event code(s) are in data 
+            (or alternatively not in date with - sign)
+            see is_eventCodePresent
+       
+        Keywords
+        --------
+        title : str
+            Plot title
+        eventCode : list
+            Plot if eventCode is present
+
         """
         plot_error = '' 
         alias = self._alias
@@ -3549,9 +4450,23 @@ class AddOn(object):
         
         if not plot_error:
             if plot_type is 'Image':
-                plt_opts = ['xlabel', 'ylabel', 'aspect_ratio', 'aspect_lock']
+                plt_opts = ['xlabel', 'ylabel', 'aspect_ratio', 'aspect_lock', 'scale', 'pos']
                 plt_kwargs = {key: item for key, item in kwargs.items() \
                               if key in plt_opts}
+               
+                if attr == 'image':
+                    calibData = self._getattr('calibData')
+                    scale = calibData.pixel_size/1000.
+                    plt_kwargs.update({ 
+                            'pos': (calibData.image_xaxis[0]/1000., 
+                                    calibData.image_yaxis[0]/1000.), 
+                            'scale': (scale, scale),
+                            })
+                    if not plt_kwargs.get('xlabel'):
+                        plt_kwargs['xlabel'] = 'X [mm]'
+                    if not plt_kwargs.get('ylabel'):
+                        plt_kwargs['ylabel'] = 'Y [mm]'
+
                 plt_args = {'det': alias,
                             'attr': attrs,  
                             'name': name,
@@ -3570,6 +4485,14 @@ class AddOn(object):
                 else:
                     if attr in self._det_config['projection']:
                         xdata = self._det_config['projection'][attr]['xdata']
+                        axis_name = self._det_config['projection'][attr].get('axis_name')
+                        xunit = self._det_config['projection'][attr].get('xunit', '')
+                        unit = self._det_config['projection'][attr].get('unit')
+                        xlabel = '{:} [{:}]'.format(axis_name, xunit)
+                        if not plt_kwargs.get('xlabel'):
+                            plt_kwargs.update({'xlabel': xlabel})
+                        if not plt_kwargs.get('ylabel'):
+                            plt_kwargs.update({'ylabel': '[{:}]'.format(unit)})
 
                     else:
                         xdata = np.arange(len(self._getattr(attrs[0])))
@@ -3617,6 +4540,12 @@ class AddOn(object):
 #        if attr not in self._init_attrs:
 #            self._plugins.update({attr: val})
 
+    def _getattr(self, attr):
+        """
+        Get detector attribute.
+        """
+        return getattr_complete(self._det,attr)
+
     def __dir__(self):
         all_attrs =  set(self._plugins.keys() +
                          self.__dict__.keys() + dir(AddOn))
@@ -3652,12 +4581,14 @@ class IpimbData(object):
     
     @property
     def instrument(self):
-        """Instrument to which this detector belongs.
+        """
+        Instrument to which this detector belongs.
         """
         return self._det.instrument()
 
     def show_info(self, **kwargs):
-        """Show information for relevant detector attributes.
+        """
+        Show information for relevant detector attributes.
         """
         message = Message(quiet=True, **kwargs)
         try:
@@ -3772,11 +4703,12 @@ class IpimbData(object):
 #
 
 class WaveformData(object):
-    """Tab accessibile dictified psana.Detector object.
+    """
+    Tab accessibile dictified psana.Detector object.
        
-       Attributes come from psana.Detector 
-       with low level implementation done in C++ or python.  
-       Boost is used for the C++.
+    Attributes come from psana.Detector with low level implementation 
+    done in C++ or python.  
+    Boost is used for the C++.
     """
 
     _attrs = ['raw', 'waveform', 'wftime'] 
@@ -3795,12 +4727,14 @@ class WaveformData(object):
 
     @property
     def instrument(self):
-        """Instrument to which this detector belongs.
+        """
+        Instrument to which this detector belongs.
         """
         return self._det.instrument()
 
     def show_info(self, **kwargs):
-        """Show information for relevant detector attributes.
+        """
+        Show information for relevant detector attributes.
         """
         message = Message(quiet=True, **kwargs)
         try:
@@ -3834,7 +4768,8 @@ class WaveformData(object):
         return message
 
     def __getattr__(self, attr):
-        """Only access psana.Detector data once.
+        """
+        Only access psana.Detector data once.
         """
         if attr in self._attrs:
             if attr not in self._data:
@@ -3850,7 +4785,8 @@ class WaveformData(object):
 
 
 class WaveformCalibData(object):
-    """Calibration data using psana.Detector access.
+    """
+    Calibration data using psana.Detector access.
     """
 
     _attrs = ['runnum'] 
@@ -3866,17 +4802,20 @@ class WaveformCalibData(object):
 
     @property
     def instrument(self):
-        """Instrument to which this detector belongs.
+        """
+        Instrument to which this detector belongs.
         """
         return self._det.instrument()
 
     def print_attributes(self):
-        """Print detector attributes.
+        """
+        Print detector attributes.
         """
         self._det.print_attributes()
 
     def set_calibration(self):
-        """On/off correction of time.'
+        """
+        On/off correction of time.'
         """
         if self._det.dettype == 16:
             self._det.set_correct_acqiris_time()
@@ -3884,7 +4823,8 @@ class WaveformCalibData(object):
             self._det.set_calib_imp()
 
     def show_info(self, **kwargs):
-        """Show information for relevant detector attributes.
+        """
+        Show information for relevant detector attributes.
         """
         message = Message(quiet=True, **kwargs)
         try:
@@ -3929,11 +4869,11 @@ class WaveformCalibData(object):
 
 
 class ImageData(object):
-    """Tab accessibile dictified psana Detector object.
+    """
+    Tab accessibile dictified psana Detector object.
        
-       Attributes come from psana.Detector  
-       with low level implementation done in C++ or python.  
-       Boost is used for the C++.
+    Attributes come from psana.Detector with low level implementation 
+    done in C++ or python.  Boost is used for the C++.
     """
     _attrs = ['image', 'raw', 'calib', 'shape', 'size'] 
     _attr_info = {
@@ -3958,30 +4898,40 @@ class ImageData(object):
 
     @property
     def instrument(self):
-        """Instrument to which this detector belongs.
+        """
+        Instrument to which this detector belongs.
         """
         return self._det.instrument()
 
     def make_image(self, nda):
-        """Make an image from the input numpy array based on the 
-           geometry in the calib directory for this event.
+        """
+        Make an image from the input numpy array based on the 
+        geometry in the calib directory for this event.
+        
+        Parameters
+        ----------
+        nda : np.array
+            input array
         """
         return self._det.image(self._evt, nda)
 
     def common_mode_correction(self, nda):
-        """Return the common mode correction for the input numpy 
-           array (pedestal-subtracted). 
+        """
+        Return the common mode correction for the input numpy 
+        array (pedestal-subtracted). 
         """
         return self._det.common_mode_correction(self._evt, nda)
         
     def common_mode_apply(self, nda):
-        """Apply in place the common mode correction for the input 
-           numpy array (pedestal-subtracted). 
+        """
+        Apply in place the common mode correction for the input 
+        numpy array (pedestal-subtracted). 
         """
         self._det.common_mode_apply(self._evt, nda)
 
     def show_info(self, **kwargs):
-        """Show information for relevant detector attributes.
+        """
+        Show information for relevant detector attributes.
         """
         message = Message(quiet=True, **kwargs)
         if self.size > 0 or self.raw is not None:
@@ -4017,7 +4967,8 @@ class ImageData(object):
         return message
 
     def __getattr__(self, attr):
-        """Only access psana.Detector data once.
+        """
+        Only access psana.Detector data once.
         """
         if attr in self._attrs:
             if attr not in self._data:
@@ -4035,14 +4986,16 @@ class ImageData(object):
 
 
 class ImageCalibData(object):
-    """Calibration Data from psana Detector object.
+    """
+    Calibration Data from psana Detector object.
     """
 
     _attrs = ['shape', 'size', 'ndim', 'pedestals', 'rms', 'gain', 'bkgd', 'status',
               'common_mode', 'runnum',
               'areas', 'indexes_x', 'indexes_y', 'pixel_size',
               'coords_x', 'coords_y', 'coords_z', 
-             ] 
+              'image_xaxis', 'image_yaxis',
+              ] 
     _attr_info = {
             'runnum':      {'doc': 'Run number',
                             'unit': ''},
@@ -4078,6 +5031,10 @@ class ImageCalibData(object):
                             'unit': 'um'},
             'coords_z':    {'doc': 'Pixel Z coordinate', 
                             'unit': 'um'},
+            'image_xaxis': {'doc': 'Image X coordinate', 
+                            'unit': 'um'},
+            'image_yaxis': {'doc': 'Image Y coordinate', 
+                            'unit': 'um'},
             } 
 
     def __init__(self, det, evt):
@@ -4087,9 +5044,18 @@ class ImageCalibData(object):
 
     @property
     def instrument(self):
-        """Instrument to which this detector belongs.
+        """
+        Instrument to which this detector belongs.
         """
         return self._det.instrument()
+
+    def _get_origin(self, **kwargs):
+        """
+        Get image origin indecies
+        """
+        ixo, iyo = self._det.point_indexes(self._evt, **kwargs)
+
+        return ixo, iyo
 
     def _get_point_indexes(self, **kwargs):
         """
@@ -4137,66 +5103,100 @@ class ImageCalibData(object):
 
     @property
     def xaxis(self):
-        """Reconstructed image x axis.
         """
-        item = self._info.get('xaxis')
-        if item:
-            xaxis = item.get('value')
-        else:
-            xaxis, yaxis = self._get_point_indexes()
-            
-        return xaxis
+        Reconstructed image x axis.
+        """
+        return self.image_xaxis
+#        item = self._info.get('xaxis')
+#        if item:
+#            xaxis = item.get('value')
+#        else:
+#            xaxis, yaxis = self._get_point_indexes()
+#            
+#        return xaxis
 
     @property
     def yaxis(self):
-        """Reconstruced image y axis.
         """
-        item = self._info.get('yaxis')
-        if item:
-            yaxis = item.get('value')
-        else:
-            xaxis, yaxis = self._get_point_indexes()
-            
-        return yaxis
+        Reconstruced image y axis.
+        """
+        return self.image_yaxis
+#        item = self._info.get('yaxis')
+#        if item:
+#            yaxis = item.get('value')
+#        else:
+#            xaxis, yaxis = self._get_point_indexes()
+#            
+#        return yaxis
+
+    def set_gain_mask_factor(factor=6.85):
+        """
+        Set Gain mask factor.  Default=6.85
+        Passed to gain_mask(...) in the calib and image methods
+        """
+        self._det.set_gain_mask_factor(factor=factor)
 
     def set_do_offset(do_offset=True):
-        """Not sure what do offset does?
+        """
+        Switch mode of the Camera type of detector.
+        Control parameter to turn on/off Camera intensity offset
         """
         self._det.set_do_offset(do_offset=do_offset)
 
     def mask(self, calib=True, status=True, 
                    edges=True, central=True, 
                    unbond=True, unbondnbrs=True):
-        """Returns combined mask.
-                calib:      mask from file in calib directory.
-                status:     pixel status from file in calib director.
-                edges:      mask detector module edge pixels (mbit +1 in mask_geo).
-                central:    mask wide central columns (mbit +2 in mask_geo).
-                unbond:     mask unbonded pixels (mbit +4 in mask_geo).
-                unbondnbrs: mask unbonded neighbour pixels (mbit +8 in mask_geo).
+        """
+        Generate image mask.
+
+        Parameters
+        ----------
+        calib: bool
+            mask from file in calib directory.
+        status: bool
+            pixel status from file in calib director.
+        edges: bool
+            mask detector module edge pixels (mbit +1 in mask_geo).
+        central: bool
+            mask wide central columns (mbit +2 in mask_geo).
+        unbond: bool
+            mask unbonded pixels (mbit +4 in mask_geo).
+        unbondnbrs: bool
+            mask unbonded neighbour pixels (mbit +8 in mask_geo).
+        
+        Returns
+        -------
+        combined mask: array-like
         """
         return self._det.mask(self._evt, calib=calib, status=status, edges=edges, 
                               central=central, unbond=unbond, unbondnbrs=unbondnbrs)
 
     def mask_geo(self, mbits=15): 
-        """Return geometry mask for given mbits keyword.
-           Default is mbits=15 to mask edges, wide central columns,
-             non-bo pixels and their neighbors
+        """
+        Return geometry mask for given mbits keyword.
+        Default is mbits=15 to mask edges, wide central columns,
+        non-bo pixels and their neighbors
 
-           mbits =  +1-edges; 
-                    +2-wide central cols; 
-                    +4 unbonded pixel; 
-                    +8-unbonded neighbour pixels;
+        Parameters
+        ----------
+        mbits: int 
+            +1-edges; 
+            +2-wide central cols; 
+            +4 unbonded pixel; 
+            +8-unbonded neighbour pixels;
+        
         """
         return self._det.mask_geo(self._evt, mbits=mbits)
 
     def print_attributes(self):
-        """Print detector attributes.
+        """
+        Print detector attributes.
         """
         self._det.print_attributes()
 
     def show_info(self, **kwargs):
-        """Show information for relevant detector attributes.
+        """
+        Show information for relevant detector attributes.
         """
         message = Message(quiet=True, **kwargs)
         if self.size > 0:
@@ -4241,9 +5241,10 @@ class ImageCalibData(object):
 
 
 class EpicsConfig(object):
-    """Tab Accessible configStore Epics information.
-       Currently relatively simple, but expect this to be expanded
-       at some point with more PV config info with daq update.
+    """
+    Tab Accessible configStore Epics information.
+    Currently relatively simple, but expect this to be expanded
+    at some point with more PV config info with daq update.
     """
 
     _pv_attrs = ['description', 'interval', 'pvId']
@@ -4278,10 +5279,21 @@ class EpicsConfig(object):
 
 
 class EpicsData(object):
-    """Epics data from psana epicsStore.
-       e.g., 
-         epicsStore = EpicsData(ds)
-         returns dictified representation of ds.env().epicsStore()
+    """
+    Epics data from psana epicsStore.
+    
+    Parameters
+    ----------
+    ds : object
+        PyDataSource.DataSource object
+    
+    Returns
+    -------
+    Dictified representation of ds.env().epicsStore()
+
+    Example
+    -------
+    epicsStore = EpicsData(ds)
     """
 
     def __init__(self, ds):
@@ -4341,7 +5353,8 @@ class EpicsData(object):
 
 
 class PvData(object):
-    """Epics PV Data.
+    """
+    Epics PV Data.
     """
 
     def __init__(self, attr_dict, ds, level=0):
@@ -4355,17 +5368,19 @@ class PvData(object):
         return EpicsStorePV(self._ds.env().epicsStore(), pv)
 
     def show_info(self, **kwargs):
-        """Show information from PVdictionary for all PV's starting with 
-           the specified dictified base.
-           (i.e. ':' replaced by '.' to make them tab accessible in python)
+        """
+        Show information from PVdictionary for all PV's starting with 
+        the specified dictified base.
+        (i.e. ':' replaced by '.' to make them tab accessible in python)
         """
         message = Message(self.get_info(), quiet=True, **kwargs)
         return message
 
     def get_info(self):
-        """Return string representation of all PV's starting with 
-           the specified dictified base.
-           (i.e. ':' replaced by '.' to make them tab accessible in python)
+        """
+        Return string representation of all PV's starting with 
+        the specified dictified base.
+        (i.e. ':' replaced by '.' to make them tab accessible in python)
         """
         info = ''
         items = sorted(self._attr_dict.items(), key=operator.itemgetter(0))
@@ -4415,7 +5430,8 @@ class PvData(object):
 
 
 class EpicsStorePV(object):
-    """Epics PV access from epicsStore. 
+    """
+    Epics PV access from epicsStore. 
     """
 
     def __init__(self, epicsStore, pv):
@@ -4482,6 +5498,9 @@ class EpicsStorePV(object):
 
 
 class TimeStamp(object):
+    """
+    Class to represent time stamp objects
+    """
 
     def __init__(self, stamp):
         self.sec = stamp.sec()
@@ -4489,11 +5508,17 @@ class TimeStamp(object):
 
     @property
     def date(self):
+        """
+        Time stamp date representation.
+        """
         return time.strftime('%Y-%m-%d', 
                 time.localtime(self.sec))
 
     @property
     def time(self): 
+        """
+        Time stamp time representation.
+        """
         EventTimeStr = time.strftime('%H:%M:%S',
                 time.localtime(self.sec))
         EventTimeStr += '.{:04}'.format(int(self.nsec/1e5))

@@ -1,7 +1,8 @@
 __all__ = []
 
+#from PyDataSource import DataSource
 from PyDataSource import *
-
+from psxarray import * 
 __version__ = '00.00.01'
 
 import logging

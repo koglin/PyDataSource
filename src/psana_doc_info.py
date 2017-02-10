@@ -82,6 +82,8 @@ psana_doc_info['Quartz']['ConfigV2']['output_resolution']['unit'] = ''
 psana_doc_info['Generic1D']['DataV0']['data_u16']['func_shape'] = 8
 psana_doc_info['Generic1D']['DataV0']['data_u32']['func0'] = 8     # offset
 psana_doc_info['Generic1D']['DataV0']['data_u32']['func_shape'] = 8
+psana_doc_info['Generic1D']['ConfigV0']['Depth']['func_shape'] = 16
+psana_doc_info['Generic1D']['ConfigV0']['data_offset']['func_shape'] = 16
 
 psana_attrs['Generic1D']['ConfigV0'] = [
                                          'Depth',
@@ -90,8 +92,8 @@ psana_attrs['Generic1D']['ConfigV0'] = [
                                          'Offset',
                                          'Period',
                                          'SampleType',
-                                         'Sample_Type',
-                                         'data_offset']
+                                         'data_offset',
+                                       ]
 
 
 # Common mode not applicable?

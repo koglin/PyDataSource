@@ -1,0 +1,96 @@
+#!/bin/bash
+
+export PYTHONPATH=
+
+args="$@"
+
+.  /reg/g/psdm/etc/ana_env.sh
+
+source conda_setup ""
+
+SOURCE="${BASH_SOURCE[0]}"
+# resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do 
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" 
+  # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+# options from xppmodules littledata
+# not all are used
+while getopts "e:d:r:n:q:j:c:hxsm" OPTION
+do
+    case $OPTION in
+    h)
+        usage
+        exit 1
+        ;;
+    r) 
+        RUN=$OPTARG
+        ;;
+    e)
+        EXP=$OPTARG
+        ;;
+    n)
+        NUMBER_OF_EVENTS=$OPTARG
+        ;;
+    q)
+        QUEUEREQ=$OPTARG
+        ;;
+    d)
+        DIRNAME=$OPTARG
+        ;;
+    j)
+        NJOBS=$OPTARG
+        ;;
+    s)
+        SINGLEJOB=1
+        ;;
+    m)
+        USEMPI=1
+        ;;
+    x)
+        XTCAV=1
+        ;;
+    c)
+        CHUNK=$OPTARG
+        ;;
+    ?)
+        exit
+        ;;
+    esac
+done
+
+cd $DIR
+
+: ${EXP:=`echo $DIR | awk '{split($0,a,"/"); print a[6]}'`}
+INSTRUMENT=${EXP:0:3}
+OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
+#PYFILE=RunSummary/src/"$EXP".py
+#PYDIR="~/psana/current/"
+PYFILE="$EXP".py
+PYDIR="$DIR"
+STEPS=`python "$PYDIR/PyDataSource" nsteps --exp=$EXP --run=$RUN`
+PYTHONPATH=$PYTHONPATH:$PYDIR:$DIR
+echo '==============================='
+echo 'Starting Batch job'
+echo '-------------------------------'
+echo 'outputdir': $OUTDIR
+echo 'pyfile:' $PYFILE
+echo 'pydir:' $PYDIR
+echo 'Runs:' $RUN
+echo '==============================='
+echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTDIR/batch$EXP_Run"-%I.out python "$PYDIR/$PYFILE" --exp="$EXP" --run=\$LSB_JOBINDEX 
+
+python $PYDIR/test.py
+echo 'test works.'
+
+bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTDIR/batch$EXP_Run"-%I.out python "$PYDIR/$PYFILE" --exp="$EXP" --run=\$LSB_JOBINDEX 
+#bsub -q psfehq -J "myArray[$RUN]" -o "$OUTDIR/"myjobs-%I.out python "$PYFILE" --exp="$EXP" --run=\$LSB_JOBINDEX --nevents=100
+
+#python RunSummary/src/"$EXP".py --exp="$EXP" --run="$RUN" --nevents=100
+#python RunSummary/src/"$EXP".py --exp="$EXP" --run="$RUN" 
+
