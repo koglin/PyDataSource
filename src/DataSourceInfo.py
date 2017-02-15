@@ -1,7 +1,5 @@
-import sys
+import sys, os, re, time
 import operator
-import re
-import time
 import traceback
 import psana
 
@@ -88,6 +86,8 @@ class DataSourceInfo(object):
         if self.exp is not None:
             self.instrument = self.exp[0:3]
 
+#        self.run = int(self.run)
+
 #        inst_id = '{:}:{:}'.format(self.instrument.upper(), self.station)
 
     def _set_data_source(self, data_source=None, **kwargs): 
@@ -137,7 +137,6 @@ class DataSourceInfo(object):
                 self.monshmserver = data_source
                 self.idx = False
 
-
         if not self.instrument and self.exp is not None:
             self.instrument = self.exp[0:3]
 
@@ -146,8 +145,55 @@ class DataSourceInfo(object):
             print 'setting calibDir', self.exp, calibDir
             psana.setOption('psana.calib-dir', calibDir)
 
+        self._set_user_dir()
+        self._set_xarray_dir()
 
         return data_source
+
+    def _get_user_dir(self, user=None, base_path=None):
+        """
+        Get user dir. Default is in results (or res for older experiments) of 
+        experiment folder.
+        """
+        import psutils
+
+        if not base_path:
+            base_path = '/reg/d/psdm/{:}/{:}/results'.format(self.instrument,self.exp)
+            if not os.path.isdir(base_path):
+                base_path = '/reg/d/psdm/{:}/{:}/res'.format(self.instrument,self.exp)
+
+        if not user:
+            try:
+                user = psutils.get_user()
+            except:
+                user = 'default'
+
+        return os.path.join(base_path, user)
+
+    def _set_user_dir(self, user=None, base_path=None):
+        """
+        Set the path of the PyDataSource configuration directory
+        """
+        self.user_dir = self._get_user_dir(user=user, base_path=base_path)
+
+        return self.user_dir
+
+    def _set_xarray_dir(self, path=None):
+        """
+        Set the path of the xarray data directory
+        """
+        if not path:
+            path = '/reg/d/psdm/{:}/{:}/scratch/nc'.format(self.instrument,self.exp)
+        
+        if not os.path.isdir(path):
+            try:
+                os.mkdir(path)
+            except:
+                return 
+
+        self.xarray_dir = path
+
+        return path
 
     def show_info(self):
         print '< {:}: {:} >'.format(self.__class__.__name__, self.data_source)

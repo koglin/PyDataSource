@@ -1,11 +1,12 @@
 import PyDataSource
 
-ds = PyDataSource.DataSource(exp='amotut13',run=206)
+ds = PyDataSource.DataSource(exp='xpptut15',run=280)
+
 evt  = ds.events.next()
-evt.AmoETOF_0_Acqiris_0.show_info()
-evt.AmoETOF_0_Acqiris_0.waveform.shape
+
+evt.ACQ1.show_info()
 
 import matplotlib.pyplot as plt
-plt.plot(evt.AmoETOF_0_Acqiris_0.wftime[0], evt.AmoETOF_0_Acqiris_0.waveform[0])
+plt.plot(evt.ACQ1.wftime[0], evt.ACQ1.waveform[0])
 plt.show()
 

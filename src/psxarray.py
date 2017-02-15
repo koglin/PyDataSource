@@ -352,7 +352,7 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
     if not nevents:
         if ichunk is not None:
             istep = ichunk-1
-            if chunk_steps:
+            if chunk_steps and nsteps > 1:
                 ievent_start = ds.configData.ScanData._scanData['ievent_start'][istep]
                 ievent_end = ds.configData.ScanData._scanData['ievent_end'][istep]
                 nevents = ievent_end-ievent_start+1
@@ -578,7 +578,8 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
         print 'Starting with event {:} of {:}'.format(ievent0,ds.nevents)
         print 'Analyzing {:} events'.format(nevents)
         xbase.attrs['ichunk'] = ichunk
-        if ichunk > 1:
+        # Need to update to jump to event.
+        if ichunk > 1 and not chunk_steps:
             for i in range(ievent0):
                 evt = ds.events.next()
         
@@ -595,7 +596,19 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
         if ievt > 0 and (ievt % 100) == 0:
             print evtformat.format(time.time()-time0, ievt, nevents, igood+1)
         
-        if ievent < ds.nevents:
+        if ichunk > 0 and chunk_steps:
+            if ievt == 0:
+                # on first event skip to the desired step
+                for i in range(ichunk):
+                    step_events = ds.steps.next()
+            
+            try:
+                evt = step_events.next()
+            except:
+                ievent = -1
+                continue
+
+        elif ievent < ds.nevents:
             try:
                 evt = ds.events.next(publish=publish, init=publish)
             except:

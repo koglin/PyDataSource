@@ -32,11 +32,12 @@ import matplotlib
 module_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../../')
 sys.path.insert(0,module_path)
 sys.path.insert(0,os.path.abspath('sphinxext'))
-sys.path.insert(0,'/reg/neh/home/koglin/src/ipython/IPython/sphinxext/')
+#sys.path.insert(0,'/reg/neh/home/koglin/src/ipython/IPython/sphinxext/')
 sys.path.insert(0,'/reg/neh/home/koglin/src/sphinx_rtd_theme/')
 #sys.path.insert(0,os.path.join(module_path,'psnet'))
 
 import sphinx_rtd_theme
+#import IPython
 
 # -- General configuration ------------------------------------------------
 
@@ -48,8 +49,8 @@ import sphinx_rtd_theme
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'ipython_directive',
-    'ipython_console_highlighting',
+    'IPython.sphinxext.ipython_directive',
+    'IPython.sphinxext.ipython_console_highlighting',
     'matplotlib.sphinxext.mathmpl',
     'matplotlib.sphinxext.only_directives',
     'matplotlib.sphinxext.plot_directive',

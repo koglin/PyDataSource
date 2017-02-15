@@ -49,7 +49,7 @@ We start with the basic data processing previously outlined for the cxi lysozyme
     In [9]: evt.DscCsPad.add.projection('calib', axis='r')
     
 
-Now load the first 10 events into an xarray Dataset.
+Now load the first 10 events into an xarray Dataset.  The max_size keyword sets the maximum array size to be saved.  By default max_size=10001, which is about the size of data in the 'smd' Daq small data files that is most quickly retrieved from file.  By setting this to a large number (1e9), even large CSpad images are loaded. 
 
 .. sourcecode:: ipython
     
@@ -191,7 +191,7 @@ It is often more convenient to use the features of Pandas DataFrame objects.
 .. figure::  images/cxitut13_run10_df_FEEGasDetEnergy_plot.jpg
    :align:   center
 
-There are many plot options built into pandas with excellent documentation.
+There are many plot options built into pandas_ with excellent documentation.
 
 .. sourcecode:: ipython
 
@@ -230,6 +230,61 @@ pandas also offers powerful and convenient statistical methods.  For example, th
     FEEGasDetEnergy_f_64_ENRC  1.479463  1.521697  1.525561  
 
 
+Configuration
+-------------
 
+The DataSource object has save and load config methods, which are can be used to save the Data Processing AddOn methods for later use and/or other runs.  For example, save the config for the current run and then open run 11 for the 'cxitut13' experiment.  
 
+.. sourcecode:: ipython
+
+    In [20]: ds.save_config()
+
+    In [21]: ds = PyDataSource.DataSource(exp='cxitut13',run=11)
+
+    In [23]: evt = ds.events.next()
     
+    In [24]: evt.DscCsPad.show_info()
+    Out[24]: 
+    --------------------------------------------------------------------------------
+    DscCsPad cxitut13, Run 11, Step 0, Event 0, 04:02:34.6671, [140, 40]
+    --------------------------------------------------------------------------------
+    calib                <0.002377> ADU     Calibrated data
+    image                <0.001845> ADU     Reconstruced 2D image from calibStore geometry
+    raw                  <1.17e+03> ADU     Raw data
+    shape              32, 185, 388         Shape of raw data array
+    size                    2296960         Total size of raw data
+
+The load_config method will automatically load the config saved for the run specified.  If no run is specified, it will automatically look to find a config file for the next eariliest run available.  In this case ommitting run=10 in the load_config method will have the same result.  
+
+.. sourcecode:: ipython
+
+    In [25]: ds.load_config(run=10)
+
+    In [26]: evt.DscCsPad.show_info()
+    Out[26]: 
+    --------------------------------------------------------------------------------
+    DscCsPad cxitut13, Run 11, Step 0, Event 0, 04:02:34.6671, [140, 40]
+    --------------------------------------------------------------------------------
+    calib                <0.002377> ADU     Calibrated data
+    image                <0.001845> ADU     Reconstruced 2D image from calibStore geometry
+    raw                  <1.17e+03> ADU     Raw data
+    shape              32, 185, 388         Shape of raw data array
+    size                    2296960         Total size of raw data
+    --------------------------------------------------------------------------------
+    Projections:
+    ------------------
+    calib_r             <-0.008133> ADU     r-axis projection of calib data
+    --------------------------------------------------------------------------------
+    Histograms:
+    ------------------
+    photon_hist         <1.359e+04> photons Gain corrected histogram
+    --------------------------------------------------------------------------------
+    Detector Counts:
+    ------------------
+    photon_count       181.734672342 photons Photon Count
+    --------------------------------------------------------------------------------
+    User Defined Parameters:
+    ------------------
+    gain               0.0434782609         
+
+

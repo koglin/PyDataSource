@@ -247,7 +247,8 @@ def _repr_value(value):
             if len(value) > 4:
                 return 'list'
             else:
-                return str(value)
+                return ', '.join(str(a) for a in value)
+                #return str(value)
         
         elif isinstance(value, int):
             return str(value)
@@ -260,7 +261,8 @@ def _repr_value(value):
         
         else:
             try:
-                return '{:10.5g}'.format(value)
+                return ', '.join(str(a) for a in value)
+                #return '{:10.5g}'.format(value)
             except:
                 try:
                     return str(value)
@@ -440,7 +442,7 @@ class ScanData(object):
     _uses_attrs = ['uses_duration', 'uses_events', 'uses_l3t_events']
     _npv_attrs = ['npvControls', 'npvMonitors']
 
-    def __init__(self, ds):
+    def __init__(self, ds, quiet=True):
         self._ds = ds
         self._attrs = sorted(ds.configData.ControlData._all_values.keys())
         self._scanData = {attr: [] for attr in self._attrs}
@@ -449,12 +451,18 @@ class ScanData(object):
         start_times = []
         ievent_end = []
         ievent_start = []
-        for istep, events in enumerate(ds.steps):
+        self._ds._idx_istep = []
+        istep = 0
+        if not quiet:
+            'Building ScanData configuration...'
+        for step in ds.steps:
             okevt = False
             while not okevt:
-                evt = events.next()
+                evt = step.next()
                 ttup = (evt.EventId.sec, evt.EventId.nsec, evt.EventId.fiducials)
                 okevt = ttup in ds._idx_times_tuple
+                if not quiet:
+                    print istep, evt
 
             ievent = ds._idx_times_tuple.index(ttup)
             ievent_start.append(ievent)
@@ -464,18 +472,25 @@ class ScanData(object):
  
             for attr in self._attrs:
                 self._scanData[attr].append(ds.configData.ControlData._all_values[attr])
-        
+       
+            istep += 1
+
         ievent_end.append(len(ds._idx_times_tuple)-1)       
         end_times = []
         for istep, ievent in enumerate(ievent_end):
             end_times.append(ds.events.next(ievent).EventId.timef64)
- 
+        
         self._scanData['ievent_start'] = np.array(ievent_start)
         self._scanData['ievent_end'] = np.array(ievent_end)
-        self.nevents = np.array(ievent_end)-np.array(ievent_start)       
+        self.nevents = np.array(ievent_end)-np.array(ievent_start)+1 
         self.start_times = np.array(start_times)
         self.end_times = np.array(end_times)
         self.step_times = np.array(end_times) - np.array(start_times)
+        
+        # Save lookup of step
+        for istep, n in enumerate(self.nevents):
+            for i in range(n):
+                self._ds._idx_istep.append(istep)
  
         for attr in self._uses_attrs:
             setattr(self, attr, all(self._scanData.get(attr)))
@@ -665,6 +680,7 @@ class DataSource(object):
 
     def __init__(self, data_source=None, **kwargs):
         self._device_sets = {}
+        self._current_data = {}
         path = os.path.dirname(__file__)
         if not path:
             path = '.'
@@ -759,7 +775,9 @@ class DataSource(object):
                 self.nevents = len(self._idx_times)
                 self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
                                         for a in self._idx_times]
-        
+                self._idx_datetime64 = [np.datetime64(int(sec*1e9+nsec), 'ns') \
+                                        for sec,nsec,fid in self._idx_times_tuple]
+
         else:
             # For live data or data_source without idx or smd
             self.events = Events(self)
@@ -797,6 +815,12 @@ class DataSource(object):
  
         """
         from psxarray import to_xarray
+#        if kwargs.get('config'):
+#            if kwargs.get('config') == True or kwargs.get('config') in ['True', 'true']:
+#                self.load_config()
+#            else:
+#                self.load_config(file_name=config)
+
         return to_xarray(self, **kwargs)
 
     @property
@@ -891,6 +915,11 @@ class DataSource(object):
                 srcstr = self._aliases[alias]
             else:
                 alias = re.sub('-|:|\.| ','_', srcstr)
+        else:
+            if not srcstr:
+                srcstr = self._aliases.get(alias)
+                if not srcstr:
+                    raise Exception('{:} not a valid Detector'.format(alias))
 
         det = alias
         
@@ -979,6 +1008,7 @@ class DataSource(object):
                     module_path = self._default_modules['path']
                     
                 det_dict['module']['path'] = module_path
+                det_dict['module']['kwargs'] = kwargs
 
                 new_class = get_module(module_name, module_path, reload=True)
 #                import_module(module_name, module_path)
@@ -1019,22 +1049,27 @@ class DataSource(object):
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
 
-    def _get_config_file(self, run=None, exp=None, instrument=None, path=None):
-        if not path:
-            if not exp:
-                exp = self.experiment
-            if not instrument:
-                instrument = self.instrument
+    def _get_config_file(self, run=None, exp=None, instrument=None, user=None, path=None):
+        if user:
+            path = self.data_source._get_user_dir(user)
 
-            path = '/reg/d/psdm/{:}/{:}/scratch/nc/'.format(instrument,experiment)
+        elif not path:
+            path = self.data_source.user_dir
 
         if not os.path.isdir(path):
             os.mkdir(path)
 
         if not run:
-            run = self.data_source.run
-
-        return '{:}/run{:04}.config'.format(path, int(run))
+            for run in range(self.data_source.run, 0, -1):
+                file_name = '{:}/run{:04}.config'.format(path, int(run))
+                if os.path.isfile(file_name):
+                    return file_name
+            
+            raise Exception('No valid config file found for {:} Run {:}'.format(exp, run))
+        
+        else:
+            return '{:}/run{:04}.config'.format(path, int(run))
+                
 
     def save_config(self, file_name=None, path=None, **kwargs):
         """
@@ -1048,11 +1083,11 @@ class DataSource(object):
             Path of file
         """
         if not file_name:
-            file_name = self._get_config_file(path=path)
+            file_name = self._get_config_file(run=self.data_source.run, path=path)
 
         pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
 
-    def load_config(self, run=None, exp=None, file_name=None, path=None, **kwargs):
+    def load_config(self, run=None, exp=None, user=None, file_name=None, path=None, **kwargs):
         """
         Load DataSource configuration.
         
@@ -1066,22 +1101,37 @@ class DataSource(object):
             Name of file
         path : str, optional
             Path of file
+        user : str, optional
+            Name of user to load config file
         """
         if not file_name:
-            file_name = self._get_config_file(run=run, path=path)
+            file_name = self._get_config_file(run=run, path=path, user=user)
 
-        attrs = ['parameter', 'property', 'psplot', 'peak', 
-                 'roi', 'projection', 'xarray']
+#        attrs = ['parameter', 'property', 'psplot', 'peak', 
+#                 'roi', 'projection', 'xarray']
  
         config = pd.read_json(file_name).to_dict()
         for alias, item in config.items():
             if alias in self._device_sets:
+                module_dict = item.pop('module')
+                if module_dict:
+                    kwargs = module_dict.get('kwargs', {})
+                    kwargs.update({'alias': alias, 
+                                   'srcstr': module_dict.get('srcstr'),
+                                   'module': module_dict.get('name'),
+                                   'path': module_dict.get('path'),
+                                   'desc': module_dict.get('desc')})
+                    self.add_detector(**kwargs)
+
+                det_config = self._device_sets[alias]
                 for attr, config_dict in item.items():
                     if isinstance(config_dict, dict):
-                        self._device_sets[alias][attr].update(**config_dict)
+                        # 
+                        for a, val in config_dict.items():
+                            if a not in det_config[attr]:
+                                det_config[attr][a] = val
                     else:
-                        self._device_sets[alias][attr] = config_dict
-        
+                        det_config[attr] = config_dict
 
     def show_info(self, **kwargs):
         """
@@ -1284,6 +1334,9 @@ class RunEvents(object):
                 self._ds._current_evt = evt
                 self._ds._current_data = {}
                 self._ds._current_evtData = {}
+            
+           # if hasattr(self._ds, '_idx_istep'):
+           #     self._ds._istep = self._ds._idx_istep[self._ds._ievent]
 
             return EvtDetectors(self._ds, **kwargs)
 
@@ -2998,7 +3051,7 @@ class Detector(object):
 
         if self._det_config['projection']:
             message('-'*80)
-            message('User Defined Projections:')
+            message('Projections:')
             message('-'*18)
             for attr, item in self._det_config['projection'].items():
                 fdict = item.copy()
@@ -3014,7 +3067,7 @@ class Detector(object):
  
         if self._det_config['histogram']:
             message('-'*80)
-            message('User Defined Histograms:')
+            message('Histograms:')
             message('-'*18)
             for attr, item in self._det_config['histogram'].items():
                 fdict = item.copy()
@@ -3024,6 +3077,17 @@ class Detector(object):
                 except:
                     pass
  
+                strval = _repr_value(val)
+                fdict.update({'attr': attr, 'str': strval})
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+ 
+        if self._det_config['roi']:
+            message('-'*80)
+            message('Region of Interests (roi):')
+            message('-'*18)
+            for attr, item in self._det_config['roi'].items():
+                fdict = item.copy()
+                val = getattr(self, attr)
                 strval = _repr_value(val)
                 fdict.update({'attr': attr, 'str': strval})
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
@@ -3050,7 +3114,7 @@ class Detector(object):
  
         if self._det_config['peak']:
             message('-'*80)
-            message('User Defined 1D Peak Result:')
+            message('Peak Result:')
             message('-'*18)
             items = sorted(self._det_config['peak'].items(), key=operator.itemgetter(0))
             for attr, item in items:
@@ -3478,6 +3542,9 @@ class AddOn(object):
     _plugins = {}
     _init_attrs = ['_ds', '_alias']
 
+    _attrs = ['parameter', 'property', 'peak', 
+              'histogram', 'roi', 'projection', 'count']
+
     def __init__(self, ds, alias):
         self._ds = ds
         self._alias = alias
@@ -3762,11 +3829,11 @@ class AddOn(object):
         else:
             projaxis = self._det_config['xarray']['coords'].get(axis_name) 
            
-            # Need to add in auto axis for Data Arrays
-            if not xunit and not projaxis:
-                xunit = 'pixel'
-
             if projaxis is None:
+                # Need to add in auto axis for Data Arrays
+                if not xunit:
+                    xunit = 'pixel'
+                
                 iaxis = {'x': 1, 'y': 0}.get(axis)
                 projaxis = np.arange(img.shape[iaxis])    
                 self._det_config['xarray']['coords'].update({axis_name: projaxis})
