@@ -665,7 +665,6 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
                     except:
                         print 'Event Error', alias, det, attr, ievent, vals
                         print axdat[det][alias][ievt].shape, vals.shape
-                        return axdat, vals
                         vals = None
 
     xbase = xbase.isel(time=range(len(btimes)))
