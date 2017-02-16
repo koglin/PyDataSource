@@ -58,7 +58,7 @@ class Channel(object):
         self._channel = channel
         self._name = name
         self.baseline = 0.
-        
+
     @property
     def waveform(self):
         """Waveform of channel.
@@ -81,7 +81,7 @@ class Channel(object):
         f = -signal.convolve(self.waveform,self.filter)
         f[0:len(self.filter)+1] = 0
         f[-len(self.filter)-1:] = 0
-        return f
+        return f[hw:self.waveform.size+hw]
 
     @property
     def time(self):
@@ -90,7 +90,7 @@ class Channel(object):
            Additional noise needs to be subtracted.
         """
         hw = len(self.filter)/2
-        return self.filtered[hw:-hw-1].argmax()+hw
+        return self.filtered.argmax()+hw
 
     @property
     def peak(self):
