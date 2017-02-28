@@ -54,8 +54,8 @@ Event Info
     L3Ttrue
     L3Tdata
 
-psana.Detector wrappers
------------------------
+psana.Detector Access
+---------------------
 
 .. autosummary::
     :toctree: generated/
