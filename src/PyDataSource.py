@@ -679,7 +679,7 @@ class DataSource(object):
 
 
     def __init__(self, data_source=None, **kwargs):
-        self._device_sets = {}
+        self._device_sets = {'DataSource': {}}
         self._current_data = {}
         path = os.path.dirname(__file__)
         if not path:
@@ -793,6 +793,28 @@ class DataSource(object):
     def _load_ConfigData(self):
         self._ConfigData = ConfigData(self)
 
+    @property
+    def xarray_kwargs(self):
+        """
+        Dictionary of keywords passed to to_xarray.  
+        This information is saved/loaded with save_config/load_config methods.
+
+        Parameters
+        ----------
+        max_size : uint
+            Maximum array size of data objects to build into xarray.
+        pvs: list
+            List of pvs to be loaded vs time
+        epics_attrs: list
+            List of epics pvs to be saved as run attributes based on inital value 
+            of first event.
+        code_flags : dict
+            Dictionary of event code flags. 
+            Default = {'XrayOff': [162], 'XrayOn': [-162]}
+
+        """
+        return self._device_sets.get('DataSource') 
+
     def to_xarray(self, **kwargs):
         """
         Build xarray object from PyDataSource.DataSource object.
@@ -821,7 +843,10 @@ class DataSource(object):
 #            else:
 #                self.load_config(file_name=config)
 
-        return to_xarray(self, **kwargs)
+        xarray_kwargs = self.xarray_kwargs.copy()
+        xarray_kwargs.update(**kwargs)
+
+        return to_xarray(self, **xarray_kwargs)
 
     @property
     def configData(self):
@@ -1089,7 +1114,7 @@ class DataSource(object):
 
     def load_config(self, run=None, exp=None, user=None, file_name=None, path=None, **kwargs):
         """
-        Load DataSource configuration.
+        Load DataSource configuration.  Overwrites any existing config.
         
         Parameters
         ----------
@@ -1113,23 +1138,32 @@ class DataSource(object):
         config = pd.read_json(file_name).to_dict()
         for alias, item in config.items():
             if alias in self._device_sets:
-                module_dict = item.pop('module')
-                if module_dict:
-                    kwargs = module_dict.get('kwargs', {})
-                    kwargs.update({'alias': alias, 
-                                   'srcstr': module_dict.get('srcstr'),
-                                   'module': module_dict.get('name'),
-                                   'path': module_dict.get('path'),
-                                   'desc': module_dict.get('desc')})
-                    self.add_detector(**kwargs)
+                if 'module' in item:
+                    module_dict = item.pop('module')
+                    if module_dict:
+                        kwargs = module_dict.get('kwargs', {})
+                        kwargs.update({'alias': alias, 
+                                       'srcstr': module_dict.get('srcstr'),
+                                       'module': module_dict.get('name'),
+                                       'path': module_dict.get('path'),
+                                       'desc': module_dict.get('desc')})
+                        self.add_detector(**kwargs)
 
                 det_config = self._device_sets[alias]
                 for attr, config_dict in item.items():
-                    if isinstance(config_dict, dict):
-                        # 
+                    if False and isinstance(config_dict, dict):
+                        # Does not work yet to only try updating 
                         for a, val in config_dict.items():
-                            if a not in det_config[attr]:
-                                det_config[attr][a] = val
+                            if isinstance(val, dict):
+                                if a not in det_config[attr]:
+                                    det_config[attr][a] = {}
+                                for b, bval in val.items():
+                                    det_config[attr][a][b] = bval
+                            else:
+                                if a not in det_config[attr]:
+                                    det_config[attr][a] = val
+                                else:
+                                    print alias, attr, 'No overwrite', a, val
                     else:
                         det_config[attr] = config_dict
 

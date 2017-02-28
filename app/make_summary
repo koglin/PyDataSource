@@ -21,7 +21,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 # options from xppmodules littledata
 # not all are used
-while getopts "e:d:r:n:q:j:c:C:hxsm" OPTION
+while getopts "e:d:r:n:q:j:c:C:M:hxsm" OPTION
 do
     case $OPTION in
     h)
@@ -64,6 +64,9 @@ do
     C)
         CONFIG=$OPTARG
         ;;
+    M)
+        MAX_SIZE=$OPTARG
+        ;;
     ?)
         exit
         ;;
@@ -79,6 +82,7 @@ OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
 #PYDIR="~/psana/current/"
 : ${DIRNAME="$DIR/../python/PyDataSource/"}
 : ${PYFILE="__main__.py"}
+: ${MAX_SIZE="10001"}
 echo $DIR
 STEPS=`python "$DIRNAME/$PYFILE" nsteps --exp=$EXP --run=$RUN`
 
@@ -111,15 +115,18 @@ fi
 
 if [ $CHUNK -eq 1 ]; then
 
-    echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX --config="$CONFIG" --nevents="$NUMBER_OF_EVENTS"
+    echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX --config="$CONFIG" --nevents="$NUMBER_OF_EVENTS" --max_size="$MAX_SIZE"
 
-    bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX  --config="$CONFIG" --nevents="$NUMBER_OF_EVENTS"
+    bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX  --config="$CONFIG" --nevents="$NUMBER_OF_EVENTS" --max_size="$MAX_SIZE"
+
 
 else
 
-    echo bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG"
+    echo bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
+
     
-    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG"
+    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
+
 
 fi
 

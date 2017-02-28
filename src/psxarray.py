@@ -248,6 +248,9 @@ def to_summary(x, dim='time', groupby='step',
     elif isinstance(normby, list):
         x = normalize_data(x, normby)
 
+    # With new xarray 0.9.1 need to make sure loaded otherwise h5py error
+    x.load()
+
     if groupby:
         x = x.groupby(groupby)
 
@@ -300,7 +303,7 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
         #code_flags={'XrayOff': [162], 'XrayOn': [-162], 'LaserOn': [183, -162], 'LaserOff': [184, -162]},
         code_flags={'XrayOff': [162], 'XrayOn': [-162]},
         pvs=[], epics_attrs=[], 
-        eventCodes=None, config=None, 
+        eventCodes=None,  
         save=None, **kwargs):
     """
     Build xarray object from PyDataSource.DataSource object.
@@ -312,10 +315,16 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
     ichunk: int
         chunk index (skip ahead nevents*ichunk)
     pvs: list
-        List of pvs
+        List of pvs to be loaded vs time
+    epics_attrs: list
+        List of epics pvs to be saved as run attributes based on inital value 
+        of first event.
     code_flags : dict
         Dictionary of event code flags. 
         Default = {'XrayOff': [162], 'XrayOn': [-162]}
+    eventCodes : list
+        List of event codes 
+        Default is all event codes in DataSource
 
     Example
     -------
@@ -696,19 +705,19 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
     for det in np.sort(det_list):
         nevents = len(atimes[det])
         if nevents > 0 and det in axdat:
-            #try:
-                print 'merging', det
+            try:
+                print 'merging', det, nevents
                 xdat = axdat.pop(det)
-                if 'time' in xdat:
+                if 'time' in xdat.dims:
                     xdat = xdat.isel(time=range(nevents))
                     xdat['time'] = [e.datetime64 for e in atimes[det]]
                     xdat = xdat.reindex_like(xbase)
         
                 xbase = xbase.merge(xdat)
             
-            #except:
-            #    print 'Could not merge', det
-
+            except:
+                print 'Could not merge', det
+                return xbase, xdat, axdat, atimes, btimes
 
     attrs = [attr for attr,item in xbase.data_vars.items()] 
     for attr in attrs:

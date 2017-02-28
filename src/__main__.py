@@ -25,6 +25,8 @@ def initArgs():
                         help='Station')
     parser.add_argument("-n", "--nevents", type=int,
                         help='Number of Events to analyze')
+    parser.add_argument("-M", "--max_size", type=int,
+                        help='Maximum data array size')
     #parser.add_argument("--make_summary", action="store_true", default=False,
     #                    help='Make summary for array data.')
     return parser.parse_args()
