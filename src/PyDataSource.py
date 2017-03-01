@@ -3779,12 +3779,28 @@ class AddOn(object):
             print ' - Valid Polar Options = {:}'.format(_polar_axes)
             return 
 
-        if not axis_name:
-            axis_name = axis+attr
-        
-        if not name:
-            name = attr+'_'+axis
+        if roi:
+            if name:
+                roi_name = 'roi_'+name
+            else:
+                roi_name = None
 
+            roi_name = self.roi(attr, roi=roi, unit=unit, doc=doc, name=roi_name, **kwargs)
+            xattrs = self._det_config['xarray']['dims'][roi_name][2]
+            if not doc:
+                doc = '{:}-axis projection of {:} within roi={:}'.format(axis, attr, roi)
+            
+        else:
+            roi_name = attr
+            if doc == '':
+                doc = "{:}-axis projection of {:} data".format(axis, attr)
+            
+        if not name:
+            name = roi_name+'_'+axis
+       
+        if not axis_name:
+            axis_name = axis+roi_name
+ 
         calibData = self._det.calibData
         if axis in _polar_axes and calibData.coords_x is not None:
             coords_x = calibData.coords_x
@@ -3835,9 +3851,6 @@ class AddOn(object):
             if method != 'norm':
                 norm = 1.
             
-            if doc == '':
-                doc = "{:}-axis projection of {:} data".format(axis, attr)
-            
             projaxis = (hbins[1:]+hbins[0:-1])/2.
             self._det_config['xarray']['coords'].update({axis_name: projaxis})
 
@@ -3845,7 +3858,7 @@ class AddOn(object):
                     {name: ([axis_name], (projaxis.size))})
 
             self._det_config['projection'].update(
-                    {name: {'attr': attr, 
+                    {name: {'attr': roi_name, 
                             'axis': axis, 
                             'method': method,
                             'axis_name': axis_name,
@@ -3877,7 +3890,7 @@ class AddOn(object):
                     {name: ([axis_name], (projaxis.size))})
 
             self._det_config['projection'].update(
-                    {name: {'attr': attr, 
+                    {name: {'attr': roi_name, 
                             'axis': axis, 
                             'xunit': xunit, 
                             'method': method,
