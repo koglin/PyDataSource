@@ -302,6 +302,7 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
         nchunks=24,
         #code_flags={'XrayOff': [162], 'XrayOn': [-162], 'LaserOn': [183, -162], 'LaserOff': [184, -162]},
         code_flags={'XrayOff': [162], 'XrayOn': [-162]},
+        drop_unused_codes=True,
         pvs=[], epics_attrs=[], 
         eventCodes=None,  
         save=None, **kwargs):
@@ -325,6 +326,8 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
     eventCodes : list
         List of event codes 
         Default is all event codes in DataSource
+    drop_unused_codes : bool
+        If true drop unused eventCodes [default=True]
 
     Example
     -------
@@ -691,7 +694,13 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
 
     xbase.attrs['scan_variables'] = scan_variables
     xbase.attrs['correlation_variables'] = []
-    
+   
+    if drop_unused_codes:
+        for ec in eventCodes:
+            print 'Dropping unused eventCode', ec
+            if not xbase['ec{:}'.format(ec)].any():
+                xbase = xbase.drop('ec{:}'.format(ec))
+
     # add in epics_attrs (assumed fixed over run)
     for pv in epics_attrs:
         try:

@@ -679,7 +679,8 @@ class DataSource(object):
 
 
     def __init__(self, data_source=None, **kwargs):
-        self._device_sets = {'DataSource': {}}
+        #self._device_sets = {'DataSource': {}}
+        self._device_sets = {}
         self._current_data = {}
         path = os.path.dirname(__file__)
         if not path:
@@ -813,9 +814,11 @@ class DataSource(object):
             Default = {'XrayOff': [162], 'XrayOn': [-162]}
 
         """
+        if 'DataSource' not in self._device_sets:
+            self._device_sets.update({'DataSource': {}})
         return self._device_sets.get('DataSource') 
 
-    def to_xarray(self, **kwargs):
+    def to_xarray(self, batch=None, **kwargs):
         """
         Build xarray object from PyDataSource.DataSource object.
         
@@ -843,10 +846,24 @@ class DataSource(object):
 #            else:
 #                self.load_config(file_name=config)
 
-        xarray_kwargs = self.xarray_kwargs.copy()
-        xarray_kwargs.update(**kwargs)
+        if batch:
+            import subprocess
+            if kwargs:
+                self.xarray_kwargs.update(**kwargs)
+                self.save_config()
 
-        return to_xarray(self, **xarray_kwargs)
+            bsubproc = 'make_summary -e {:} -r {:}'.format(self.data_source.exp, self.data_source.run)
+            print 'Submit from ipython not yet available'
+            print 'Setup conda environment the same was as for ipython then:'
+            print '-> kinit'
+            print '-> ',bsubproc
+
+            #subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
+
+        else:
+            xarray_kwargs = self.xarray_kwargs.copy()
+            xarray_kwargs.update(**kwargs)
+            return to_xarray(self, **xarray_kwargs)
 
     @property
     def configData(self):
@@ -1141,6 +1158,7 @@ class DataSource(object):
                 if 'module' in item:
                     module_dict = item.pop('module')
                     if module_dict:
+                        print alias, module_dict
                         kwargs = module_dict.get('kwargs', {})
                         kwargs.update({'alias': alias, 
                                        'srcstr': module_dict.get('srcstr'),
@@ -1415,11 +1433,11 @@ class SmdEvents(object):
             If at end of step goes to next step and returns first event.
         """
         try:
-            return self._ds._current_step.next(evt_time=evt_time)
+            return self._ds._current_step.next(evt_time=evt_time, **kwargs)
         except:
             try:
                 self._ds.steps.next()
-                return self._ds._current_step.next()
+                return self._ds._current_step.next(**kwargs)
             except:
                 raise StopIteration()
 
@@ -3673,8 +3691,9 @@ class AddOn(object):
         self._det_config['property'][attr] = func_name 
 
 
-    def projection(self, attr=None, axis='x', name=None, 
-            axis_name=None, method=None, 
+    def projection(self, attr=None, axis='x', 
+            roi=None, sensor=None, name=None, 
+            axis_name=None, method=None,  
             mask=None, bins=None, bin_size=None, rmin=None, rmax=None, 
             unit='ADU', doc='', publish=False,
             **kwargs):
@@ -3704,6 +3723,9 @@ class AddOn(object):
         method : str
             by default the method is 'sum' but other numpy methods are
             also possible (e.g., 'mean', 'std', 'min', 'max', 'var').
+        sensor : int, optional
+            First array element for 3 dim objects
+            If no roi given, then roi created for entire sensor
         roi : tuple, optional
             Region of interest (roi) parameters passed to roi method.
             roi method then acts on this reduced data
@@ -3754,6 +3776,12 @@ class AddOn(object):
             print 'Not valid'
             return
  
+        if sensor is not None:
+            img = img[sensor]
+            if not roi:
+                roi = ((0,img.shape[0]), (0,img.shape[1]))
+            print sensor, roi
+
         if axis in _polar_axes:
             if not method:
                 method = 'norm'
@@ -3785,11 +3813,14 @@ class AddOn(object):
             else:
                 roi_name = None
 
-            roi_name = self.roi(attr, roi=roi, unit=unit, doc=doc, name=roi_name, **kwargs)
+            roi_name = self.roi(attr, roi=roi, sensor=sensor, unit=unit, doc=doc, name=roi_name, **kwargs)
             xattrs = self._det_config['xarray']['dims'][roi_name][2]
             if not doc:
-                doc = '{:}-axis projection of {:} within roi={:}'.format(axis, attr, roi)
-            
+                if sensor:
+                    doc = '{:}-axis projection of {:} within roi={:}'.format(axis, attr, roi)
+                else:
+                    doc = '{:}-axis projection of {:} sensor {:} within roi={:}'.format(axis, attr, sensor, roi)
+
         else:
             roi_name = attr
             if doc == '':
@@ -3942,12 +3973,17 @@ class AddOn(object):
             else:
                 attr = 'image'
 
+        try:
+            img = self._getattr(attr)
+        except:
+            print 'Not valid {:}'.format(attr)
+            return
+        
+        if sensor is not None:
+            img = img[sensor]
+
         if not roi:
             try:
-                img = self._getattr(attr)
-                if sensor is not None:
-                    img = img[sensor]
-
                 plotMax = np.percentile(img, 99.5)
                 plotMin = np.percentile(img, 5)
                 print 'using the 5/99.5% as plot min/max: (',plotMin,',',plotMax,')'
@@ -3975,10 +4011,13 @@ class AddOn(object):
             else:
                 name = 'roi'+str(nroi+1)
 
-        img = self._getattr(attr)
         if len(img.shape) == 1:
             xroi = roi
             xaxis_name = 'x'+name
+            if xroi[0] > xroi[1]:
+                raise Exception('Invalid roi {:}'.format(roi))
+            xroi = (max([xroi[0], 0]), min([xroi[1], img.shape[1]]))
+
             if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
                 xaxis = np.arange(xroi[0],xroi[1])    
             
@@ -3986,7 +4025,7 @@ class AddOn(object):
                 doc = "{:} ROI of {:} data".format(name, attr)
 
             xattrs = {}
-            xattrs.update({'doc': doc, 'unit': unit, 'roi': roi})
+            xattrs.update({'doc': doc, 'unit': unit, 'roi': xroi})
             if sensor is not None:
                 xattrs.update({'sensor': sensor})
             
@@ -3995,7 +4034,7 @@ class AddOn(object):
                     {name: ([xaxis_name], (xaxis.size), xattrs)})
 
             self._det_config['roi'].update({name: {'attr': attr, 
-                                                   'roi': roi,
+                                                   'roi': xroi,
                                                    'sensor': sensor,
                                                    'xaxis': xaxis,
                                                    'doc': doc,
@@ -4004,6 +4043,11 @@ class AddOn(object):
         else:
             xroi = roi[1]
             yroi = roi[0]
+            if xroi[0] > xroi[1] or yroi[0] > xroi[1]:
+                raise Exception('Invalid roi {:}'.format(roi))
+            
+            xroi = (max([xroi[0], 0]), min([xroi[1], img.shape[1]]))
+            yroi = (max([yroi[0], 0]), min([yroi[1], img.shape[0]]))
 
             xaxis_name = 'x'+name
             if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
@@ -4017,7 +4061,7 @@ class AddOn(object):
                 doc = "{:} ROI of {:} data".format(name, attr)
 
             xattrs = {}
-            xattrs.update({'doc': doc, 'unit': unit, 'roi': roi})
+            xattrs.update({'doc': doc, 'unit': unit, 'roi': (yroi, xroi)})
             if sensor is not None:
                 xattrs.update({'sensor': sensor})
             
@@ -4027,7 +4071,7 @@ class AddOn(object):
                     {name: ([yaxis_name, xaxis_name], (yaxis.size, xaxis.size), xattrs)})
 
             self._det_config['roi'].update({name: {'attr': attr, 
-                                                   'roi': roi,
+                                                   'roi': (yroi, xroi),
                                                    'sensor': sensor,
                                                    'xaxis': xaxis,
                                                    'yaxis': yaxis, 
