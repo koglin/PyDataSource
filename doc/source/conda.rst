@@ -16,8 +16,10 @@ Below is an example of setting of a psana conda release where sepcific versions 
 .. code-block:: bash 
 
     .  /reg/g/psdm/etc/ana_env.sh
-    source eonda_setup
-    
+    source conda_setup
+   
+    kinit
+
     cd reg/d/psdm/xpp/xpptut15/results/
 
     condarel --newrel --name conda

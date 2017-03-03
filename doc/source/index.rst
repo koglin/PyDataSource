@@ -15,6 +15,7 @@ Table of Contents
    data_access.rst
    data_processing.rst
    xarray.rst
+   data_summary.rst
    conda.rst
    api.rst
 

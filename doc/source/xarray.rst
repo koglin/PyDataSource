@@ -287,4 +287,78 @@ The load_config method will automatically load the config saved for the run spec
     ------------------
     gain               0.0434782609         
 
+Keyword defaults for the to_xarray method can be set in the xarray_kwargs dictionary.  This dictionary is part of the configuration saved and loaded with the save_config/load_config methods.  
+
+.. sourecode:: ipython
+
+.. autosummary::
+    :toctree: generated/
+
+    to_xarray
+    DataSource.xarray_kwargs
+
+Reading and writing xarray DataSets
+-----------------------------------
+
+While various file formats are supported by xarray, PyDataSource uses the HDF5 by default in the netCDF format in the to_h5netcdf method.  This save method is automatically executed with the save=True in the to_xarray method.
+
+Reading DataSets saved in this way is done with the open_h5netcdf method.
+
+.. sourcecode:: ipython
+
+    In [48]: x = PyDataSource.open_h5netcdf(exp='xpptut15',run=200)
+
+    In [49]: x
+    Out[49]: 
+    <xarray.Dataset>
+    Dimensions:                    (Nh2Sb1_Ipm1_ch: 4, Nh2Sb1_Ipm2_ch: 4, XppEnds_Ipm0_ch: 4, XppMon_Pim0_ch: 4, XppMon_Pim1_ch: 4, XppSb2_Ipm_ch: 4, XppSb3_Ipm_ch: 4, cs140_rob_column: 388, cs140_rob_row: 185, cs140_rob_sensor: 2, steps: 45, time: 34333)
+    Coordinates:
+        XrayOff                    (time) bool False False False False False ...
+        XrayOn                     (time) bool True True True True True True ...
+        ...
+        XppSb2_Ipm_xpos            (time) float64 0.3024 0.3024 0.3024 1.674 ...
+        XppSb2_Ipm_ypos            (time) float64 10.03 -0.07592 -0.07592 0.6679 ...
+        XppSb3_Ipm_channel         (time, XppSb3_Ipm_ch) float64 -0.0002823 ...
+        XppSb3_Ipm_sum             (time) float64 -0.000795 -0.0004135 0.0009598 ...
+        XppSb3_Ipm_xpos            (time) float64 1.76 5.44 0.06222 0.2648 ...
+        XppSb3_Ipm_ypos            (time) float64 0.06936 -0.6429 -6.0 -0.08784 ...
+    Attributes:
+        data_source: exp=xpptut15:run=200:smd
+        run: 200
+        instrument: XPP
+        experiment: xpptut15
+        expNum: 665
+        calibDir: /reg/d/psdm/XPP/xpptut15/calib
+        event_flags: ['XrayOn' 'XrayOff']
+        nsteps: 45
+        pvControls: ['lxt_vitara_ttc']
+        pvLabels: ['lxt_vitara_ttc']
+        scan_variables: ['lxt_vitara_ttc']
+        correlation_variables: []
+
+In this example there may be data that is not of interest including many of the event codes that were automatically built with to to_xarray method.  One may want to reduce the data and save it to another location.
+
+.. sourcecode:: ipython
+
+    In [21]: ec_keep = [40, 41, 162, 91, 92, 191, 192, 215]
+
+    In [22]: ec_drop = [a for a in x.coords.keys() if a.startswith('ec') and int(x.coords[a].name[2:]) not in ec_keep]
+    
+    In [23]: for ec in ec_drop:
+        ...:     x = x.drop(ec)
+
+    In [24]: PyDataSource.to_h5netcdf(x, file_name='my_dir/my_file.nc')
+
+This can be opened again at a later time with the open_h5netcdf method.
+
+.. sourcecode:: ipython
+
+    In [25]: PyDataSource.open_h5netcdf('my_dir/my_file.nc')
+
+.. autosummary::
+    :toctree: generated/
+
+    to_h5netcdf
+    open_h5netcdf
+
 

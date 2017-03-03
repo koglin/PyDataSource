@@ -126,7 +126,7 @@ def read_netcdfs(files, dim='time', transform_func=None, engine='h5netcdf'):
 
 #ds = PyDataSource.DataSource('exp=cxij4915:run=49:smd')
 def open_h5netcdf(file_name=None, path='', file_base=None, exp=None, run=None, 
-        h5folder='scratch', subfolder='nc', chunk=False):
+        h5folder='scratch', subfolder='nc', chunk=False, summary=False):
     """
     Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.
     """
@@ -156,6 +156,8 @@ def open_h5netcdf(file_name=None, path='', file_base=None, exp=None, run=None,
         if not file_name:
             if not file_base:
                 file_base = 'run{:04}'.format(int(run))
+                if summary:
+                    file_base += '_sum'
 
             file_name = os.path.join(path,file_base+'.nc')
 
@@ -262,7 +264,11 @@ def to_summary(x, dim='time', groupby='step',
         if attr in x:
             x[attr].attrs.update(item)
 
+    for c in coords:                                                       
+        x = x.set_coords(c)
+    
     x = resort(x)
+    
     if save_summary:
         to_h5netcdf(x)
 
@@ -810,4 +816,98 @@ def map_indexes(xx, yy, ww):
     a = np.zeros([xx.max()+1,yy.max()+1])
     a[xx,yy] = ww
     return a
+
+def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs):
+    """Plot summary data with error bars, e.g.,
+        xy_ploterr(x, 'MnScatter','Sample_z',logy=True)
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    if not attr:
+        print 'Must supply plot attribute'
+        return
+
+    if 'groupby' in kwargs:
+        groupby=kwargs['groupby']
+    elif 'step' in a.dims:
+        groupby='step'
+    else:
+        groupby='run'
+
+    run = a.attrs.get('run')
+    experiment = a.attrs.get('experiment', '')
+    runstr = '{:} Run {:}'.format(experiment, run)
+    name = a.attrs.get('name', runstr)
+    if not title:
+        title = '{:}: {:}'.format(name, attr)
+
+    if not xaxis:
+        xaxis = a.attrs.get('scan_variables')
+        if xaxis:
+            xaxis = xaxis[0]
+
+    ylabel = kwargs.get('ylabel', '')
+    if not ylabel:
+        ylabel = a[attr].name
+        unit = a[attr].attrs.get('unit')
+        if unit:
+            ylabel = '{:} [{:}]'.format(ylabel, unit)
+
+    xlabel = kwargs.get('xlabel', '')
+    if not xlabel:
+        xlabel = a[xaxis].name
+        unit = a[xaxis].attrs.get('unit')
+        if unit:
+            xlabel = '{:} [{:}]'.format(xlabel, unit)
+    
+    if xaxis:
+        if 'stat' in a[xaxis].dims:
+            xerr = a[xaxis].sel(stat='std').values
+            a[xaxis+'_axis'] = ([groupby], a[xaxis].sel(stat='mean').values)
+            xaxis = xaxis+'_axis'
+        else:
+            xerr = None
+
+        a = a.swap_dims({groupby:xaxis})
+    
+    else:
+        xerr = None
+
+    if desc is None:
+        desc = a[attr].attrs.get('doc', '')
+
+    ndims = len(a[attr].dims)
+    if ndims == 2:
+        c = a[attr].to_pandas().T
+        if xerr is not None:
+            c['xerr'] = xerr
+        c = c.sort_index()
+        
+        plt.figure()
+        plt.gca().set_position((.1,.2,.8,.7))
+        p = c['mean'].plot(yerr=c['std'],xerr=c.get('xerr'), title=title, fmt=fmt, **kwargs)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        if desc:
+            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   
+ 
+        return p 
+    elif ndims == 3:
+        plt.figure()
+        plt.gca().set_position((.1,.2,.8,.7))
+        pdim = [d for d in a[attr].dims if d not in ['stat', groupby, xaxis]][0]
+        for i in range(len(a[attr].coords[pdim])):
+            c = a[attr].sel(**{pdim:i}).drop(pdim).to_pandas().T.sort_index()
+            p = c['mean'].plot(yerr=c['std'], fmt=fmt, **kwargs)
+
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        p.set_title(title)
+        if desc:
+            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   
+
+        return p 
+    else:
+        print 'Too many dims to plot'
+
 

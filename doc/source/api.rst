@@ -5,8 +5,8 @@
 PyDatSource API
 ===============
 
-Data Source and Configuration
------------------------------
+Data Source
+-----------
 
 .. autosummary::
     :toctree: generated/
@@ -86,5 +86,26 @@ Low-level Psana Data Interface
     PsanaTypeList
     PsanaTypeData
     PsanaSrcData
+
+Data Structures
+---------------
+
+.. autosummary::
+    :toctree: generated/
+    
+    to_xarray
+    to_summary
+    to_h5netcdf 
+    open_h5netcdf 
+
+DataSource Configuration
+------------------------
+
+.. autosummary::
+    :toctree: generated/
+    
+    DataSource.xarray_kwargs
+    DataSource.save_config
+    DataSource.load_config
 
 

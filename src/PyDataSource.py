@@ -978,6 +978,7 @@ class DataSource(object):
                     'peak': {},
                     'histogram': {},
                     'projection': {},
+                    'stats': {},
                     'xarray': {},
                     }
 
@@ -2249,14 +2250,16 @@ class EvtDetectors(object):
     _init_attrs = ['get', 'keys'] #  'run' depreciated
     _event_attrs = ['EventId', 'Evr', 'L3T']
 
-    def __init__(self, ds, publish=True, init=True): 
+    def __init__(self, ds, publish=True, init=True, update_stats=True): 
         self._ds = ds
         if init:
-            self._init(publish=publish)
+            self._init(publish=publish, update_stats=update_stats)
 
-    def _init(self, publish=True):
+    def _init(self, publish=True, update_stats=True):
         if publish:
             psmon_publish(self)
+        if update_stats:
+            _update_stats(self)
  
     @property
     def EventId(self):
@@ -2916,7 +2919,7 @@ class Detector(object):
                 dims_dict = {
                     'image':     image_dims,
                     'calib':     raw_dims,
-#                    'raw':       raw_dims,
+                    'raw':       raw_dims,
                     }
            # # temporary fix for Opal2000, Opal4000 and Opa8000
            # elif self._pydet.dettype in [7,8,9]:
@@ -3203,7 +3206,7 @@ class Detector(object):
             info({'type': 'detector'})
             return info
 
-        for typ in ['count','histogram','parameter','peak','projection','property']:
+        for typ in ['count','histogram','parameter','peak','projection','property','stats']:
             info = self._det_config.get(typ).get(attr)
             if info:
                 info.update({'type': typ})
@@ -3484,7 +3487,55 @@ class Detector(object):
                     return xaxis[idx]
 
         return None
- 
+
+    def _get_stats(self, attr, stats=['mean', 'std', 'min', 'max']):
+        """
+        Get xarray.DataArray of Welford stats as defined by stats AddOn.
+        """
+        stat_info = self._det_config['stats'].get(attr)
+        import numpy as np
+        import xarray as xr
+        
+        coords = stat_info.get('coords').copy()
+        dims = stat_info.get('dims')
+        eventCodes = stat_info['funcs'].keys()
+        steps = []
+        for ec, item in stat_info['funcs'].items():
+            for step, fec in item.items():
+                steps.append(step)
+
+        steps = list(set(steps))
+        nsteps = len(steps)
+        neventCodes = len(eventCodes)
+        nstats = len(stats)
+        aevents = np.zeros(shape=(nsteps,neventCodes))
+        dim_names = [a for a in dims[0]]
+        dim_shape = list(dims[1])
+        dim_names.insert(0,'codes')
+        dim_shape.insert(0,neventCodes)
+        dim_names.insert(0,'steps')
+        dim_shape.insert(0,nsteps)
+        dim_names.insert(0,'stat')
+        dim_shape.insert(0,nstats)
+        ddims = (dim_names, tuple(dim_shape))
+        coords.update({'codes': eventCodes, 'stat': stats, 'steps': steps})
+        asums = np.zeros(shape=dim_shape)
+        for ec, item in stat_info['funcs'].items():
+            for step, fec in item.items():
+                istep = steps.index(step)
+                iec = eventCodes.index(ec)
+                aevents[istep, iec] = fec.n
+                for istat, stat in enumerate(stats):
+                    vals = getattr(fec, stat)()
+                    if np.any(vals):
+                        asums[istat, istep, iec] = vals         
+
+        da = xr.DataArray(asums, dims=ddims[0], coords=coords)
+        da.coords['events']= (['steps', 'codes'], aevents)
+
+        return da
+
+
     def _get_projection(self, attr):
         """
         Get projection as defined by AddOn.
@@ -3567,6 +3618,9 @@ class Detector(object):
         if attr in self._det_config['projection']:
             return self._get_projection(attr)
 
+        if attr in self._det_config['stats']:
+            return self._get_stats(attr)
+
         if attr in self._ds.events.current._event_attrs:
             return getattr(self._ds.events.current, attr)
 
@@ -3579,6 +3633,7 @@ class Detector(object):
                          self._det_config['histogram'].keys() + 
                          self._det_config['peak'].keys() + 
                          self._det_config['projection'].keys() + 
+                         self._det_config['stats'].keys() + 
                          self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
         
@@ -3595,7 +3650,7 @@ class AddOn(object):
     _init_attrs = ['_ds', '_alias']
 
     _attrs = ['parameter', 'property', 'peak', 
-              'histogram', 'roi', 'projection', 'count']
+              'histogram', 'roi', 'projection', 'count', 'stats']
 
     def __init__(self, ds, alias):
         self._ds = ds
@@ -4089,6 +4144,59 @@ class AddOn(object):
 
         return name
 
+    def stats(self, attr=None, doc=None, 
+            name=None, eventCodes=None, **kwargs):
+        """
+        Calculate running statistics (mean, std, min, max, count) of detector data attribute 
+        during event iteration using Welford algorithm.
+
+        Parameters
+        ----------
+        attr : str
+            Name of data object in detector object on which to act
+        """
+        if not name:
+            name = attr+'_stats'
+
+        try:
+            img = self._getattr(attr)
+        except:
+            print 'Not valid {:}'.format(attr)
+            return
+
+        if not eventCodes:
+            eventCodes = [self._det.configData.eventCode]
+        elif not isinstance(eventCodes, list):
+            eventCodes = [eventCodes]
+
+        if not self._det_config['xarray'].get('coords'):
+            self._det._update_xarray_info()
+
+        dims = self._det_config['xarray'].get('dims', {}).get(attr, {})
+        all_coords = self._det_config['xarray'].get('coords', {})
+        coords = {dim: coord for dim, coord in all_coords.items() if dim in dims[0]}
+        attrs = self._det_config['xarray'].get('attrs', {})
+
+#        try:
+#            dims = self._det_config['xarray']['dims'].get(attr)
+#            coords = self._det_config['xarray']['coords'].get(attr)
+#        except:
+#            dims = []
+#            coords = {}
+#
+#        dims.insert(0, 'codes')
+#        dims.insert(0, 'steps')
+        
+        self._det_config['stats'].update({name: 
+                {
+                'attr': attr,
+                'dims': dims,
+                'coords': coords,
+                'funcs': {},
+                'eventCodes': eventCodes,
+                'stats': ['mean', 'std', 'min', 'max'],
+                }})
+
     def count(self, attr=None, gain=None, unit=None, doc=None, 
             roi=None, name=None, limits=None, **kwargs):
         """
@@ -4409,6 +4517,8 @@ class AddOn(object):
                 self._det_config['xarray']['dims'].update(
                         {pname: ([], (), {'doc': doc, 'unit': unit})}
                         )
+
+
 
 #    def mask(self, attr):
 #        img = self._getattr(attr)
@@ -5700,5 +5810,33 @@ class TimeStamp(object):
     def __repr__(self):
         return '< {:}: {:} >'.format(self.__class__.__name_, _self.__str__)
 
+
+def _update_stats(evt):
+    """
+    Update Welford statistics.
+    """
+    from welford import Welford
+    istep = evt._ds._istep
+    for alias, det in evt._dets.items():
+        for name, item in det._det_config['stats'].items():
+            attr = item['attr']
+            vals = getattr_complete(det, attr)
+            eventCodes = item['eventCodes']
+            if vals is not None:
+                for ec in eventCodes:
+                    if det.Evr.present(ec):
+                        if ec not in item['funcs']:
+                            item['funcs'].update({ec: {}})
+                        funcs = item['funcs'].get(ec) 
+                        if istep not in funcs:
+                            funcs.update({istep: Welford()})
+                        fec = funcs.get(istep)
+                        try:
+                            if not fec.shape or fec.shape == vals.shape:
+                                fec(vals)
+                            else:
+                                print 'stats update error', det._alias, name, attr, ec, istep, vals
+                        except:
+                            print 'stats update error', det._alias, name, attr, ec, istep, vals
 
 
