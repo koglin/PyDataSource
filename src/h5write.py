@@ -5,6 +5,10 @@ import time
 import traceback
 import numpy as np
 
+
+"""
+DEVELOPMENT MODULE:  Direct write to_hdf5 to be xarray compatible without using xarray.
+"""
 #from pylab import *
 
 def runlist_to_str(runs, portable=False):
@@ -299,8 +303,9 @@ def add_index(x, attr, name=None, nbins=8, bins=None, percentiles=None):
     x[name] = (['time'], np.digitize(x[attr].values, bins))
 
 # Need to add in 'chunking based on steps'
-def to_xarray(ds=None, nevents=None, max_size=10001, 
-        xbase=None, 
+def to_hdf5(self, nevents=None, max_size=10001, 
+        file_name=None, path='', file_base=None, 
+        h5folder='scratch', subfolder='nc',
         publish=False,
         store_data=[],
         chunk_steps=True,
@@ -313,7 +318,8 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
         eventCodes=None,  
         save=None, **kwargs):
     """
-    Build xarray object from PyDataSource.DataSource object.
+    DEVELOPMENT:  Write directly to hdf5 with h5netcdf package.  
+    based on to_xarray method.
        
     Parameters
     ----------
@@ -347,22 +353,20 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
     """
     try:
         import xarray as xr
+        import h5netcdf
     except:
         raise Exception('xarray package not available. Use for example conda environment with "source conda_setup"')
 
-    if not ds:
-        PyDataSource
-        ds = PyDataSource.DataSource(**kwargs)
-  
+           
     adat = {}
-    ds.reload()
-    evt = ds.events.next(publish=publish, init=publish)
+    self.reload()
+    evt = self.events.next(publish=publish, init=publish)
     dtime = evt.EventId
     if not eventCodes:
-        eventCodes = sorted(ds.configData._eventcodes.keys())
+        eventCodes = sorted(self.configData._eventcodes.keys())
     
-    if hasattr(ds.configData, 'ScanData') and ds.configData.ScanData:
-        nsteps = ds.configData.ScanData.nsteps
+    if hasattr(self.configData, 'ScanData') and self.configData.ScanData:
+        nsteps = self.configData.ScanData.nsteps
     else:
         nsteps = 1
     
@@ -371,28 +375,54 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
         if ichunk is not None:
             istep = ichunk-1
             if chunk_steps and nsteps > 1:
-                ievent_start = ds.configData.ScanData._scanData['ievent_start'][istep]
-                ievent_end = ds.configData.ScanData._scanData['ievent_end'][istep]
+                ievent_start = self.configData.ScanData._scanData['ievent_start'][istep]
+                ievent_end = self.configData.ScanData._scanData['ievent_end'][istep]
                 nevents = ievent_end-ievent_start+1
                 ievent0 = ievent_start
             else:
-                nevents = int(np.ceil(ds.nevents/float(nchunks)))
+                nevents = int(np.ceil(self.nevents/float(nchunks)))
                 ievent0 = (ichunk-1)*nevents
             
-            print 'Do {:} of {:} events for {:} chunk'.format(nevents, ds.nevents, ichunk)
+            print 'Do {:} of {:} events for {:} chunk'.format(nevents, self.nevents, ichunk)
         else:
-            nevents = ds.nevents
+            nevents = self.nevents
+        
+    run = int(self.data_source.run)
+    if not file_name:
+        if not path:
+            path = '/reg/d/psdm/{:}/{:}/{:}/{:}/'.format(self.data_source.instrument, 
+                    self.data_source.exp,h5folder,subfolder)
+
+        if not os.path.isdir(path):
+            os.mkdir(path)
  
+        if not file_base:
+            if ichunk is None:
+                file_base = 'run{:04}'.format(int(run))
+            else:
+                file_base = 'run{:04}_c{:03}.nc'.format(run, ichunk)
+ 
+    axdat = {}
+    atimes = {}
+    btimes = []
+    xcoords = {}
+    axcoords = {}
+
+    file_name = os.path.join(path,file_base+'.nc')
+    xbase = h5netcdf.File(file_name, 'w')
+
     neventCodes = len(eventCodes)
     det_funcs = {}
     epics_pvs = {}
     for pv in pvs:
         epics_pvs[pv] = {} 
 
-    for srcstr, src_info in ds.configData._sources.items():
+    for srcstr, src_info in self.configData._sources.items():
         det = src_info['alias']
         nmaxevents = 100
         ievt = 0
+        file_name = os.path.join(path,file_base+'_'+det+'.nc')
+        axdat[det] = h5netcdf.File(file_name, 'w')
         try:
             while det not in evt._attrs and ievt < nmaxevents:
                 evt.next(publish=publish, init=publish)
@@ -407,6 +437,7 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
             # to the adat dictionary of xarray.Dataset objects.
             # Thus, updating the det_funcs dictionary updates the xarray.Dataset objects.
             adat[det] = {}
+            axcoords[det] = {}
             det_funcs[det] = {}
             xarray_dims = detector._xarray_info.get('dims')
             if xarray_dims is not None: 
@@ -430,140 +461,8 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
 
                         adat[det][alias] = (a, tuple(b))
                         det_funcs[det][attr]['event'] = {'dims': a, 'shape': b}
-
-        except:
-            print 'ERROR loading', srcstr, det
-            traceback.print_exc()
-
-    axdat = {}
-    atimes = {}
-    btimes = []
-    if not xbase:
-        xbase = xr.Dataset()
-    
-    # Experiment Attributes
-    xbase.attrs['data_source'] = str(ds.data_source)
-    xbase.attrs['run'] = ds.data_source.run
-    for attr in ['instrument', 'experiment', 'expNum', 'calibDir']:
-        xbase.attrs[attr] = getattr(ds, attr)
-
-    xbase.coords['time'] = np.zeros(nevents, dtype=dtime.datetime64.dtype)
-    
-    ttypes = {'sec': 'int32', 
-              'nsec': 'int32', 
-              'fiducials': 'int32', 
-              'ticks': 'int32', 
-              'run': 'int32'}
-    
-    # explicitly order EventId coords in desired order 
-    print 'Begin processing {:} events'.format(nevents)
-    for attr in ['sec', 'nsec', 'fiducials', 'ticks', 'run']:
-        #dtyp = ttypes[attr]
-        #xbase.coords[attr] = (['time'], np.zeros(nevents,dtype=dtyp))
-        dtyp = int
-        xbase.coords[attr] = (['time'], np.zeros(nevents,dtype=int))
-
-    xbase.coords['step'] = (['time'], np.empty(nevents,dtype=int))
-    
-    # Event Codes -- earlier bool was not supported but now is. 
-    for code in eventCodes:
-        xbase.coords['ec{:}'.format(code)] = ('time', np.zeros(nevents, dtype=bool))
-
-    for attr, ec in code_flags.items():
-        xbase.coords[attr] = ('time', np.zeros(nevents, dtype=bool))
-        xbase.coords[attr].attrs['doc'] = 'Event code flag: True if all positive and no negative "codes" are in eventCodes'
-        xbase.coords[attr].attrs['codes'] = ec
-
-    xbase.attrs['event_flags'] = code_flags.keys()
-
-    xbase.coords['steps'] = range(nsteps)
-    xbase.coords['codes'] = eventCodes
- 
-    # Scan Attributes -- cannot put None or dicts as attrs in netcdf4
-    # e.g., pvAliases is a dict
-    if hasattr(ds.configData, 'ScanData') and ds.configData.ScanData:
-        if ds.configData.ScanData.nsteps == 1:
-            attrs = ['nsteps']
-        else:
-            attrs = ['nsteps', 'pvControls', 'pvMonitors', 'pvLabels']
-            #xbase.coords['pvControls'] = ds.configData.ScanData.pvControls
-            for attr, vals in ds.configData.ScanData.control_values.items():
-                alias = ds.configData.ScanData.pvAliases[attr]
-                xbase.coords[alias+'_steps'] = (['steps'], vals) 
-                xbase.coords[alias] = ('time', np.zeros(nevents, dtype=bool))
-
-        for attr in attrs:
-            val = getattr(ds.configData.ScanData, attr)
-            if val:
-                xbase.attrs[attr] = val 
-
-   
-    for srcstr, item in sorted(ds.configData._sources.items(), key=operator.itemgetter(0)):
-        det = item['alias']
-        if det in adat:
-            atimes[det] = []
-            axdat[det] = xr.Dataset()
-            for attr, item in sorted(adat[det].items(), key=operator.itemgetter(0)):
-                axdat[det][attr] = (item[0], np.zeros(item[1]))
+                        axdat[det].dimensions = zip(a,b)
             
-            axdat[det].coords['steps'] = range(nsteps)
-            axdat[det].coords['codes'] = eventCodes
-
-    for srcstr, srcitem in sorted(ds.configData._sources.items(), key=operator.itemgetter(0)):
-        src_info = ds.configData._sources.get(srcstr).copy()
-        src_info['src'] = str(src_info.get('src'))
-        det = srcitem.get('alias')
-        readoutCode = srcitem.get('eventCode')
-        detector = getattr(evt, det)
-        det_func = det_funcs.get(det)
-        if det_func and det in adat:
-            while det not in evt._attrs:
-                evt.next(publish=publish, init=publish)
-
-            detector._update_xarray_info()
-            # Make a config object for each detector
-            # In future check if a detector config changes during a run and 
-            # create coords for each attr that changes in steps during the run.
-            #axdat[det].coords['steps'] = range(nsteps)
-
-            config_info = detector._xarray_info.get('attrs')
-#            if attrs:
-#                axdat[det].coords[det+'_config'] = ([det+'_steps'], range(nsteps))
-#                axdat[det].coords[det+'_config'].attrs.update(attrs)
-
-            for attr, attr_func in det_func.items():
-                alias = attr_func.get('alias')
-                attrs_info = attr_func.get('attr_info', {})
-                if detector._tabclass == 'evtData':
-                    if detector.evtData is not None:
-                        item = detector.evtData._attr_info.get(attr)
-                        if item:
-                            attrs_info.update({a: item[a] for a in ['doc', 'unit']})
-                    else:
-                        print 'No data for {:} in {:}'.format(str(detector), attr)
-                
-                else:
-                    if detector._calib_class is not None:
-                        item = detector.calibData._attr_info.get(attr)
-                        if item is not None:
-                            attrs_info.update(item)
-                    
-                    elif detector.detector is not None:
-                        item = detector.detector._attr_info.get(attr)
-                        if item is not None:
-                            attrs_info.update(item)
-
-                if src_info:
-                    attrs_info.update(src_info)
-
-                # Make sure no None attrs
-                for a, aitm in attr_info.items():
-                    if aitm is None:
-                        attr_info.update({a, ''})
-
-                if 'event' in attr_func:
-                    axdat[det][alias].attrs.update(attrs_info)
-                
             coords = detector._xarray_info.get('coords')
             if coords:
                 for coord, item in sorted(coords.items(), key=operator.itemgetter(0)):
@@ -571,189 +470,321 @@ def to_xarray(ds=None, nevents=None, max_size=10001,
                         if isinstance(item, tuple):
                             dims = [det+'_'+dim for dim in item[0]]
                             vals = item[1]
-                            axdat[det].coords[det+'_'+coord] = (dims,vals)
+                            print dims, vals
+                            #axcoords[det][det+'_'+coord] = axdat[det].create_variable(det+'_'+coord, data=vals)
                         else:
-                            axdat[det].coords[det+'_'+coord] = item
+                            pass
+                            #axcoords[det].coords[det+'_'+coord] = item
                     except:
                         print det, coord, item
 
-    ds.reload()
-    print 'xarray Dataset configured'
-
-    time0 = time.time()
-    igood = -1
-    aievt = {}
-    aievents = {}
-
-    # keep track of events for each det
-    for srcstr, srcitem in ds.configData._sources.items():
-        det = srcitem.get('alias')
-        aievt[det] = -1
-        aievents[det] = []
-  
-    if ichunk is not None:
-        print 'Making chunk {:}'.format(ichunk)
-        print 'Starting with event {:} of {:}'.format(ievent0,ds.nevents)
-        print 'Analyzing {:} events'.format(nevents)
-        xbase.attrs['ichunk'] = ichunk
-        # Need to update to jump to event.
-        if ichunk > 1 and not chunk_steps:
-            for i in range(ievent0):
-                evt = ds.events.next()
-        
-            print 'Previous event before current chunk:', evt
-
-    if ichunk is not None:
-        evtformat = '{:10.1f} sec, Event {:} of {:} in chunk with {:} accepted'
-    else:
-        evtformat = '{:10.1f} sec, Event {:} of {:} with {:} accepted'
-    
-    #for ievent in range(ds.nevents+1):
-    for ievt in range(nevents):
-        ievent = ievent0+ievt
-        if ievt > 0 and (ievt % 100) == 0:
-            print evtformat.format(time.time()-time0, ievt, nevents, igood+1)
-        
-        if ichunk > 0 and chunk_steps:
-            if ievt == 0:
-                # on first event skip to the desired step
-                for i in range(ichunk):
-                    step_events = ds.steps.next()
-            
-            try:
-                evt = step_events.next()
-            except:
-                ievent = -1
-                continue
-
-        elif ievent < ds.nevents:
-            try:
-                evt = ds.events.next(publish=publish, init=publish)
-            except:
-                ievent = -1
-                continue
-        else:
-            ievent = -1
-            continue
-
-        if len(set(eventCodes) & set(evt.Evr.eventCodes)) == 0:
-            continue
-       
-        dtime = evt.EventId
-        if dtime is None:
-            continue
-        
-        igood += 1
-        if igood+1 == nevents:
-            break
-
-        istep = ds._istep
-        xbase['step'][igood] = istep
-        btimes.append(dtime)
-        for ec in evt.Evr.eventCodes:
-            if ec in eventCodes:
-                xbase['ec{:}'.format(ec)][igood] = True
-
-        for attr, codes in code_flags.items():
-            if evt.Evr.present(codes):
-                xbase.coords[attr][igood] = True
-
-        for pv, pvarray in epics_pvs.items():
-            try:
-                val = float(ds.epicsData.getPV(pv).data()) 
-                pvarray.update({dtime: val})
-            except:
-                print 'cannot update pv', pv, dtime
-
-        for det in evt._attrs:
-            detector = evt._dets.get(det)
-            atimes[det].append(dtime)
-            aievt[det] += 1 
-            ievt = aievt[det]
-            aievents[det].append(ievent)
-            
-            for attr, attr_func in det_funcs.get(det, {}).items():
-                vals = getattr(detector, attr)
-                alias = attr_func.get('alias')
-                if vals is not None and 'event' in attr_func:
-                    # Fill event
-                    try:
-                        
-                        axdat[det][alias][ievt] = vals
-                    except:
-                        print 'Event Error', alias, det, attr, ievent, vals
-                        print axdat[det][alias][ievt].shape, vals.shape
-                        vals = None
-
-    xbase = xbase.isel(time=range(len(btimes)))
-    xbase['time'] =  [e.datetime64 for e in btimes]
-    for attr, dtyp in ttypes.items():
-        xbase.coords[attr] = (['time'], np.array([getattr(e, attr) for e in btimes],dtype=dtyp))
-        
-    # fill each control PV with current step value
-    scan_variables = []
-    if ds.configData.ScanData and ds.configData.ScanData.nsteps > 1:
-        for attr, vals in ds.configData.ScanData.control_values.items():
-            alias = ds.configData.ScanData.pvAliases[attr]
-            scan_variables.append(alias)
-            xbase.coords[alias] = (['time'], xbase.coords[alias+'_steps'][xbase.step]) 
-
-    xbase.attrs['scan_variables'] = scan_variables
-    xbase.attrs['correlation_variables'] = []
-   
-    if drop_unused_codes:
-        for ec in eventCodes:
-            print 'Dropping unused eventCode', ec
-            if not xbase['ec{:}'.format(ec)].any():
-                xbase = xbase.drop('ec{:}'.format(ec))
-
-    # add in epics_attrs (assumed fixed over run)
-    for pv in epics_attrs:
-        try:
-            xbase.attrs.update({pv: ds.epicsData.getPV(pv).data()[0]})
         except:
-            print 'cannot att epics_attr', pv
+            print 'ERROR loading', srcstr, det
             traceback.print_exc()
 
-    # cut down size of xdat
-    det_list = [det for det in axdat]
-    for det in np.sort(det_list):
-        nevents = len(atimes[det])
-        if nevents > 0 and det in axdat:
-            try:
-                print 'merging', det, nevents
-                xdat = axdat.pop(det)
-                if 'time' in xdat.dims:
-                    xdat = xdat.isel(time=range(nevents))
-                    xdat['time'] = [e.datetime64 for e in atimes[det]]
-                    xdat = xdat.reindex_like(xbase)
+    return xbase, axdat 
+
+    if True:
+        # Experiment Attributes
+        xbase.attrs['data_source'] = str(self.data_source)
+        xbase.attrs['run'] = self.data_source.run
+        for attr in ['instrument', 'experiment', 'expNum', 'calibDir']:
+            xbase.attrs[attr] = getattr(self, attr)
+
+        xbase.dimensions = {'time': nevents}
         
-                xbase = xbase.merge(xdat)
+        ttypes = {'sec': 'int32', 
+                  'nsec': 'int32', 
+                  'fiducials': 'int32', 
+                  'ticks': 'int32', 
+                  'run': 'int32'}
+        
+        # explicitly order EventId coords in desired order 
+        print 'Begin processing {:} events'.format(nevents)
+        for attr in ['sec', 'nsec', 'fiducials', 'ticks', 'run', 'step']:
+            #dtyp = ttypes[attr]
+            #xbase.coords[attr] = (['time'], np.zeros(nevents,dtype=dtyp))
+            dtyp = int
+            xcoords[attr] = xbase.create_variable(attr, ('time',), int)
+
+        # Event Codes -- earlier bool was not supported but now is. 
+#        for code in eventCodes:
+#            xbase.coords['ec{:}'.format(code)] = ('time', np.zeros(nevents, dtype=bool))
+#
+#        for attr, ec in code_flags.items():
+#            xbase.coords[attr] = ('time', np.zeros(nevents, dtype=bool))
+#            xbase.coords[attr].attrs['doc'] = 'Event code flag: True if all positive and no negative "codes" are in eventCodes'
+#            xbase.coords[attr].attrs['codes'] = ec
+#
+        xbase.attrs['event_flags'] = code_flags.keys()
+
+ #       xbase.coords['steps'] = range(nsteps)
+ #       xbase.coords['codes'] = eventCodes
+     
+        # Scan Attributes -- cannot put None or dicts as attrs in netcdf4
+        # e.g., pvAliases is a dict
+        if hasattr(self.configData, 'ScanData') and self.configData.ScanData:
+            if self.configData.ScanData.nsteps == 1:
+                attrs = ['nsteps']
+            else:
+                attrs = ['nsteps', 'pvControls', 'pvMonitors', 'pvLabels']
+                #xbase.coords['pvControls'] = self.configData.ScanData.pvControls
+                for attr, vals in self.configData.ScanData.control_values.items():
+                    alias = self.configData.ScanData.pvAliases[attr]
+#                    xbase.coords[alias+'_steps'] = (['steps'], vals) 
+#                    xbase.coords[alias] = ('time', np.zeros(nevents, dtype=bool))
+
+            for attr in attrs:
+                val = getattr(self.configData.ScanData, attr)
+                if val:
+                    xbase.attrs[attr] = val 
+
+       
+        for srcstr, item in sorted(self.configData._sources.items(), key=operator.itemgetter(0)):
+            det = item['alias']
+            if det in adat:
+                atimes[det] = []
+ #               axdat[det] = xr.Dataset()
+                for attr, item in sorted(adat[det].items(), key=operator.itemgetter(0)):
+                    axdat[det][attr] = (item[0], np.zeros(item[1]))
+                    
+                    #xcoords[attr] = xbase.create_variable(attr, ('time',), int)
+
+#                axdat[det].coords['steps'] = range(nsteps)
+#                axdat[det].coords['codes'] = eventCodes
+
+        for srcstr, srcitem in sorted(self.configData._sources.items(), key=operator.itemgetter(0)):
+            src_info = self.configData._sources.get(srcstr).copy()
+            src_info['src'] = str(src_info.get('src'))
+            det = srcitem.get('alias')
+            readoutCode = srcitem.get('eventCode')
+            detector = getattr(evt, det)
+            det_func = det_funcs.get(det)
+            if det_func and det in adat:
+                while det not in evt._attrs:
+                    evt.next(publish=publish, init=publish)
+
+                detector._update_xarray_info()
+                # Make a config object for each detector
+                # In future check if a detector config changes during a run and 
+                # create coords for each attr that changes in steps during the run.
+                #axdat[det].coords['steps'] = range(nsteps)
+
+                config_info = detector._xarray_info.get('attrs')
+    #            if attrs:
+    #                axdat[det].coords[det+'_config'] = ([det+'_steps'], range(nsteps))
+    #                axdat[det].coords[det+'_config'].attrs.update(attrs)
+
+                for attr, attr_func in det_func.items():
+                    alias = attr_func.get('alias')
+                    attrs_info = attr_func.get('attr_info', {})
+                    if detector._tabclass == 'evtData':
+                        if detector.evtData is not None:
+                            item = detector.evtData._attr_info.get(attr)
+                            if item:
+                                attrs_info.update({a: item[a] for a in ['doc', 'unit']})
+                        else:
+                            print 'No data for {:} in {:}'.format(str(detector), attr)
+                    
+                    else:
+                        if detector._calib_class is not None:
+                            item = detector.calibData._attr_info.get(attr)
+                            if item is not None:
+                                attrs_info.update(item)
+                        
+                        elif detector.detector is not None:
+                            item = detector.detector._attr_info.get(attr)
+                            if item is not None:
+                                attrs_info.update(item)
+
+                    if src_info:
+                        attrs_info.update(src_info)
+
+                    # Make sure no None attrs
+                    for a, aitm in attr_info.items():
+                        if aitm is None:
+                            attr_info.update({a, ''})
+
+                    if 'event' in attr_func:
+                        axdat[det][alias].attrs.update(attrs_info)
+                    
+        self.reload()
+        print 'xarray Dataset configured'
+
+        time0 = time.time()
+        igood = -1
+        aievt = {}
+        aievents = {}
+
+        # keep track of events for each det
+        for srcstr, srcitem in self.configData._sources.items():
+            det = srcitem.get('alias')
+            aievt[det] = -1
+            aievents[det] = []
+      
+        if ichunk is not None:
+            print 'Making chunk {:}'.format(ichunk)
+            print 'Starting with event {:} of {:}'.format(ievent0,self.nevents)
+            print 'Analyzing {:} events'.format(nevents)
+            xbase.attrs['ichunk'] = ichunk
+            # Need to update to jump to event.
+            if ichunk > 1 and not chunk_steps:
+                for i in range(ievent0):
+                    evt = self.events.next()
             
+                print 'Previous event before current chunk:', evt
+
+        if ichunk is not None:
+            evtformat = '{:10.1f} sec, Event {:} of {:} in chunk with {:} accepted'
+        else:
+            evtformat = '{:10.1f} sec, Event {:} of {:} with {:} accepted'
+        
+        #for ievent in range(ds.nevents+1):
+        for ievt in range(nevents):
+            ievent = ievent0+ievt
+            if ievt > 0 and (ievt % 100) == 0:
+                print evtformat.format(time.time()-time0, ievt, nevents, igood+1)
+            
+            if ichunk > 0 and chunk_steps:
+                if ievt == 0:
+                    # on first event skip to the desired step
+                    for i in range(ichunk):
+                        step_events = self.steps.next()
+                
+                try:
+                    evt = step_events.next()
+                except:
+                    ievent = -1
+                    continue
+
+            elif ievent < self.nevents:
+                try:
+                    evt = self.events.next(publish=publish, init=publish)
+                except:
+                    ievent = -1
+                    continue
+            else:
+                ievent = -1
+                continue
+
+            if len(set(eventCodes) & set(evt.Evr.eventCodes)) == 0:
+                continue
+           
+            dtime = evt.EventId
+            if dtime is None:
+                continue
+            
+            igood += 1
+            if igood+1 == nevents:
+                break
+
+            istep = self._istep
+            xbase['step'][igood] = istep
+            btimes.append(dtime)
+            for ec in evt.Evr.eventCodes:
+                if ec in eventCodes:
+                    xbase['ec{:}'.format(ec)][igood] = True
+
+            for attr, codes in code_flags.items():
+                if evt.Evr.present(codes):
+                    xbase.coords[attr][igood] = True
+
+            for pv, pvarray in epics_pvs.items():
+                try:
+                    val = float(self.epicsData.getPV(pv).data()) 
+                    pvarray.update({dtime: val})
+                except:
+                    print 'cannot update pv', pv, dtime
+
+            for det in evt._attrs:
+                detector = evt._dets.get(det)
+                atimes[det].append(dtime)
+                aievt[det] += 1 
+                ievt = aievt[det]
+                aievents[det].append(ievent)
+                
+                for attr, attr_func in det_funcs.get(det, {}).items():
+                    vals = getattr(detector, attr)
+                    alias = attr_func.get('alias')
+                    if vals is not None and 'event' in attr_func:
+                        # Fill event
+                        try:
+                            
+                            axdat[det][alias][ievt] = vals
+                        except:
+                            print 'Event Error', alias, det, attr, ievent, vals
+                            print axdat[det][alias][ievt].shape, vals.shape
+                            vals = None
+
+        xbase = xbase.isel(time=range(len(btimes)))
+        xbase['time'] =  [e.datetime64 for e in btimes]
+        for attr, dtyp in ttypes.items():
+            xbase.coords[attr] = (['time'], np.array([getattr(e, attr) for e in btimes],dtype=dtyp))
+            
+        # fill each control PV with current step value
+        scan_variables = []
+        if self.configData.ScanData and self.configData.ScanData.nsteps > 1:
+            for attr, vals in self.configData.ScanData.control_values.items():
+                alias = self.configData.ScanData.pvAliases[attr]
+                scan_variables.append(alias)
+                xbase.coords[alias] = (['time'], xbase.coords[alias+'_steps'][xbase.step]) 
+
+        xbase.attrs['scan_variables'] = scan_variables
+        xbase.attrs['correlation_variables'] = []
+       
+        # add in epics_attrs (assumed fixed over run)
+        for pv in epics_attrs:
+            try:
+                xbase.attrs.update({pv: self.epicsData.getPV(pv).data()[0]})
             except:
-                print 'Could not merge', det
-                return xbase, xdat, axdat, atimes, btimes
+                print 'cannot att epics_attr', pv
+                traceback.print_exc()
 
-    attrs = [attr for attr,item in xbase.data_vars.items()] 
-    for attr in attrs:
-        for a in ['unit', 'doc']:
-            if a in xbase[attr].attrs and xbase[attr].attrs[a] is None:
-                xbase[attr].attrs[a] = ''
-    
-    for pv, pvdata in epics_pvs.items():
-        xdat = xr.Dataset({pv: (['time'], np.array(pvdata.values()).squeeze())}, 
-                              coords={'time': [e.datetime64 for e in pvdata.keys()]} )
-        xbase = xbase.merge(xdat)
-
-    xbase = resort(xbase)
-
-    if save:
-        try:
-            to_h5netcdf(xbase)
-        except:
-            print 'Could not save to_h5netcdf'
-
-    return xbase
+#        if drop_unused_codes:
+#            for ec in eventCodes:
+#                print 'Dropping unused eventCode', ec
+#                if not xbase['ec{:}'.format(ec)].any():
+#                    xbase = xbase.drop('ec{:}'.format(ec))
+#
+#        # cut down size of xdat
+#        det_list = [det for det in axdat]
+#        for det in np.sort(det_list):
+#            nevents = len(atimes[det])
+#            if nevents > 0 and det in axdat:
+#                try:
+#                    print 'merging', det, nevents
+#                    xdat = axdat.pop(det)
+#                    if 'time' in xdat.dims:
+#                        xdat = xdat.isel(time=range(nevents))
+#                        xdat['time'] = [e.datetime64 for e in atimes[det]]
+#                        xdat = xdat.reindex_like(xbase)
+#            
+#                    xbase = xbase.merge(xdat)
+#                
+#                except:
+#                    print 'Could not merge', det
+#                    return xbase, xdat, axdat, atimes, btimes
+#
+#        attrs = [attr for attr,item in xbase.data_vars.items()] 
+#        for attr in attrs:
+#            for a in ['unit', 'doc']:
+#                if a in xbase[attr].attrs and xbase[attr].attrs[a] is None:
+#                    xbase[attr].attrs[a] = ''
+#        
+#        for pv, pvdata in epics_pvs.items():
+#            xdat = xr.Dataset({pv: (['time'], np.array(pvdata.values()).squeeze())}, 
+#                                  coords={'time': [e.datetime64 for e in pvdata.keys()]} )
+#            xbase = xbase.merge(xdat)
+#
+#        xbase = resort(xbase)
+#
+#        if save:
+#            try:
+#                to_h5netcdf(xbase)
+#            except:
+#                print 'Could not save to_h5netcdf'
+#
+#        return xbase
 
 
 def normalize_data(x, variables=[], norm_attr='PulseEnergy', name='norm', quiet=True):
