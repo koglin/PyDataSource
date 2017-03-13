@@ -289,8 +289,6 @@ The load_config method will automatically load the config saved for the run spec
 
 Keyword defaults for the to_xarray method can be set in the xarray_kwargs dictionary.  This dictionary is part of the configuration saved and loaded with the save_config/load_config methods.  
 
-.. sourecode:: ipython
-
 .. autosummary::
     :toctree: generated/
 

@@ -5,6 +5,9 @@
 Configuration Data
 ******************
 
+Configuration data for each detector as well as for example daq control information is available
+as configData.  
+
 .. sourcecode:: ipython
 
     In [14]: ds.configData.ControlData.show_info()
@@ -74,6 +77,11 @@ Configuration Data
                             ds.configData.ControlData  ds.configData.keys         ds.configData.ScanData     ds.configData.Sources      ds.configData.XppSb3_Ipm   
                             ds.configData.cspad        ds.configData.Partition    ds.configData.show_all     ds.configData.XppEnds_Ipm0 ds.configData.yag2         
                             ds.configData.get          ds.configData.put          ds.configData.show_info    ds.configData.XppSb2_Ipm   ds.configData.yag_lom      
+
+
+This information is gathered from the psana.env() configStore objection.  As with evt data, the configData object
+makes the configStore keys, get and put methods avilable from the configStore object.  
+
 
 ConfigData Class API
 --------------------

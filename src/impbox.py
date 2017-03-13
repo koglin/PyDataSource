@@ -5,7 +5,7 @@ from pylab import *
 from scipy import signal
 
 class Impbox(PyDataSource.Detector):
-    """Acqiris Functions.
+    """Imp waveform sampling module filters each of the four waveforms.
     """
 
     def __init__(self,*args,**kwargs):

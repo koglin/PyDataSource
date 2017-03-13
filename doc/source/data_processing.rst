@@ -227,6 +227,50 @@ Now make a horizontal projection of the spectrum across the full horizontal rang
 .. figure::  images/xpptut15_run320_opal_1_raw_x.jpg
    :align:   center
 
+Custom Module
+-------------
+
+For more advanced processing, an instance of the PyDataSource.Detector class can be created allowing 
+for flexibility in writing advanced methods.  
+
+.. sourcecode:: python
+
+    import PyDataSource
+
+    class Example(PyDataSource.Detector):
+        """Example module.
+        """
+
+        def __init__(self,*args,**kwargs):
+
+            PyDataSource.Detector.__init__(self,*args,**kwargs)
+
+A module can then be added to a detector with the add.module method, as in the example below for a
+module to process an 'Imp' waveform detector.  This module creates filtered waveform numpy arrays 
+from the waveforms and calculates the peak amplitudes of the filtered waveforms.   
+
+.. ipython:: python 
+
+    import PyDataSource
+    ds = PyDataSource.DataSource(exp='cxitut13',run=30)
+    ds.configData
+    evt = ds.events.next()
+    evt.Sc2Imp.show_info()
+    evt.Sc2Imp.add.module('impbox')
+    evt.Sc2Imp.show_info()
+
+The first plot below is the raw input waveforms for the four channels, and the second plot shows the filtered waveforms.
+The amplitudes of the filtered waveforms are given in the table above from the show_info method.
+
+.. plot:: examples/cxitut13_run30.py
+   :include-source:
+
+You could copy this module from the PyDataSource package to your work area, modify as desired and reload with the 
+path keyword pointing to your work area. e.g., 
+
+.. sourcecode:: python
+
+    evt.Sc2Imp.add.module('impbox', path='~username/work/')
 
 AddOn Class API
 ---------------

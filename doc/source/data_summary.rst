@@ -7,6 +7,9 @@ Summarizing Data
 
 The to_summary method uses a split-apply-combine strategy using the groupby method in xarray_ (based on the pandas_ groupby API) to create a statistical summary of a run.  This is often useful for runs that have steps (i.e., data acquired from daq or python scans).   The defaults for the to_summary method will provide the statistics ('mean', 'std', 'min', 'max', and 'count') of events grouped according according to step.  By default, the scan variables are automatically built in the to_xarray method and conveniently available in the resulting xarray.Dataset.
 
+.. _pandas: http://pandas.pydata.org
+.. _xarray: http://xarray.pydata.org
+
 .. sourcecode:: ipython
 
     In [2]: x = PyDataSource.open_h5netcdf(exp='xpptut15',run=200)
@@ -75,11 +78,6 @@ The to_summary method uses a split-apply-combine strategy using the groupby meth
         scan_variables: ['lxt_vitara_ttc']
         correlation_variables: []
 
-.. autosummary::
-    :toctree: generated/
-
-    to_summary
-
 This summary data can be similarly saved with the to_h5netcdf method (by default in the experiment scratch/nc folder as run0200_sum.nc).
 
 .. sourcecode:: ipython
@@ -106,12 +104,15 @@ The example below also illustrates that the steps this run with large variation 
 .. plot:: examples/xy_ploterr.py
    :include-source:
 
+
+Details
+-------
+
 .. autosummary::
     :toctree: generated/
 
+    to_summary
     xy_ploterr
-
-
 
 
 

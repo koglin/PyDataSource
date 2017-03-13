@@ -818,8 +818,29 @@ def map_indexes(xx, yy, ww):
     return a
 
 def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs):
-    """Plot summary data with error bars, e.g.,
-        xy_ploterr(x, 'MnScatter','Sample_z',logy=True)
+    """
+    Plot summary data with error bars. 
+    Matplotlib plotting options supported through pandas DataFrame.plot method
+    may be passed as kwargs.
+
+    Parameters
+    ----------
+    a : xarray.Dataset
+        input xarray summary Dataset
+    attr : str
+        Dataset attribute for plotting
+    xaxis : str
+        Dataset attribute for x-axis 
+    title : str
+        Plot title
+    desc : str
+        Plot description [Default = 'doc' attribute of plotting data]
+    fmt : str
+        Matplotlib option for representing data points
+
+    Example
+    -------
+    xy_ploterr(x, 'MnScatter','Sample_z',logy=True)
     """
     import numpy as np
     import matplotlib.pyplot as plt

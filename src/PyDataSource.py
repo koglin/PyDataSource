@@ -3677,9 +3677,6 @@ class AddOn(object):
             Name of python module that contains a user defined PyDataSource.Detector class
             with the same name as the module.  e.g., 'acqiris' loads 'acqiris.py' file 
             which must have class Acqiris(PyDatasource.Detector)
-        
-        Keywords
-        --------
         path : str
             Name of path for python module (default is the path of PyDataSource)
         desc : str
