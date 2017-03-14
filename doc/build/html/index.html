@@ -1,0 +1,308 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Welcome to PyDataSource’s documentation! &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="#"/>
+        <link rel="next" title="Data Access Overview" href="data_access.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="#" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>Welcome to PyDataSource&#8217;s documentation!</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="welcome-to-pydatasource-s-documentation">
+<h1>Welcome to PyDataSource&#8217;s documentation!<a class="headerlink" href="#welcome-to-pydatasource-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="table-of-contents">
+<h2>Table of Contents<a class="headerlink" href="#table-of-contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#analysis-environment">Analysis Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#data-source">Data Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#calibrated-area-detector">Calibrated Area Detector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#event-iteration">Event Iteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#event-codes">Event Codes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#beamline-data">Beamline Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#epics-data">Epics Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#waveform-detectors">Waveform Detectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#anlyzing-scans">Anlyzing Scans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#reloading-datasource">Reloading DataSource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_access.html#jump-quickly-to-specific-event">Jump Quickly to Specific Event</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#tutorial-data">Tutorial Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#data-visualization">Data visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#make-a-histogram">Make a Histogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#setting-parameters">Setting Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#count-photons">Count Photons</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#make-projections">Make Projections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#custom-module">Custom Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#addon-class-api">AddOn Class API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_processing.html#attributes">Attributes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="xarray.html#generating-run-data-sets">Generating Run Data Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xarray.html#using-xarray">Using xarray</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xarray.html#using-pandas">Using pandas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xarray.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xarray.html#reading-and-writing-xarray-datasets">Reading and writing xarray DataSets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data_summary.html#error-bar-plots">Error Bar Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_summary.html#details">Details</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="config_data.html#configdata-class-api">ConfigData Class API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="config_data.html#attributes">Attributes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="conda.html#analysis-environment">Analysis Environment</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#data-source">Data Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#data-iterators">Data Iterators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#detector-access">Detector Access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#event-info">Event Info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#psana-detector-access">psana.Detector Access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#epics-data">Epics Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#low-level-psana-data-interface">Low-level Psana Data Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#data-structures">Data Structures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#datasource-configuration">DataSource Configuration</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="data_access.html" class="btn btn-neutral float-right" title="Data Access Overview" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

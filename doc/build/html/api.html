@@ -1,0 +1,524 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>PyDatSource API &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+        <link rel="next" title="PyDataSource.DataSource" href="generated/PyDataSource.DataSource.html"/>
+        <link rel="prev" title="Conda Release System" href="conda.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PyDatSource API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-source">Data Source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.DataSource.html">PyDataSource.DataSource</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.SourceData.html">PyDataSource.SourceData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.ScanData.html">PyDataSource.ScanData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.ConfigSources.html">PyDataSource.ConfigSources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.ConfigData.html">PyDataSource.ConfigData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EpicsConfig.html">PyDataSource.EpicsConfig</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-iterators">Data Iterators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Runs.html">PyDataSource.Runs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Steps.html">PyDataSource.Steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Run.html">PyDataSource.Run</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.RunEvents.html">PyDataSource.RunEvents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.SmdEvents.html">PyDataSource.SmdEvents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.StepEvents.html">PyDataSource.StepEvents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Events.html">PyDataSource.Events</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#detector-access">Detector Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvtDetectors.html">PyDataSource.EvtDetectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Detector.html">PyDataSource.Detector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.AddOn.html">PyDataSource.AddOn</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#event-info">Event Info</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrData.html">PyDataSource.EvrData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrNullData.html">PyDataSource.EvrNullData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EventId.html">PyDataSource.EventId</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html">PyDataSource.L3Ttrue</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.L3Tdata.html">PyDataSource.L3Tdata</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#psana-detector-access">psana.Detector Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.ImageData.html">PyDataSource.ImageData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.ImageCalibData.html">PyDataSource.ImageCalibData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.WaveformData.html">PyDataSource.WaveformData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.WaveformCalibData.html">PyDataSource.WaveformCalibData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.IpimbData.html">PyDataSource.IpimbData</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#epics-data">Epics Data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EpicsData.html">PyDataSource.EpicsData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.PvData.html">PyDataSource.PvData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EpicsStorePV.html">PyDataSource.EpicsStorePV</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.TimeStamp.html">PyDataSource.TimeStamp</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#low-level-psana-data-interface">Low-level Psana Data Interface</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.PsanaTypeList.html">PyDataSource.PsanaTypeList</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.PsanaTypeData.html">PyDataSource.PsanaTypeData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.PsanaSrcData.html">PyDataSource.PsanaSrcData</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-structures">Data Structures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_xarray.html">PyDataSource.to_xarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_summary.html">PyDataSource.to_summary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html">PyDataSource.to_h5netcdf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html">PyDataSource.open_h5netcdf</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#datasource-configuration">DataSource Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.DataSource.xarray_kwargs.html">PyDataSource.DataSource.xarray_kwargs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.DataSource.save_config.html">PyDataSource.DataSource.save_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.DataSource.load_config.html">PyDataSource.DataSource.load_config</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>PyDatSource API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="pydatsource-api">
+<span id="api"></span><h1>PyDatSource API<a class="headerlink" href="#pydatsource-api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="data-source">
+<h2>Data Source<a class="headerlink" href="#data-source" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.html#PyDataSource.DataSource" title="PyDataSource.DataSource"><code class="xref py py-obj docutils literal"><span class="pre">DataSource</span></code></a>([data_source])</td>
+<td>Python version of psana.DataSource with support for event and config data as well as PyDetector functions to access calibrated data.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData" title="PyDataSource.SourceData"><code class="xref py py-obj docutils literal"><span class="pre">SourceData</span></code></a>(source)</td>
+<td>Source information for a daq device.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.ScanData.html#PyDataSource.ScanData" title="PyDataSource.ScanData"><code class="xref py py-obj docutils literal"><span class="pre">ScanData</span></code></a>(ds[,&nbsp;quiet])</td>
+<td>Scan configuration for Run</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.ConfigSources.html#PyDataSource.ConfigSources" title="PyDataSource.ConfigSources"><code class="xref py py-obj docutils literal"><span class="pre">ConfigSources</span></code></a>(configData)</td>
+<td>Configuration Sources</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.ConfigData.html#PyDataSource.ConfigData" title="PyDataSource.ConfigData"><code class="xref py py-obj docutils literal"><span class="pre">ConfigData</span></code></a>(ds)</td>
+<td>Configuration Data representation of configStore within psana.DataSource.env object</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EpicsConfig.html#PyDataSource.EpicsConfig" title="PyDataSource.EpicsConfig"><code class="xref py py-obj docutils literal"><span class="pre">EpicsConfig</span></code></a>(configStore)</td>
+<td>Tab Accessible configStore Epics information.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="data-iterators">
+<h2>Data Iterators<a class="headerlink" href="#data-iterators" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Runs.html#PyDataSource.Runs" title="PyDataSource.Runs"><code class="xref py py-obj docutils literal"><span class="pre">Runs</span></code></a>(ds,&nbsp;\*\*kwargs)</td>
+<td>psana DataSource Run iterator from ds.runs().</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Steps.html#PyDataSource.Steps" title="PyDataSource.Steps"><code class="xref py py-obj docutils literal"><span class="pre">Steps</span></code></a>(ds,&nbsp;\*\*kwargs)</td>
+<td>Step iterator from ds.steps().</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Run.html#PyDataSource.Run" title="PyDataSource.Run"><code class="xref py py-obj docutils literal"><span class="pre">Run</span></code></a>(ds,&nbsp;\*\*kwargs)</td>
+<td>Python psana.Run class from psana.DataSource.runs().next().</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.RunEvents.html#PyDataSource.RunEvents" title="PyDataSource.RunEvents"><code class="xref py py-obj docutils literal"><span class="pre">RunEvents</span></code></a>(ds,&nbsp;\*\*kwargs)</td>
+<td>Event iterator from ds.runs() for indexed idx data</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.SmdEvents.html#PyDataSource.SmdEvents" title="PyDataSource.SmdEvents"><code class="xref py py-obj docutils literal"><span class="pre">SmdEvents</span></code></a>(ds,&nbsp;\*\*kwargs)</td>
+<td>Event iterator for smd xtc data that iterates first over steps and then events in steps (to make sure configData is updated for each step since it is possible that it changes).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.StepEvents.html#PyDataSource.StepEvents" title="PyDataSource.StepEvents"><code class="xref py py-obj docutils literal"><span class="pre">StepEvents</span></code></a>(ds,&nbsp;\*\*kwargs)</td>
+<td>Event iterator from ds.steps().events()</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Events.html#PyDataSource.Events" title="PyDataSource.Events"><code class="xref py py-obj docutils literal"><span class="pre">Events</span></code></a>(ds,&nbsp;\*\*kwargs)</td>
+<td>Event iterator</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="detector-access">
+<h2>Detector Access<a class="headerlink" href="#detector-access" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EvtDetectors.html#PyDataSource.EvtDetectors" title="PyDataSource.EvtDetectors"><code class="xref py py-obj docutils literal"><span class="pre">EvtDetectors</span></code></a>(ds[,&nbsp;publish,&nbsp;init,&nbsp;update_stats])</td>
+<td>Psana tab accessible event detectors.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Detector.html#PyDataSource.Detector" title="PyDataSource.Detector"><code class="xref py py-obj docutils literal"><span class="pre">Detector</span></code></a>(ds,&nbsp;alias[,&nbsp;verbose])</td>
+<td>Includes epicsData, configData, evrConfig info Uses full ds in order to be able to access epicsData info on an event basis.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.html#PyDataSource.AddOn" title="PyDataSource.AddOn"><code class="xref py py-obj docutils literal"><span class="pre">AddOn</span></code></a>(ds,&nbsp;alias)</td>
+<td>Collection of methods to add parameters, properties, and reduction/proccesing of data with roi, projection, histogram methods.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="event-info">
+<h2>Event Info<a class="headerlink" href="#event-info" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EvrData.html#PyDataSource.EvrData" title="PyDataSource.EvrData"><code class="xref py py-obj docutils literal"><span class="pre">EvrData</span></code></a>(ds)</td>
+<td>Evr eventCode information for current event in DataSource</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData" title="PyDataSource.EvrNullData"><code class="xref py py-obj docutils literal"><span class="pre">EvrNullData</span></code></a>(ds)</td>
+<td>Evr data class when no EvrData type is in event keys.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EventId.html#PyDataSource.EventId" title="PyDataSource.EventId"><code class="xref py py-obj docutils literal"><span class="pre">EventId</span></code></a>(evt)</td>
+<td>Time stamp information from psana EventId.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html#PyDataSource.L3Ttrue" title="PyDataSource.L3Ttrue"><code class="xref py py-obj docutils literal"><span class="pre">L3Ttrue</span></code></a>(ds)</td>
+<td>L3 Trigger default if no L3 Trigger data is in DataSource.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.L3Tdata.html#PyDataSource.L3Tdata" title="PyDataSource.L3Tdata"><code class="xref py py-obj docutils literal"><span class="pre">L3Tdata</span></code></a>(ds)</td>
+<td>L3 Trigger data</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="psana-detector-access">
+<h2>psana.Detector Access<a class="headerlink" href="#psana-detector-access" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.ImageData.html#PyDataSource.ImageData" title="PyDataSource.ImageData"><code class="xref py py-obj docutils literal"><span class="pre">ImageData</span></code></a>(det,&nbsp;evt)</td>
+<td>Tab accessibile dictified psana Detector object.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.ImageCalibData.html#PyDataSource.ImageCalibData" title="PyDataSource.ImageCalibData"><code class="xref py py-obj docutils literal"><span class="pre">ImageCalibData</span></code></a>(det,&nbsp;evt)</td>
+<td>Calibration Data from psana Detector object.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.WaveformData.html#PyDataSource.WaveformData" title="PyDataSource.WaveformData"><code class="xref py py-obj docutils literal"><span class="pre">WaveformData</span></code></a>(det,&nbsp;evt)</td>
+<td>Tab accessibile dictified psana.Detector object.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.WaveformCalibData.html#PyDataSource.WaveformCalibData" title="PyDataSource.WaveformCalibData"><code class="xref py py-obj docutils literal"><span class="pre">WaveformCalibData</span></code></a>(det,&nbsp;evt)</td>
+<td>Calibration data using psana.Detector access.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.IpimbData.html#PyDataSource.IpimbData" title="PyDataSource.IpimbData"><code class="xref py py-obj docutils literal"><span class="pre">IpimbData</span></code></a>(det,&nbsp;evt)</td>
+<td>Tab accessibile dictified psana.Detector object.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="epics-data">
+<h2>Epics Data<a class="headerlink" href="#epics-data" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EpicsData.html#PyDataSource.EpicsData" title="PyDataSource.EpicsData"><code class="xref py py-obj docutils literal"><span class="pre">EpicsData</span></code></a>(ds)</td>
+<td>Epics data from psana epicsStore.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.PvData.html#PyDataSource.PvData" title="PyDataSource.PvData"><code class="xref py py-obj docutils literal"><span class="pre">PvData</span></code></a>(attr_dict,&nbsp;ds[,&nbsp;level])</td>
+<td>Epics PV Data.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EpicsStorePV.html#PyDataSource.EpicsStorePV" title="PyDataSource.EpicsStorePV"><code class="xref py py-obj docutils literal"><span class="pre">EpicsStorePV</span></code></a>(epicsStore,&nbsp;pv)</td>
+<td>Epics PV access from epicsStore.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.TimeStamp.html#PyDataSource.TimeStamp" title="PyDataSource.TimeStamp"><code class="xref py py-obj docutils literal"><span class="pre">TimeStamp</span></code></a>(stamp)</td>
+<td>Class to represent time stamp objects</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="low-level-psana-data-interface">
+<h2>Low-level Psana Data Interface<a class="headerlink" href="#low-level-psana-data-interface" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.PsanaTypeList.html#PyDataSource.PsanaTypeList" title="PyDataSource.PsanaTypeList"><code class="xref py py-obj docutils literal"><span class="pre">PsanaTypeList</span></code></a>(type_list)</td>
+<td>Python representation for lists of psana data objects.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.PsanaTypeData.html#PyDataSource.PsanaTypeData" title="PyDataSource.PsanaTypeData"><code class="xref py py-obj docutils literal"><span class="pre">PsanaTypeData</span></code></a>(typ_func[,&nbsp;nolist])</td>
+<td>Python representation of a psana data object (event or configStore data).</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.PsanaSrcData.html#PyDataSource.PsanaSrcData" title="PyDataSource.PsanaSrcData"><code class="xref py py-obj docutils literal"><span class="pre">PsanaSrcData</span></code></a>(objclass,&nbsp;srcstr[,&nbsp;key_info,&nbsp;...])</td>
+<td>Python represenation of psana data for a given detector source.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="data-structures">
+<h2>Data Structures<a class="headerlink" href="#data-structures" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_xarray.html#PyDataSource.to_xarray" title="PyDataSource.to_xarray"><code class="xref py py-obj docutils literal"><span class="pre">to_xarray</span></code></a>([ds,&nbsp;nevents,&nbsp;max_size,&nbsp;xbase,&nbsp;...])</td>
+<td>Build xarray object from PyDataSource.DataSource object.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.to_summary.html#PyDataSource.to_summary" title="PyDataSource.to_summary"><code class="xref py py-obj docutils literal"><span class="pre">to_summary</span></code></a>(x[,&nbsp;dim,&nbsp;groupby,&nbsp;save_summary,&nbsp;...])</td>
+<td>Summarize a run.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html#PyDataSource.to_h5netcdf" title="PyDataSource.to_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">to_h5netcdf</span></code></a>([xdat,&nbsp;ds,&nbsp;file_name,&nbsp;path,&nbsp;...])</td>
+<td>Write hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html#PyDataSource.open_h5netcdf" title="PyDataSource.open_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">open_h5netcdf</span></code></a>([file_name,&nbsp;path,&nbsp;file_base,&nbsp;...])</td>
+<td>Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="datasource-configuration">
+<h2>DataSource Configuration<a class="headerlink" href="#datasource-configuration" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.xarray_kwargs.html#PyDataSource.DataSource.xarray_kwargs" title="PyDataSource.DataSource.xarray_kwargs"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.xarray_kwargs</span></code></a></td>
+<td>Dictionary of keywords passed to to_xarray.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.DataSource.save_config.html#PyDataSource.DataSource.save_config" title="PyDataSource.DataSource.save_config"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.save_config</span></code></a>([file_name,&nbsp;path])</td>
+<td>Save DataSource configuration.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config" title="PyDataSource.DataSource.load_config"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.load_config</span></code></a>([run,&nbsp;exp,&nbsp;user,&nbsp;...])</td>
+<td>Load DataSource configuration.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/PyDataSource.DataSource.html" class="btn btn-neutral float-right" title="PyDataSource.DataSource" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="conda.html" class="btn btn-neutral" title="Conda Release System" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

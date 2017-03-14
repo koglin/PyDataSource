@@ -1,0 +1,364 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Summarizing Data &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+        <link rel="next" title="PyDataSource.to_summary" href="generated/PyDataSource.to_summary.html"/>
+        <link rel="prev" title="PyDataSource.open_h5netcdf" href="generated/PyDataSource.open_h5netcdf.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Summarizing Data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#error-bar-plots">Error Bar Plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#details">Details</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_summary.html">PyDataSource.to_summary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.xy_ploterr.html">PyDataSource.xy_ploterr</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Summarizing Data</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/data_summary.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="summarizing-data">
+<span id="data-summary"></span><h1>Summarizing Data<a class="headerlink" href="#summarizing-data" title="Permalink to this headline">¶</a></h1>
+<p>The to_summary method uses a split-apply-combine strategy using the groupby method in <a class="reference external" href="http://xarray.pydata.org">xarray</a> (based on the <a class="reference external" href="http://pandas.pydata.org">pandas</a> groupby API) to create a statistical summary of a run.  This is often useful for runs that have steps (i.e., data acquired from daq or python scans).   The defaults for the to_summary method will provide the statistics (&#8216;mean&#8217;, &#8216;std&#8217;, &#8216;min&#8217;, &#8216;max&#8217;, and &#8216;count&#8217;) of events grouped according according to step.  By default, the scan variables are automatically built in the to_xarray method and conveniently available in the resulting xarray.Dataset.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [2]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+
+<span class="gp">In [3]: </span><span class="n">a</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">to_summary</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+<span class="gp">In [4]: </span><span class="n">a</span>
+<span class="gh">Out[4]:</span>
+<span class="go">&lt;xarray.Dataset&gt;</span>
+<span class="go">Dimensions:                    (Nh2Sb1_Ipm1_ch: 4, Nh2Sb1_Ipm2_ch: 4, XppEnds_Ipm0_ch: 4, XppMon_Pim0_ch: 4, XppMon_Pim1_ch: 4, XppSb2_Ipm_ch: 4, XppSb3_Ipm_ch: 4, cs140_rob_column: 388, cs140_rob_row: 185, cs140_rob_sensor: 2, stat: 5, step: 45, steps: 45)</span>
+<span class="go">Coordinates:</span>
+<span class="go">    XrayOff                    (stat, step) float64 0.007651 0.007987 ...</span>
+<span class="go">    XrayOn                     (stat, step) float64 0.9923 0.992 0.9937 ...</span>
+<span class="go">    cs140_rob_areas            (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) float64 1.0 ...</span>
+<span class="go">    cs140_rob_coords_x         (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) float64 4.32e+04 ...</span>
+<span class="go">    cs140_rob_coords_y         (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) float64 396.7 ...</span>
+<span class="go">    cs140_rob_coords_z         (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) float64 -31.45 ...</span>
+<span class="go">    cs140_rob_gain             (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) float32 1.0 ...</span>
+<span class="go">    cs140_rob_indexes_x        (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) uint64 391 ...</span>
+<span class="go">    cs140_rob_indexes_y        (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) uint64 1 ...</span>
+<span class="go">    cs140_rob_pedestals        (cs140_rob_sensor, cs140_rob_row, cs140_rob_column) float32 1636.36 ...</span>
+<span class="go">    ec140                      (stat, step) float64 1.0 1.0 1.0 1.0 1.0 1.0 ...</span>
+<span class="go">    ec141                      (stat, step) float64 0.5004 0.5 0.5 0.5 0.5 ...</span>
+<span class="go">    ec142                      (stat, step) float64 0.2502 0.2508 0.2508 ...</span>
+<span class="go">    ec143                      (stat, step) float64 0.0834 0.08307 0.08413 ...</span>
+<span class="go">    ec144                      (stat, step) float64 0.04132 0.04153 0.04127 ...</span>
+<span class="go">    ...</span>
+<span class="go">    ec97                       (stat, step) float64 0.0 0.0 0.0 0.0 0.0 0.0 ...</span>
+<span class="go">    ec98                       (stat, step) float64 0.0 0.0 0.0 0.0 0.0 0.0 ...</span>
+<span class="go">    lxt_vitara_ttc             (stat, step) float64 -1e-12 -7.5e-13 -5e-13 ...</span>
+<span class="go">    lxt_vitara_ttc_steps       (steps) float64 -1e-12 -7.5e-13 -5e-13 ...</span>
+<span class="go">  * stat                       (stat) |S5 &#39;mean&#39; &#39;std&#39; &#39;min&#39; &#39;max&#39; &#39;count&#39;</span>
+<span class="go">  * step                       (step) int64 0 1 2 3 4 5 6 7 8 9 10 11 12 13 ...</span>
+<span class="go">Dimensions without coordinates: Nh2Sb1_Ipm1_ch, Nh2Sb1_Ipm2_ch, XppEnds_Ipm0_ch, XppMon_Pim0_ch, XppMon_Pim1_ch, XppSb2_Ipm_ch, XppSb3_Ipm_ch, cs140_rob_column, cs140_rob_row, cs140_rob_sensor, steps</span>
+<span class="go">Data variables:</span>
+<span class="go">    EBeam_damageMask           (stat, step) float64 4.507e+05 5.137e+03 ...</span>
+<span class="go">    EBeam_ebeamCharge          (stat, step) float64 0.08269 0.1496 0.1479 ...</span>
+<span class="go">    EBeam_ebeamDumpCharge      (stat, step) float64 7.935e+08 8.007e+08 ...</span>
+<span class="go">    EBeam_ebeamEnergyBC1       (stat, step) float64 0.001042 0.0008837 ...</span>
+<span class="go">    EBeam_ebeamEnergyBC2       (stat, step) float64 4.042 -0.0061 -0.03281 ...</span>
+<span class="go">    EBeam_ebeamL3Energy        (stat, step) float64 1.391e+04 1.393e+04 ...</span>
+<span class="go">    EBeam_ebeamLTU250          (stat, step) float64 -0.0843 0.06092 0.06151 ...</span>
+<span class="go">    EBeam_ebeamLTU450          (stat, step) float64 -0.09681 -0.2203 -0.2192 ...</span>
+<span class="go">    EBeam_ebeamLTUAngX         (stat, step) float64 0.05942 0.05195 0.05141 ...</span>
+<span class="go">    EBeam_ebeamLTUAngY         (stat, step) float64 0.01364 0.02163 0.02153 ...</span>
+<span class="go">    EBeam_ebeamLTUPosX         (stat, step) float64 -0.008893 0.02766 ...</span>
+<span class="go">    ...</span>
+<span class="go">    XppSb2_Ipm_sum             (stat, step) float64 0.2497 0.5633 0.5847 ...</span>
+<span class="go">    XppSb2_Ipm_xpos            (stat, step) float64 0.04659 -0.04083 ...</span>
+<span class="go">    XppSb2_Ipm_ypos            (stat, step) float64 0.0427 0.03698 0.02323 ...</span>
+<span class="go">    XppSb3_Ipm_channel         (stat, step, XppSb3_Ipm_ch) float64 0.04605 ...</span>
+<span class="go">    XppSb3_Ipm_sum             (stat, step) float64 0.1503 0.3523 0.3766 ...</span>
+<span class="go">    XppSb3_Ipm_xpos            (stat, step) float64 0.4587 0.2364 0.2121 ...</span>
+<span class="go">    XppSb3_Ipm_ypos            (stat, step) float64 1.149 0.3956 0.3937 ...</span>
+<span class="go">Attributes:</span>
+<span class="go">    data_source: exp=xpptut15:run=200:smd</span>
+<span class="go">    run: 200</span>
+<span class="go">    instrument: XPP</span>
+<span class="go">    experiment: xpptut15</span>
+<span class="go">    expNum: 665</span>
+<span class="go">    calibDir: /reg/d/psdm/XPP/xpptut15/calib</span>
+<span class="go">    event_flags: [&#39;XrayOn&#39; &#39;XrayOff&#39;]</span>
+<span class="go">    nsteps: 45</span>
+<span class="go">    pvControls: [&#39;lxt_vitara_ttc&#39;]</span>
+<span class="go">    pvLabels: [&#39;lxt_vitara_ttc&#39;]</span>
+<span class="go">    scan_variables: [&#39;lxt_vitara_ttc&#39;]</span>
+<span class="go">    correlation_variables: []</span>
+</pre></div>
+</div>
+<p>This summary data can be similarly saved with the to_h5netcdf method (by default in the experiment scratch/nc folder as run0200_sum.nc).</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">to_h5netcdf</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
+<span class="gp">In [19]: </span><span class="n">ls</span> <span class="o">/</span><span class="n">reg</span><span class="o">/</span><span class="n">d</span><span class="o">/</span><span class="n">psdm</span><span class="o">/</span><span class="n">xpp</span><span class="o">/</span><span class="n">xpptut15</span><span class="o">/</span><span class="n">scratch</span><span class="o">/</span><span class="n">nc</span><span class="o">/*</span><span class="n">_sum</span><span class="o">.</span><span class="n">nc</span>
+<span class="go">/reg/d/psdm/xpp/xpptut15/scratch/nc/run0200_sum.nc</span>
+</pre></div>
+</div>
+<p>To load a summary file use the summary=True keyword.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [2]: </span><span class="n">a</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">summary</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="error-bar-plots">
+<h2>Error Bar Plots<a class="headerlink" href="#error-bar-plots" title="Permalink to this headline">¶</a></h2>
+<p>Error bar plots can be conveniently generated for summarized data using the xy_ploterr method.  This method takes advantage the meta-data stored in the xarray.DataSet as well as features in plotting methods in <a class="reference external" href="http://pandas.pydata.org">pandas</a> to automatically add labels to the plot.  By default the plot is against the daq scan coordinate, which in this case is &#8216;lxt_vitara_ttc&#8217;.  Plotting with respect to another axis is done with the xaxis keyword.</p>
+<p>The example below also illustrates that the steps this run with large variation in Photon Energy are correlated with low beam Charge.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+
+<span class="n">a</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">summary</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="c1"># Default uses &#39;lxt_vitara_ttc&#39; as xaxis</span>
+<span class="n">PyDataSource</span><span class="o">.</span><span class="n">xy_ploterr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;EBeam_ebeamPhotonEnergy&#39;</span><span class="p">)</span>
+
+<span class="n">PyDataSource</span><span class="o">.</span><span class="n">xy_ploterr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;EBeam_ebeamPhotonEnergy&#39;</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="s1">&#39;EBeam_ebeamCharge&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="./examples/xy_ploterr.py">Source code</a>)</p>
+<div class="figure" id="id1">
+<img alt="_images/xy_ploterr_00.png" src="_images/xy_ploterr_00.png" />
+<p class="caption"><span class="caption-text">(<a class="reference external" href="./examples/xy_ploterr_00.png">png</a>, <a class="reference external" href="./examples/xy_ploterr_00.hires.png">hires.png</a>, <a class="reference external" href="./examples/xy_ploterr_00.pdf">pdf</a>)</span></p>
+</div>
+<div class="figure" id="id2">
+<img alt="_images/xy_ploterr_01.png" src="_images/xy_ploterr_01.png" />
+<p class="caption"><span class="caption-text">(<a class="reference external" href="./examples/xy_ploterr_01.png">png</a>, <a class="reference external" href="./examples/xy_ploterr_01.hires.png">hires.png</a>, <a class="reference external" href="./examples/xy_ploterr_01.pdf">pdf</a>)</span></p>
+</div>
+</div>
+<div class="section" id="details">
+<h2>Details<a class="headerlink" href="#details" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_summary.html#PyDataSource.to_summary" title="PyDataSource.to_summary"><code class="xref py py-obj docutils literal"><span class="pre">to_summary</span></code></a>(x[,&nbsp;dim,&nbsp;groupby,&nbsp;save_summary,&nbsp;...])</td>
+<td>Summarize a run.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.xy_ploterr.html#PyDataSource.xy_ploterr" title="PyDataSource.xy_ploterr"><code class="xref py py-obj docutils literal"><span class="pre">xy_ploterr</span></code></a>(a[,&nbsp;attr,&nbsp;xaxis,&nbsp;title,&nbsp;desc,&nbsp;fmt])</td>
+<td>Plot summary data with error bars.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/PyDataSource.to_summary.html" class="btn btn-neutral float-right" title="PyDataSource.to_summary" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="generated/PyDataSource.open_h5netcdf.html" class="btn btn-neutral" title="PyDataSource.open_h5netcdf" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>PyDataSource.Detector &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../index.html"/>
+        <link rel="up" title="PyDatSource API" href="../api.html"/>
+        <link rel="next" title="PyDataSource.EvrData" href="PyDataSource.EvrData.html"/>
+        <link rel="prev" title="PyDataSource.EvtDetectors" href="PyDataSource.EvtDetectors.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#data-source">Data Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#data-iterators">Data Iterators</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#detector-access">Detector Access</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="PyDataSource.EvtDetectors.html">PyDataSource.EvtDetectors</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">PyDataSource.Detector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="PyDataSource.AddOn.html">PyDataSource.AddOn</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#event-info">Event Info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#psana-detector-access">psana.Detector Access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#epics-data">Epics Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#low-level-psana-data-interface">Low-level Psana Data Interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#data-structures">Data Structures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#datasource-configuration">DataSource Configuration</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../api.html">PyDatSource API</a> &raquo;</li>
+        
+      <li>PyDataSource.Detector</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/PyDataSource.Detector.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="pydatasource-detector">
+<h1>PyDataSource.Detector<a class="headerlink" href="#pydatasource-detector" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="PyDataSource.Detector">
+<em class="property">class </em><code class="descclassname">PyDataSource.</code><code class="descname">Detector</code><span class="sig-paren">(</span><em>ds</em>, <em>alias</em>, <em>verbose=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#Detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.Detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Includes epicsData, configData, evrConfig info
+Uses full ds in order to be able to access epicsData info on
+an event basis.</p>
+<dl class="method">
+<dt id="PyDataSource.Detector.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>ds</em>, <em>alias</em>, <em>verbose=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#Detector.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.Detector.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a psana Detector class for a given detector alias.
+Provides the attributes of the PyDetector functions for the current
+event if applicable.  Otherwise provides the attributes from the
+raw data in the psana event keys for the given detector.</p>
+</dd></dl>
+
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#PyDataSource.Detector.__init__" title="PyDataSource.Detector.__init__"><code class="xref py py-obj docutils literal"><span class="pre">__init__</span></code></a>(ds,&nbsp;alias[,&nbsp;verbose])</td>
+<td>Initialize a psana Detector class for a given detector alias.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.Detector.monitor.html#PyDataSource.Detector.monitor" title="PyDataSource.Detector.monitor"><code class="xref py py-obj docutils literal"><span class="pre">monitor</span></code></a>([nevents,&nbsp;sleep])</td>
+<td>Monitor detector attributes continuously with show_info function.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.Detector.next.html#PyDataSource.Detector.next" title="PyDataSource.Detector.next"><code class="xref py py-obj docutils literal"><span class="pre">next</span></code></a>(\*\*kwargs)</td>
+<td>Return next event that contains the Detector in the event data.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.Detector.set_cmpars.html#PyDataSource.Detector.set_cmpars" title="PyDataSource.Detector.set_cmpars"><code class="xref py py-obj docutils literal"><span class="pre">set_cmpars</span></code></a>(cmpars)</td>
+<td>Set common mode.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.Detector.show_all.html#PyDataSource.Detector.show_all" title="PyDataSource.Detector.show_all"><code class="xref py py-obj docutils literal"><span class="pre">show_all</span></code></a>(\*\*kwargs)</td>
+<td>Show detailed detector information for current event.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.Detector.show_info.html#PyDataSource.Detector.show_info" title="PyDataSource.Detector.show_info"><code class="xref py py-obj docutils literal"><span class="pre">show_info</span></code></a>(\*\*kwargs)</td>
+<td>Show basic detector information, including from user defined AddOn methods, for current event.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.Detector.add.html#PyDataSource.Detector.add" title="PyDataSource.Detector.add"><code class="xref py py-obj docutils literal"><span class="pre">add</span></code></a></td>
+<td>Add data processing methods.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.Detector.calibData.html#PyDataSource.Detector.calibData" title="PyDataSource.Detector.calibData"><code class="xref py py-obj docutils literal"><span class="pre">calibData</span></code></a></td>
+<td>Calibration data using psana.Detector class</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.Detector.configData.html#PyDataSource.Detector.configData" title="PyDataSource.Detector.configData"><code class="xref py py-obj docutils literal"><span class="pre">configData</span></code></a></td>
+<td>Configuration data for detector.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.Detector.detector.html#PyDataSource.Detector.detector" title="PyDataSource.Detector.detector"><code class="xref py py-obj docutils literal"><span class="pre">detector</span></code></a></td>
+<td>Raw, calib and image data using psana.Detector class.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.Detector.epicsData.html#PyDataSource.Detector.epicsData" title="PyDataSource.Detector.epicsData"><code class="xref py py-obj docutils literal"><span class="pre">epicsData</span></code></a></td>
+<td>Epics information for current detector.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.Detector.evtData.html#PyDataSource.Detector.evtData" title="PyDataSource.Detector.evtData"><code class="xref py py-obj docutils literal"><span class="pre">evtData</span></code></a></td>
+<td>Tab accessible raw data from psana event keys.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.Detector.psplots.html#PyDataSource.Detector.psplots" title="PyDataSource.Detector.psplots"><code class="xref py py-obj docutils literal"><span class="pre">psplots</span></code></a></td>
+<td>To kill a plot that has been created with self.add.psplot, del self.psplots[name] and close the plot window.</td>
+</tr>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">sourceData</span></code></td>
+<td>Source information for detector.</td>
+</tr>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">src</span></code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="PyDataSource.EvrData.html" class="btn btn-neutral float-right" title="PyDataSource.EvrData" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="PyDataSource.EvtDetectors.html" class="btn btn-neutral" title="PyDataSource.EvtDetectors" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
