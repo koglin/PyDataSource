@@ -84,6 +84,7 @@ def banner(ds, base='ds', time0=None):
         print ""
     
     print "*"*80
+    return repr(ds)
 
 def main():
     """Main script to initialize DataSource object in interactive python.
