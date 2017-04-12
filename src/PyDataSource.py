@@ -865,6 +865,14 @@ class DataSource(object):
             xarray_kwargs.update(**kwargs)
             return to_xarray(self, **xarray_kwargs)
 
+    def to_hdf5(self, **kwargs):
+        """Write directly to hdf5 in xarray comatable netcdf4 format.
+        """
+        import h5write
+        xarray_kwargs = self.xarray_kwargs.copy()
+        xarray_kwargs.update(**kwargs)
+        return h5write.to_hdf5(self, **xarray_kwargs)
+        
     @property
     def configData(self):
         """

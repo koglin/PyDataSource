@@ -49,6 +49,16 @@ if __name__ == "__main__":
         print ds.nevents        
     if attr in ['scan']:
         print ds.configData.ScanData.show_info()
+    if attr in ['mpi']:
+        from h5write import write_hdf5
+        print 'to hdf5 with mpi'
+        print args
+        if args.config:
+            print 'Loading config: {:}'.format(args.config)
+            ds.load_config(file_name=args.config)
+        print args.nevents, args.nchunks
+        write_hdf5(ds, nevents=args.nevents, nchunks=args.nchunks)
+        
     if attr in ['xarray']:
         print 'to_xarray'
         if args.config:

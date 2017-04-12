@@ -3,7 +3,6 @@ import sys, os
 import traceback
 from glob import glob
 
-import RunSummary
 import PyDataSource
 from PyDataSource import psxarray
 
@@ -406,6 +405,7 @@ def build_html(x, dorunnum=False, ioff=True):
     """Make html web page from xarray summary dataset.
     """
     # do not perform interactive plotting
+    from PyDataSource.build_htmml import Build_html
     if ioff:
         plt.ioff()
 
@@ -413,7 +413,7 @@ def build_html(x, dorunnum=False, ioff=True):
     attrs = [attr for attr,item in x.data_vars.items() if item.dims == ('time',)]
     df = x[attrs].where(x.Damage_cut == 1).to_array().to_pandas().T.dropna()
     
-    b = RunSummary.Build_html(x, path='/reg/neh/operator/cxiopr/userexpts/cxi12116/RunSummary/')
+    b = Build_html(x, path='/reg/neh/operator/cxiopr/userexpts/cxi12116/RunSummary/')
      
     variables = ['Sc2Inline_roi', 'Sc2Epix_spec', 'Sc2Epix_spec_y'] 
     b.add_summary(variables)
@@ -471,6 +471,7 @@ def build_html(x, dorunnum=False, ioff=True):
 def summary_html(a, ioff=True, exp_path=exp_path):
     """RunSummary built from statistics of each step in the run. 
     """
+    from PyDataSource.build_htmml import Build_html
     if 'stat' not in a.dims:
         a = psxarray.to_summary(a)
 
@@ -479,7 +480,7 @@ def summary_html(a, ioff=True, exp_path=exp_path):
 
     path=os.path.join(exp_path, 'RunSummary')
     print path
-    b = RunSummary.Build_html(a, path=os.path.join(exp_path, 'RunSummary'))
+    b = Build_html(a, path=os.path.join(exp_path, 'RunSummary'))
 
     b.add_xy_ploterr('MnScatter_norm', xaxis='atten_thick', logx=False, logy=False, catagory='FitResults')
     b.add_xy_ploterr('MnScatter_norm', xaxis='PulseEnergy', logx=True, logy=False, catagory='FitResults')
