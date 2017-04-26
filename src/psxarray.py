@@ -4,7 +4,7 @@ import operator
 import time
 import traceback
 import numpy as np
-
+from xarray_utils import *
 #from pylab import *
 
 def runlist_to_str(runs, portable=False):
@@ -207,72 +207,72 @@ def to_h5netcdf(xdat=None, ds=None, file_name=None, path=None,
 
     return xdat
 
-def to_summary(x, dim='time', groupby='step', 
-        save_summary=False,
-        normby=None,
-        omit_list=['run', 'sec', 'nsec', 'fiducials', 'ticks'],
-        stats=['mean', 'std', 'min', 'max', 'count']):
-    """
-    Summarize a run.
-    
-    Parameters
-    ----------
-    x : xarray.Dataset
-        input xarray Dataset
-    dim : str
-        dimension to summarize over [default = 'time']
-    groupby : str
-        coordinate to groupby [default = 'step']
-    save_summary : bool
-        Save resulting xarray Dataset object
-    normby : list or dict
-        Normalize data by attributes
-    omit_list : list
-        List of Dataset attributes to omit
-    stats : list
-        List of statistical operations to be performed for summary.
-        Default = ['mean', 'std', 'min', 'max', 'count']
-
-    """
-    import xarray as xr
-    xattrs = x.attrs
-    data_attrs = {attr: x[attr].attrs for attr in x}
-
-    if 'Damage_cut' in x:
-        x = x.where(x.Damage_cut).dropna(dim)
-   
-    coords = [c for c in x.coords if c != dim and c not in omit_list and dim in x.coords[c].dims] 
-    x = x.reset_coords(coords)
-
-    if isinstance(normby, dict):
-        for norm_attr, attrs in normby.items():
-            x = normalize_data(x, attrs, norm_attr=norm_attr)
-    elif isinstance(normby, list):
-        x = normalize_data(x, normby)
-
-    # With new xarray 0.9.1 need to make sure loaded otherwise h5py error
-    x.load()
-
-    if groupby:
-        x = x.groupby(groupby)
-
-    dsets = [getattr(x, func)(dim=dim) for func in stats]
-    x = xr.concat(dsets, stats).rename({'concat_dim': 'stat'})
-    for attr,val in xattrs.items():
-        x.attrs[attr] = val
-    for attr,item in data_attrs.items():
-        if attr in x:
-            x[attr].attrs.update(item)
-
-    for c in coords:                                                       
-        x = x.set_coords(c)
-    
-    x = resort(x)
-    
-    if save_summary:
-        to_h5netcdf(x)
-
-    return x
+#def to_summary(x, dim='time', groupby='step', 
+#        save_summary=False,
+#        normby=None,
+#        omit_list=['run', 'sec', 'nsec', 'fiducials', 'ticks'],
+#        stats=['mean', 'std', 'min', 'max', 'count']):
+#    """
+#    Summarize a run.
+#    
+#    Parameters
+#    ----------
+#    x : xarray.Dataset
+#        input xarray Dataset
+#    dim : str
+#        dimension to summarize over [default = 'time']
+#    groupby : str
+#        coordinate to groupby [default = 'step']
+#    save_summary : bool
+#        Save resulting xarray Dataset object
+#    normby : list or dict
+#        Normalize data by attributes
+#    omit_list : list
+#        List of Dataset attributes to omit
+#    stats : list
+#        List of statistical operations to be performed for summary.
+#        Default = ['mean', 'std', 'min', 'max', 'count']
+#
+#    """
+#    import xarray as xr
+#    xattrs = x.attrs
+#    data_attrs = {attr: x[attr].attrs for attr in x}
+#
+#    if 'Damage_cut' in x:
+#        x = x.where(x.Damage_cut).dropna(dim)
+#   
+#    coords = [c for c in x.coords if c != dim and c not in omit_list and dim in x.coords[c].dims] 
+#    x = x.reset_coords(coords)
+#
+#    if isinstance(normby, dict):
+#        for norm_attr, attrs in normby.items():
+#            x = normalize_data(x, attrs, norm_attr=norm_attr)
+#    elif isinstance(normby, list):
+#        x = normalize_data(x, normby)
+#
+#    # With new xarray 0.9.1 need to make sure loaded otherwise h5py error
+#    x.load()
+#
+#    if groupby:
+#        x = x.groupby(groupby)
+#
+#    dsets = [getattr(x, func)(dim=dim) for func in stats]
+#    x = xr.concat(dsets, stats).rename({'concat_dim': 'stat'})
+#    for attr,val in xattrs.items():
+#        x.attrs[attr] = val
+#    for attr,item in data_attrs.items():
+#        if attr in x:
+#            x[attr].attrs.update(item)
+#
+#    for c in coords:                                                       
+#        x = x.set_coords(c)
+#    
+#    x = resort(x)
+#    
+#    if save_summary:
+#        to_h5netcdf(x)
+#
+#    return x
 
 def add_steps(x, attr, name=None):
     vals = getattr(x, attr).values
@@ -782,18 +782,18 @@ def normalize_data(x, variables=[], norm_attr='PulseEnergy', name='norm', quiet=
 
     return  resort(x)
 
-def resort(x):
-    """
-    Resort alphabitically xarray Dataset
-    """
-    coords = sorted([c for c in x.coords.keys() if c not in x.coords.dims])
-    x = x.reset_coords()
-    x = x[sorted(x.data_vars)]
-
-    for c in coords:                                                       
-        x = x.set_coords(c)
-
-    return x
+#def resort(x):
+#    """
+#    Resort alphabitically xarray Dataset
+#    """
+#    coords = sorted([c for c in x.coords.keys() if c not in x.coords.dims])
+#    x = x.reset_coords()
+#    x = x[sorted(x.data_vars)]
+#
+#    for c in coords:                                                       
+#        x = x.set_coords(c)
+#
+#    return x
 
 def map_indexes(xx, yy, ww):                                                                      
     """

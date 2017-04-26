@@ -37,7 +37,8 @@ if __name__ == "__main__":
     args = initArgs()
     attr = args.attr
     exp = args.exp
-    run = int(args.run)
+    run = int(args.run.split('-')[0])
+    #print '{:} Run {:}'.format(exp, run)
     ds = PyDataSource.DataSource(exp=exp,run=run)
     if attr == 'config':
         print ds._get_config_file()
@@ -51,14 +52,24 @@ if __name__ == "__main__":
         print ds.configData.ScanData.show_info()
     if attr in ['mpi']:
         from h5write import write_hdf5
-        print 'to hdf5 with mpi'
-        print args
+        #print 'to hdf5 with mpi {:}'.format(args)
         if args.config:
             print 'Loading config: {:}'.format(args.config)
             ds.load_config(file_name=args.config)
-        print args.nevents, args.nchunks
+#        else:
+#            print 'Auto config'
+#            ds.load_config()
+
         write_hdf5(ds, nevents=args.nevents, nchunks=args.nchunks)
+    
+    if attr in ['batch']:
+        from h5write import write_hdf5
+        if args.config:
+            print 'Loading config: {:}'.format(args.config)
+            ds.load_config(file_name=args.config)
         
+        write_hdf5(ds)
+    
     if attr in ['xarray']:
         print 'to_xarray'
         if args.config:

@@ -9,48 +9,113 @@ import time
 import traceback
 from pylab import *
 
-def write_exp_summary(self, file_name=None, path=None):
-    """Write
+def write_exp_summary(self, file_name=None, path='scratch', **kwargs):
+    """Write ExperimentSummary as pickle file.
     """
     import cPickle as pickle
     if not file_name:
         file_name = 'experiment_summary.pkl'
-    if not path:
+    
+    if path == 'scratch':
+        path = os.path.join(self.scratch_dir,'RunSummary')
+    elif not path:
         path = os.path.join(self.res_dir,'RunSummary') 
 
     if not os.path.isdir(path):
         os.mkdir(path)
-    
+   
     with open(path+'/'+file_name, 'wb') as pickle_file:
         pickle.dump(pickle.dumps(self, protocol=-1), pickle_file, protocol=-1)
 
-def read_exp_summary(exp=None, file_name=None, path=None, **kwargs):
+def read_exp_summary(exp=None, file_name=None, path='scratch', **kwargs):
+    """
+    Read exp_summary pickle file.  Return none if does not exist.
+    """
+    import glob
     import cPickle as pickle
     if not file_name:
         file_name = 'experiment_summary.pkl'
-    if not path:
-        instrument = exp[0:3]
-        exp_dir = "/reg/d/psdm/{:}/{:}".format(instrument, exp)
-        if os.path.isdir(os.path.join(exp_dir,'res')): 
-            path = os.path.join(exp_dir,'res','RunSummary')
-        else:
-            path = os.path.join(exp_dir,'results','RunSummary')
     
-    with open(path+'/'+file_name, 'rb') as pickle_file:
-        data = pickle.load(pickle_file)
+    instrument = exp[0:3]
+    exp_dir = "/reg/d/psdm/{:}/{:}".format(instrument, exp)
+    if path == 'scratch':
+        path = os.path.join(exp_dir,'scratch', 'RunSummary')
+    elif os.path.isdir(os.path.join(exp_dir,'res')): 
+        path = os.path.join(exp_dir,'res','RunSummary')
+    else:
+        path = os.path.join(exp_dir,'results','RunSummary')
 
-    return pickle.loads(data)
+    if glob.glob(path+'/'+file_name):
+        with open(path+'/'+file_name, 'rb') as pickle_file:
+            data = pickle.load(pickle_file)
 
-def get_exp_summary(exp, load=True, **kwargs):
-    if load:
-        try:
-            return read_exp_summary(exp, **kwargs)
-        except:
-            traceback.print_exc()
-            load = False
+        return pickle.loads(data)
 
-    if not load:
-        return ExperimentSummary(exp, **kwargs)
+    else:
+        return None
+
+def get_exp_summary(exp, reload=False, path='scratch', **kwargs):
+    """
+    Use scratch for now since results unreliable
+    """
+    if not reload:
+        es = read_exp_summary(exp, path=path, **kwargs)
+        if es is not None:
+            return es
+    
+    return ExperimentSummary(exp, path=path, **kwargs)
+
+def epicsArch_dict(archfile_name,file_dir):
+    """
+    Load text file containing aliases and pvs with daq epicsArch convention. 
+    """
+    import re
+    import traceback
+    arch_dict = {}
+    file_list = [archfile_name]
+    try:
+        with open(file_dir+'/'+archfile_name,'r') as f:
+            for line in f:
+                if line.startswith('<'):
+                    file_list.append(line.strip('<').strip().strip('\n').strip())
+
+        arch_list = []
+        for file in file_list:
+            with open(file_dir+'/'+file,'r') as f:
+                arch_list.append(f.read().split('\n'))
+                    
+        arch_list = [item.strip(' ') for sublist in arch_list for item in sublist]
+        pvalias = None
+        for item in arch_list:
+            if item.startswith(('#','<')):
+                pvalias = None
+            elif item.startswith('*'):
+                pvalias = item.strip('*').strip(' ')
+            elif len(item) > 1:
+                pvname = item.strip(' ')
+                pvbase = pvname.split('.')[0]
+                if pvalias:
+                    if pvalias in arch_dict:
+                        print 'Warning: duplicate alias {:}'.format(pvalias)
+                else:
+                    pvalias = re.sub(':|\.','_',pvname) 
+
+                components = re.split(':|\.',pvname)
+                for i,item in enumerate(components):
+                    if item[0].isdigit():
+                         components[i] = 'n'+components[i]
+     
+                arch_dict[pvname] = {'name': pvname,
+                                     'alias': pvalias,
+                                     'base':  pvbase,
+                                     'components': components} 
+    
+    except:
+        traceback.print_exc()
+        print 'Error loading {:} from {:}'.format(archfile_name,file_dir)
+
+    return arch_dict
+
 
 
 class ExperimentSummary(object):
@@ -66,15 +131,16 @@ class ExperimentSummary(object):
 
     _fields={
             'description':            ('DESC', 'Description'), 
-            'device_type':            ('DTYP', 'Device type'), 
-            'record_type':            ('RTYP', 'Record Type'), 
             'slew_speed':             ('VELO', 'Velocity (EGU/s) '),
             'acceleration':           ('ACCL', 'acceleration time'),
             'step_size':              ('RES',  'Step Size (EGU)'),
             'encoder_step':           ('ERES', 'Encoder Step Size '),
             'resolution':             ('MRES', 'Motor Step Size (EGU)'),
-            'high_limit':             ('HLM',  'User High Limit  '),
-            'low_limit':              ('LLM',  'User Low Limit  '),
+            'high_limit':             ('HLM',  'User High Limit'),
+            'low_limit':              ('LLM',  'User Low Limit'),
+            'units':                  ('EGU',  'Units'),
+#            'device_type':            ('DTYP', 'Device type'), 
+#            'record_type':            ('RTYP', 'Record Type'), 
             }
 
     def __init__(self, exp=None, instrument=None, station=0, exper_id=None,
@@ -113,7 +179,11 @@ class ExperimentSummary(object):
             self.res_dir = os.path.join(self.exp_dir,'res')
         else:
             self.res_dir = os.path.join(self.exp_dir,'results')
+        
+        self.scratch_dir = os.path.join(self.exp_dir,'scratch')
 
+        self._load_run_info(self.exp)
+        self._init_arch()
         try:
             self._load_exp_runs(**kwargs)
         except:
@@ -122,33 +192,38 @@ class ExperimentSummary(object):
             
         if save:
             try:
-                write_exp_summary(self)
+                self.save(**kwargs)
             except:
                 traceback.print_exc()
                 print 'could not write summary'
 
-#    def _add_runtables(self):
-#        """
-#        Add RunTables... currently does not work in conda env.
-#        """
-#        try:
-#            from LogBook.runtables import RunTables
-#
-#            # Setup elog pswwww RunTables
-#            self._RunTables = RunTables(**{'web-service-url': 'https://pswww.slac.stanford.edu/ws-kerb'})
-#
-#            self._user_tables = self._RunTables.usertables(exper_name=self.exp)
-#            #self.add_user_run_table(RunSummary='Run Summary')
-#        except:
-#            print 'currently does not work in conda env.'
+    def save(self, file_name=None, path=None, **kwargs):
+        """Save to pickle file.
+        """
+        write_exp_summary(self, file_name=file_name, path=path)
 
-#    def add_user_run_table(self, **kwargs):
-#        """Add a user User RunTable from pswww elog server.
-#        """
-#        for alias, name in kwargs.items():
-#            tbl = self._RunTables.findUserTable(exper_name=self.exp, table_name=alias)
-#            self._user_tables.update({alias: tbl}) 
-#            setattr(self, alias, tbl)
+    def _add_runtables(self):
+        """
+        Add RunTables... currently does not work in conda env.
+        """
+        try:
+            from LogBook.runtables import RunTables
+
+            # Setup elog pswwww RunTables
+            self._RunTables = RunTables(**{'web-service-url': 'https://pswww.slac.stanford.edu/ws-kerb'})
+
+            self._user_tables = self._RunTables.usertables(exper_name=self.exp)
+            #self.add_user_run_table(RunSummary='Run Summary')
+        except:
+            print 'currently does not work in conda env.'
+
+    def add_user_run_table(self, **kwargs):
+        """Add a user User RunTable from pswww elog server.
+        """
+        for alias, name in kwargs.items():
+            tbl = self._RunTables.findUserTable(exper_name=self.exp, table_name=alias)
+            self._user_tables.update({alias: tbl}) 
+            setattr(self, alias, tbl)
 
     def to_html(self, **kwargs):
         import build_html
@@ -295,7 +370,7 @@ class ExperimentSummary(object):
         for a in df.keys()[df.count() > 1]:
             #if a not in xepics.coords and (a in self.xset.data_vars or a in self.xscan.data_vars):
             if a not in xepics.coords:
-                if a.endswith('_set'):
+                if False and a.endswith('_set'):
                     attrs.append(a.split('_set')[0])
                 else:
                     attrs.append(a)
@@ -309,6 +384,9 @@ class ExperimentSummary(object):
                     det = attr.split('_')[0] 
                     try:
                         unit = xepics[attr].attrs.get('units','')
+                        if unit == '%':
+                            unit='percent'
+                        unit = re.sub('\W+','', unit)
                     except:
                         unit = ''
                     grp = det+'__'+unit
@@ -323,7 +401,8 @@ class ExperimentSummary(object):
             return attrs
 
     def plot_move(self, attrs, run_min=None, run_max=None, style=None, linewidth=2, 
-            figsize=(12,8), ax_pos = (.1,.2,.55,.7), box_to_anchor=(1.1, 1.), **kwargs):
+            figsize=(12,8), ax_pos = (.1,.2,.55,.7), box_to_anchor=(1.1, 1.), 
+            max_points=5000, **kwargs):
         """
         Plot motor moves vs time and run.
         """
@@ -371,14 +450,21 @@ class ExperimentSummary(object):
             print attr
             try:
                 df = xepics[attr].dropna(dim='time').to_pandas()
-                if style:
+                if df.size > max_points:
+                    # need to resample
+                    sample_time = (df.index.max()-df.index.min()).seconds/(max_points/50)
+                    df_resampled = df.resample('{:}S'.format(sample_time))
+                    ax.errorbar(df_resampled.mean().index, df_resampled.mean(), yerr=df_resampled.var(), label=lab)
+                    ax.set_ylabel(ylabel)
+                elif style:
                     df.plot(style=style, linewidth=linewidth, label=lab, ax=ax)
                 else:
                     df.plot(drawstyle='steps', linewidth=linewidth, label=lab, ax=ax)
             except:
+                traceback.print_exc()
                 print 'cannot plot', attr
 
-            if attr+'_set' in xepics:
+            if xepics.get(attr+'_set'):
                 try:
                     xepics[attr+'_set'].dropna(dim='time')[1:].to_pandas().plot(style='+',label=attr+'_set')
                 except:
@@ -400,6 +486,18 @@ class ExperimentSummary(object):
         ax.set_position(ax_pos)
         legend = ax.legend(loc='upper left',  bbox_to_anchor=box_to_anchor)
         return ax
+
+    @property
+    def runs_with_xtc(self):
+        """
+        Return list of runs with xtc files.
+        """
+        runs = []
+        for run, file_names in self.dfruns.T['xtc_files'].iteritems():
+            if file_names != []:
+                runs.append(run)
+
+        return runs
 
     def last_pv_fields_changed(self):
         """
@@ -435,40 +533,16 @@ class ExperimentSummary(object):
         self.xdata = ax
         return self.xdata
 
-
-    def _load_epics(self, pvs=None, quiet=False, 
-                    omit=['ABSE', 'SIOC', 'USEG', 'VGBA', 'GATT', 
-                          'MIRR:FEE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],
-                    run=None,
-                    **kwargs):
+    def _load_run_info(self, exp, instrument=None):
         """
-        Make xarray and pandas objects to describe which epics variables were set before
-        and during runs.
+        Load run info from experiment_info database
         """
-        import numpy as np
-        import xarray as xr
         import pandas as pd
-        from epicsarchive import EpicsArchive
-        arch = EpicsArchive()
-        rns = pd.DataFrame(experiment_info.experiment_runs(self.instrument.upper(),self.exp))
-        
-        if not pvs:
-            import PyDataSource
-            if not run:
-                run=rns['num'].max()
-            ds = PyDataSource.DataSource(exp=self.exp, run=run)
-            pvnames = {pv:ds.epicsData.alias(pv) for pv in ds.epicsData.pvNames()}
-            for a in omit:
-                for pv in pvnames.copy():
-                    if pv.startswith(a):
-                        pvnames.pop(pv)
-        else:
-            pvnames = pvs
+        import xarray as xr
+        if not instrument:
+            instrument = exp[0:3]
 
-        pvmots = {pv.rstrip('.RBV'): alias+'_set' for pv, alias in pvnames.items() if pv.endswith('RBV')}
-        pvnames.update(**pvmots)
-        pvs = {pv: alias for pv, alias in pvnames.items() if arch.search_pvs(pv, do_print=False) != []} 
-    
+        rns = pd.DataFrame(experiment_info.experiment_runs(instrument.upper(),exp))
         xruns = xr.Dataset()
         xruns.coords['run'] = (['run'], rns['num'])
         xruns.coords['run_id'] = (['run'], rns['id'])
@@ -478,16 +552,115 @@ class ExperimentSummary(object):
         xruns['duration'].attrs['units'] = 'sec'
         xruns['prep_time'] = (['run'], (rns['begin_time']/1.e9)-(rns['end_time'].shift(1)/1.e9)) 
         xruns['prep_time'].attrs['units'] = 'sec'
+        self.xruns = xruns
 
-        df = xruns.to_dataframe()
+        return self.xruns
+
+    def _init_arch(self):
+        """
+        Initialize archive
+        """
+        from epicsarchive import EpicsArchive
+        if not hasattr(self, 'xruns'):
+            self._load_run_info()
+        self._arch = EpicsArchive()
+        df = self.xruns.to_dataframe()
         dt = df['begin_time'].min()
         tstart = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+        self._tstart = tstart
         dt = df['end_time'].max()
         tend = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+        self._tend = tend
 
+    def _get_pv_from_arch(self, pv, tstart=None, tend=None):
+        if not tstart:
+            tstart = self._tstart
+        if not tend:
+            tend = self._tend
+        return self._arch._get_json(pv, tstart, tend, False)[0]
+
+    def _in_archive(self, pv):
+        """
+        Check if pv is in archive.
+        """
+        return self._arch.search_pvs(pv, do_print=False) != []
+
+    def _load_epics(self, pvs=None, quiet=False, 
+                    omit=['ABSE', 'SIOC', 'USEG', 'VGBA', 'GATT', 
+                          'MIRR:FEE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],
+                    run=None,
+                    set_only=True,
+                    max_size=20000,
+                    **kwargs):
+        """
+        Make xarray and pandas objects to describe which epics variables were set before
+        and during runs.
+        
+        For now resample with max_size for monitoring pvs in order to keep file size small enough to pickle.
+        In future refactor to save/load data objects separately and write with pandas/xarray to hdf5.
+        """
+        import operator
+        import numpy as np
+        import xarray as xr
+        import pandas as pd
+
+        if not hasattr(self, 'xruns'):
+            self._load_run_info()
+
+        if not pvs:
+            import PyDataSource
+            if not run:
+                run = max(self.runs_with_xtc)
+                #run=rns['num'].max()
+            
+            ds = PyDataSource.DataSource(exp=self.exp, run=run)
+            #pvnames = {pv:ds.epicsData.alias(pv) for pv in ds.epicsData.pvNames()}
+            pvnames = {}
+            for pv in ds.epicsData.pvNames():
+                pvalias = ds.epicsData.alias(pv)
+                if not pvalias:
+                    pvalias = re.sub(':|\.','_',pv)
+                else:
+                    pvalias = re.sub(':|\.|-| ','_',pvalias)
+                
+                pvnames[pv] = pvalias
+
+            for a in omit:
+                for pv in pvnames.copy():
+                    if pv.startswith(a):
+                        pvnames.pop(pv)
+        else:
+            pvnames = pvs
+
+        for pv, alias in pvnames.copy().items():
+            if pv.endswith('RBV'):
+                pvnames[pv.rstrip('.RBV')] = alias+'_set'
+                if set_only:
+                    del pvnames[pv]
+            elif not pv.endswith('STATE'):
+                del pvnames[pv]
+
+        machine_pvs = []
+        epicsArch_dict = self._load_machine_epicsArch()
+        for attr, item in epicsArch_dict.items():
+            alias = item['alias']
+            pv = attr
+            if pv.endswith('RBV'):
+                alias += '_set'
+                attr = pv.rstrip('.RBV')
+            
+            pvnames[pv] = alias
+            machine_pvs.append(alias)
+
+        #pvmots = {pv.rstrip('.RBV'): alias+'_set' for pv, alias in pvnames.items() if pv.endswith('RBV')}
+        #pvnames.update(**pvmots)
+        #pvs = {pv: alias for pv, alias in pvnames.items() if arch.search_pvs(pv, do_print=False) != []} 
+        pvs = {pv: alias for pv, alias in pvnames.items() if self._in_archive(pv)} 
+       
         meta_attrs = {'units': 'EGU', 'PREC': 'PREC', 'pv': 'name'}
 
         data_arrays = {} 
+        data_machine = {} 
         data_points = {}
         data_fields = {}
         import time
@@ -496,14 +669,16 @@ class ExperimentSummary(object):
         for pv, alias in pvs.items():
             data_fields[alias] = {}
             try:
-                dat = arch._get_json(pv, tstart, tend, False)[0]
+                #dat = arch._get_json(pv, tstart, tend, False)[0]
+                dat = self._get_pv_from_arch(pv)
                 attrs = {a: dat['meta'].get(val) for a,val in meta_attrs.items() if val in dat['meta']}
                 for attr, item in self._fields.items():  
                     try:
                         field=item[0]
                         pv_desc = pv.split('.')[0]+'.'+field
-                        desc = arch._get_json(pv_desc, tstart, tend, False)[0]
-                        if desc:
+                        #desc = arch._get_json(pv_desc, tstart, tend, False)[0]
+                        if self._in_archive(pv_desc):
+                            desc = self._get_pv_from_arch(pv_desc)
                             vals = {}
                             fattrs = attrs.copy()
                             fattrs.update(**desc['meta'])
@@ -522,6 +697,8 @@ class ExperimentSummary(object):
                             attrs[attr] = val
      
                     except:
+                        traceback.print_exc()
+                        print 'cannot get meta for', alias, attr
                         pass
                 vals = [item['val'] for item in dat['data']]
                 doc = attrs.get('description','')
@@ -544,24 +721,47 @@ class ExperimentSummary(object):
                         times = [np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns') for item in dat['data']]
                         # Simple way to remove duplicates
                         # Duplicates will break xarray merge
-                        aa = dict(zip(times, vals))
-                        times = np.array(aa.keys(), dtype=times[0].dtype)
-                        vals = np.array(aa.values())
-                        if len(vals) > 1:
-                            data_arrays[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs) 
+#                        times_o = [a for a in times]
+#                        vals_o = [v for v in vals]
+#                        try:
+#                            aa = dict(zip(times, vals))
+#                            #aa = sorted(dict(zip(times, vals)).items(), key=operator.itemgetter(0))
+#                        except:
+#                            print 'cannot sort', alias
+#                            aa = dict(zip(times, vals))
+#                        times = np.array(aa.keys(), dtype=times[0].dtype)
+#                        vals = np.array(aa.values())
+#                        if not alias.endswith('set') and alias not in machine_pvs and len(aa) > max_size:
+#                            print '    ... resampling', alias
+#                            inds = range(0,len(aa), len(aa)/max_size)
+#                            times = times[inds]
+#                            vals = vals[inds]
+#
+                        if alias in machine_pvs:
+                            data_machine[alias] = pd.Series(vals, times).sort_index().to_xarray().rename({'index': 'time'})
+                            data_machine[alias].name = alias
+                            data_machine[alias].attrs = attrs
+                            #data_machine[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs)
+                        elif len(vals) > 1:
+                            data_arrays[alias] = pd.Series(vals, times).sort_index().to_xarray().rename({'index': 'time'})
+                            data_arrays[alias].name = alias
+                            data_arrays[alias].attrs = attrs
+                            #data_arrays[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs) 
                         else:
                             data_points[alias] = {'value': vals[0], 'time': times[0], 'pv': attrs['pv'], 'units': attrs.get('units','')}
                 except:
+                    traceback.print_exc()
                     if not quiet:
                         print 'Error loadinig', alias
             except:
+                traceback.print_exc()
                 if not quiet:
                     print 'Error loading', alias
 
         if not quiet:
             print '... Merging'
        
-        self.xruns = xruns
+        self._data_machine = data_machine
         self._data_arrays = data_arrays
         self._data_points = data_points
         self._data_fields = data_fields
@@ -569,12 +769,18 @@ class ExperimentSummary(object):
         time_last = time.time()
         xepics = xr.merge(data_arrays.values())
         xepics = xepics[sorted(xepics.data_vars)]
+        xmachine = xr.merge(data_machine.values())
+        xmachine = xmachine[sorted(xmachine.data_vars)]
+
         try:
             dfend = xr.DataArray(self.xruns.run.astype('int16'), coords=[self.xruns.end_time.values],dims=['time']).rename('end_run')
             dfbegin = xr.DataArray(self.xruns.run.astype('int16'), coords=[self.xruns.begin_time.values],dims=['time']).rename('begin_run')
             xepics = xr.merge([xepics, dfend, dfbegin])
             dfend = xepics.end_run.to_dataframe().bfill().rename(columns={'end_run': 'run'})
             dfbegin = xepics.begin_run.to_dataframe().ffill().rename(columns={'begin_run': 'brun'})
+            # Need to make sure there are no duplicates -- 'cxim7216' odd case where there are using this method.
+            dfend = dfend[~dfend.index.duplicated()]
+            dfbegin = dfbegin[~dfbegin.index.duplicated()]
             xepics = xr.merge([xepics, dfend, dfbegin])
             xepics['prep'] = xepics.run != xepics.brun 
             xepics['run'] = xepics.run.astype('int')
@@ -585,9 +791,38 @@ class ExperimentSummary(object):
         except:
             traceback.print_exc()
             print 'Could not merge run begin_time'
+            return xepics, dfend, dfbegin
 
+        try:
+            dfend = xr.DataArray(self.xruns.run.astype('int16'), coords=[self.xruns.end_time.values],dims=['time']).rename('end_run')
+            dfbegin = xr.DataArray(self.xruns.run.astype('int16'), coords=[self.xruns.begin_time.values],dims=['time']).rename('begin_run')
+            xmachine = xr.merge([xmachine, dfend, dfbegin])
+            dfend = xmachine.end_run.to_dataframe().bfill().rename(columns={'end_run': 'run'})
+            dfbegin = xmachine.begin_run.to_dataframe().ffill().rename(columns={'begin_run': 'brun'})
+            # Need to make sure there are no duplicates -- 'cxim7216' odd case where there are using this method.
+            dfend = dfend[~dfend.index.duplicated()]
+            dfbegin = dfbegin[~dfbegin.index.duplicated()]
+            xmachine = xr.merge([xmachine, dfend, dfbegin])
+            xmachine['prep'] = xmachine.run != xmachine.brun 
+            xmachine['run'] = xmachine.run.astype('int')
+            xmachine['end_run'] = xmachine.end_run
+            xmachine['begin_run'] = xmachine.begin_run
+            xmachine = xmachine.drop('brun').set_coords(['run', 'begin_run', 'end_run', 'prep'])
+
+        except:
+            traceback.print_exc()
+            print 'Could not merge run begin_time'
+            return xmachine, dfend, dfbegin
+
+        # add in machine info
+        phot_attrs = ['photon_current','photon_beam_energy']
+        self._machine_coords = phot_attrs
+        if set(phot_attrs) & set(xmachine.keys()) == set(phot_attrs):
+            xepics = xepics.reset_coords().merge(xmachine[phot_attrs].reset_coords()).set_coords(phot_attrs)
+            xepics = xepics.set_coords(['run', 'begin_run', 'end_run', 'prep'])
+        
         self.xepics = xepics
-
+        self.xmachine = xmachine
         time_next = time_next = time.time()
         if not quiet:
             print '{:8.3f} To merge epics data'.format(time_next-time_last)
@@ -602,17 +837,66 @@ class ExperimentSummary(object):
 #
 #            #xepics.to_netcdf( 
 
+    def _load_machine_epicsArch(self, epics_dir=None, epics_file='epicsArch_machine.txt'):
+        import os
+        if not epics_dir:
+            # scons needs updating to copy .txt file so use fixed path
+            #epics_dir = os.path.dirname(__file__)
+            epics_dir = '/reg/neh/home/koglin/conda/PyDataSource/src/'
+        
+        self._epicsArch_dict = epicsArch_dict(epics_file,epics_dir)
+        return self._epicsArch_dict
 
-    def _load_exp_runs(self, quiet=False, **kwargs):
+    def _load_instrument_epicsArch(self, instrument=None, epics_dir=None, epics_file=None, 
+                             quiet=False, **kwargs):
+        """Load epicsArch file to define aliases.
+        """
+        self._epics_dict = {}
+        self._epics_camdict = {}
+        self._devices = {}
+        self._sets = {}
+        if not epics_file:
+            epics_file = 'epicsArch.txt'
+
+        if not epics_dir:
+            if not instrument:
+                instrument = self.instrument
+            
+            epics_dir = '/reg/g/pcds/dist/pds/'+instrument+'/misc/'
+
+        if epics_dir:
+            if not quiet:
+                print 'instrument: {:}'.format(instrument)
+                print 'loading epics pvs from', epics_file, ' in', epics_dir
+            
+            self._epics_dict.update(epicsArch_dict(epics_file,epics_dir))
+            for item in self._epics_dict.values():
+                try:
+                    alias, attr = item['alias'].split('_',1)
+                except:
+                    alias = attr = item['alias']
+
+                if alias not in self._sets:
+                    self._sets[alias] = {}
+                
+                self._sets[alias].update(**{attr: item['base']})
+                #self._devices.update(**{item['base']: {'alias': item['alias'], 'records': {}}})
+
+        return self._epics_dict
+
+    def _load_exp_runs(self, stats=['mean', 'std', 'min', 'max', 'count'], quiet=False, **kwargs):
         import numpy as np
         import xarray as xr
         import pandas as pd
         from h5write import resort
+        import time
 
+        time0 = time.time()
         if not hasattr(self, 'xepics'):
             self._load_epics(**kwargs)
 
-        stats=['mean', 'std', 'min', 'max', 'count']
+        if not quiet:
+            print '... processing {:} epics data'.format(self.exp)
         attrs = [a for a,b in self.xepics.data_vars.items() \
                  if b.attrs.get('pv','').endswith('STATE') or a.endswith('_set')]
         #attrs = [a for a in self.xepics.data_vars.keys() \
@@ -622,14 +906,20 @@ class ExperimentSummary(object):
         xcut = xpvs.where(xpvs.prep == False, drop=True)
         ca = xcut.count().to_array()
         xcut = xcut.drop(ca['variable'][ca == 0].values)
+        coords = ['begin_time','end_time','duration','run_id','prep_time']
+        xcut = xcut.reset_coords(self._machine_coords) 
         dgrp = xcut.groupby('run')
         dsets = [getattr(dgrp, func)(dim='time') for func in stats]
         mvs = xr.concat(dsets, stats).rename({'concat_dim': 'stat'})
-        coords = ['begin_time','end_time','duration','run_id','prep_time']
-        xscan = resort(self.xruns.merge(mvs)).set_coords(coords)
+        xscan = resort(self.xruns.merge(mvs)).set_coords(coords).set_coords(self._machine_coords)
         for attr in xscan.data_vars:
             xscan[attr].attrs = self.xepics[attr].attrs
  
+        # find the last value set in prep before a run starts
+        # if only set once during run, then also consider it to be a set value
+        # since run start time occurs sometimes before set is completed.
+        # in future can make this a little smarter, but generally should be valid assumption
+
 #        xcut = xpvs.where(xpvs.run_prep>0,drop=True).drop('run').rename({'run_prep': 'run'}).set_coords('run')
         xcut = xpvs.where(xpvs.prep == True, drop=True)
         ca = xcut.count().to_array()
@@ -637,9 +927,22 @@ class ExperimentSummary(object):
         xset = self.xruns.copy().set_coords(coords)
         for attr in xcut.data_vars.keys():
             xpv = xcut[attr].where(xcut.run >= 0).dropna(dim='time')
-            runs = set(xpv.run.values)
-            data = {rn: xpv.where(xpv.run==rn,drop=True).values[-1] for rn in runs}
-            xset[attr] = xr.DataArray(data.values(), coords=[data.keys()], dims=['run'], attrs=xpvs[attr].attrs)
+            runs = set(xpv.run.values) 
+            if attr in xscan:
+                setonce = xscan[attr].sel(stat='count').to_pandas() == 1
+                runs = runs | set(setonce.index[setonce])
+            #data = {rn: xpv.where(xpv.run==rn,drop=True).values[-1] for rn in runs}
+            data = {}
+            for rn in runs:
+                vals = xpv.where(xpv.run==rn,drop=True).values
+                if len(vals) > 0:
+                    val = vals[-1]
+                elif setonce[rn]:
+                     val = xscan[attr].sel(run=rn).sel(stat='mean')
+                data[rn] = val
+
+            xset[attr] = xr.DataArray(data.values(), coords=[data.keys()], 
+                                dims=['run'], attrs=xpvs[attr].attrs)
 
         self.xscan = xscan
         self.xset = xset
@@ -650,6 +953,38 @@ class ExperimentSummary(object):
         
         attrs = [a for a in self.xset.data_vars.keys()]
         self.dfset = self.xset.reset_coords()[attrs].dropna(dim='run', how='all').to_dataframe()
+
+        if not quiet:
+            time_next = time.time()
+            print '{:8.3f} Total Time to load and process epics data'.format(time_next-time0)
+            print '... Done loading {:} epics data'.format(self.exp)
+      
+    def get_scan_series(self, attr, quiet=True):
+        """Infer sets or runs that are parametric series based on change in attr setting for each run.
+        """
+        df = self.xset.to_dataframe()[attr].dropna(how='all')
+        dfp = df.diff()
+        dfpp = dfp.diff()
+        asets = {}
+        nrns = 0 
+        rn0 = 0
+        rn_last = 0
+        for run,val in dfp.iteritems():
+            if abs(dfpp[run]) > 0.1 or run-rn_last > 2:
+                if nrns > 4:
+                    asets[rn0] = (rn0, rn_last)
+                rn0 = run
+                rn_last = run
+                nrns = 0
+                if not quiet:
+                    print '- {:4} {:8.3f} {:8.3f} {:8.3f}'.format(run, df[run], dfp[run], dfpp[run])
+            else:
+                nrns += 1
+                rn_last = run
+                if not quiet:
+                    print '  {:4} {:8.3f} {:8.3f} {:8.3f}'.format(run, df[run], dfp[run], dfpp[run])
+                
+        return asets
 
     def get_scans(self, min_steps=4, attrs=None, device=None, min_motors=1, **kwargs):
         """
@@ -699,6 +1034,13 @@ class ExperimentSummary(object):
         """
         return self.dfset.count()
 
+    @property
+    def dfruns(self):
+        """
+        pandas DataFrame of Experiment run information. 
+        """
+        import pandas as pd
+        return pd.DataFrame({a.get('num'): a for a in self.runs})
 
     @property
     def runs(self):

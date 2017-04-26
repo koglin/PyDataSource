@@ -539,8 +539,8 @@ class ScanData(object):
 
             self.pvAliases = {}
             for i, pv in enumerate(self.pvControls):
-                alias = self.pvLabels[i]
-                self.pvAliases[pv] = re.sub('-|:|\.| ','_', alias)
+                alias = re.sub('-|:|\.| ','_', self.pvLabels[i])
+                self.pvAliases[pv] = alias 
                 setattr(self, alias, self.control_values[pv])
 
         ds.reload()
@@ -660,7 +660,7 @@ class DataSource(object):
             'path': '',
             'devName': {
 ##                'Evr': 'evr', 
-##                'Imp': 'imp',
+#                'Imp': 'impbox',
 #                'Acqiris': 'acqiris',
 ##                'Epix': 'epix100',
 ##                'Cspad': 'cspad',
@@ -680,6 +680,7 @@ class DataSource(object):
 
     def __init__(self, data_source=None, **kwargs):
         #self._device_sets = {'DataSource': {}}
+        self._exp_summary = None
         self._device_sets = {}
         self._current_data = {}
         path = os.path.dirname(__file__)
@@ -699,7 +700,51 @@ class DataSource(object):
         if self.data_source.smd:
             step = self.steps.next()
             self.reload()
-    
+
+    def _get_exp_summary(self, reload=False, **kwargs):
+        """
+        Load experiment summary
+        """
+        from exp_summary import get_exp_summary 
+        self._exp_summary = get_exp_summary(self.data_source.exp, reload=reload, **kwargs)
+        return self._exp_summary
+
+    @property
+    def exp_summary(self):
+        """
+        Experiment summary.  Reload if not up to date with current data_source run.
+        """
+        if self._exp_summary is None:
+            es = self._get_exp_summary()
+        else:
+            es = self._exp_summary
+
+        if self.data_source.run not in es.xruns.run.values:
+            es = self._get_exp_summary(reload=True)
+
+        return es
+
+    @property
+    def scan_pvs(self):
+        """
+        Dict of pv alias and number of times set during run.
+        For more detailed information on scan see for example xarray Dataset retruned from:
+            xpvscan = ds.exp_summary.get_scan_data(run_number)
+        """
+        df = self.exp_summary.dfscan.T[self.data_source.run]
+        return df[df>0].to_dict()
+
+    @property
+    def moved_pvs(self):
+        """
+        Dict of pv alias and values that were set prior to run..
+        """
+        df = self.exp_summary.dfset.T.get(self.data_source.run)
+        if df is not None:
+            return df.dropna().to_dict()
+        else:
+            return None
+
     def load_run(self, data_source=None, reload=False, **kwargs):
         """Load a run with psana.
         """
@@ -786,10 +831,130 @@ class DataSource(object):
 
         return str(self.data_source)
 
-    def reload(self):
+    def reload(self, reset_stats=True):
         """Reload the current run.
         """
         self.load_run(reload=True)
+        if reset_stats:
+            self.reset_stats()
+
+    def reset_stats(self, attrs=None):
+        """
+        Reset Welford stats objects.
+        
+        Parameters
+        ----------
+        attrs:  Optional list of stats objects to reset (e.g., [CsPad.calib_stats])
+        """
+        if attrs and not isinstance(attrs, list):
+            attrs = [attrs]
+
+        for alias, det_config in self._device_sets.items():
+            if 'stats' in det_config:
+                for attr, item in det_config['stats'].items():
+                    if not attrs or '.'.join([alias,attr]) in attrs:
+                        item['funcs'] = {}
+    
+    def _add_default_stats(self, attrs=[], **kwargs):
+        """
+        Add default statistics for each Image and Waveform Detectors
+        if not stats already created
+        """
+        if not attrs:
+            attrs = self._detectors.keys()
+        
+        attrs = list(set(attrs))
+
+        for attr in attrs:
+            det = self._detectors[attr]
+            if not det._det_config['stats']:
+                if det._det_class == WaveformData:
+                    det.add.stats('waveform', **kwargs)
+                elif det._det_class == ImageData:
+                    det.add.stats('calib', **kwargs)
+
+    @property
+    def stats(self):
+        """
+        xarray Dataset of all Welford stats.
+        """
+        return self._get_stats()
+
+    def _get_stats(self, attrs=None):
+        """
+        xarray Dataset of Welford stats.
+        
+        Parameters
+        ----------
+        attrs:  Optional list of stats objects to save (e.g., [CsPad.calib_stats])
+        """
+        import xarray as xr
+        import os
+        if attrs and not isinstance(attrs, list):
+            attrs = [attrs]
+
+        datasets = []
+        for alias, det_config in self._device_sets.items():
+            if 'stats' in det_config:
+                for attr, item in det_config['stats'].items():
+                    if not attrs or '.'.join([alias,attr]) in attrs:
+                        datasets.append(self._detectors[alias]._get_stats(attr))
+        
+        try:
+            x = xr.merge(datasets)
+        except:
+            print 'merge failed'
+            return datasets
+            
+        try:
+            xsteps = list(x.coords.get('steps').values)
+            if xsteps:
+                for pv, vals in self.configData.ScanData.control_values.items():
+                    alias = self.configData.ScanData.pvAliases[pv]
+                    x.coords[alias+'_steps'] =  (('steps'), vals[xsteps]) 
+        except:
+            print 'could not add steps'
+
+        return x
+
+    def save_stats(self, attrs=None, file_name=None, path=None, 
+            h5folder='scratch', subfolder='nc',
+            engine='h5netcdf', **kwargs):
+        """
+        Save Welford stats as xarray compatible hdf5 files (using h5netcdf engine).
+        
+        Parameters
+        ----------
+        attrs:  Optional list of stats objects to save (e.g., [CsPad.calib_stats])
+        """
+        import xarray as xr
+        import os
+        data_sets = self._get_stats(attrs=attrs)
+        try:
+            if not data_sets:
+                print 'No stats to save'
+                return
+            elif isinstance(data_sets, list):
+                print 'Cannot save stats'
+                return
+        except:
+            traceback.print_exc()
+            return
+
+        if not file_name:
+            if not path:
+                instrument = self.data_source.instrument
+                exp = self.data_source.exp
+                run = self.data_source.run
+                path = '/reg/d/psdm/{:}/{:}/{:}/{:}/Run{:04}/'.format(instrument, 
+                        exp,h5folder,subfolder,run)
+                if not os.path.isdir(path):
+                    os.mkdir(path)
+        
+            file_base = 'run{:04}'.format(int(run))
+            file_name = os.path.join(path,'{:}_{:}.nc'.format(file_base,'stats'))
+   
+        self.stats.to_netcdf(file_name, engine=engine)
 
     def _load_ConfigData(self):
         self._ConfigData = ConfigData(self)
@@ -917,6 +1082,48 @@ class DataSource(object):
         """
         return self.configData.Sources
 
+    def _make_smd_file(self):
+        """
+        Execute script to make small data file for old files.        
+ 
+            Usage:  ./smldata  [-f <xtc filename>] [-i <input index>] [-o <index filename>] [-s <size threshold>] [-h]
+              Options:
+                -h                     Show usage.
+                -f <xtc filename>      Set input xtc filename
+                -i <index filename>    Set input index filename
+                   Note 1: -i option is used for testing. The program will parse
+                     the index file to see if it is valid, and output to another
+                     index file if -o option is specified
+                   Note 2: -i will overwrite -f option
+                -o <index filename>    Set output index filename
+                -s <size threshold>    Set L1Accept xtc size threshold
+        """
+        import subprocess
+        import glob
+        import os
+
+        exp_dir = os.path.join('/reg/d/psdm/',self.data_source.instrument,self.data_source.exp)
+        xtc_dir = os.path.join(exp_dir,'xtc')
+        smd_dir = os.path.join(xtc_dir,'smalldata')
+        script_path = '/reg/common/package/pdsdata/8.7.3/x86_64-rhel7-opt/bin/'
+        xtc_files = glob.glob(xtc_dir+'/*-r{:04}-s*.xtc'.format(self.data_source.run))
+        if not os.path.isdir(smd_dir):
+            os.mkdir(smd_dir)
+        
+        print 'WARNING:  Need to have priviledge to do this...'
+        print '  ask for help from CDS'
+        print 'Execute the following commands from psana:'
+        print '------------------------------------------'
+        for file_in in xtc_files:
+            file_out = file_in.replace('/xtc/','/xtc/smalldata/').rstrip('xtc')+'smd.xtc'
+            if not glob.glob(file_out):
+                cmd = '{:}smldata -f {:} -o {:}'.format(script_path, file_in, file_out)
+                print cmd
+                #subproc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            else:
+                print '# Small data file already exists: {:}'.format(file_out)
+
+
     def _init_detectors(self):
         """Initialize psana.Detector classes based on psana env information.
         """
@@ -970,6 +1177,13 @@ class DataSource(object):
                 srcstr = self._aliases.get(alias)
                 if not srcstr:
                     raise Exception('{:} not a valid Detector'.format(alias))
+            else:
+                # update aliases with srcstr -- required for old data
+                # but could overwrite aliases for new data
+                if alias not in self._aliases:
+                    self._aliases[alias] = srcstr
+                elif srcstr != self._aliases.get(alias):
+                    raise Exception('{:} alias already taken'.format(alias))
 
         det = alias
         
@@ -1111,7 +1325,7 @@ class DataSource(object):
             os.mkdir(path)
 
         if not run:
-            for run in range(self.data_source.run, 0, -1):
+            for run in range(int(self.data_source.run), 0, -1):
                 file_name = '{:}/run{:04}.config'.format(path, int(run))
                 if os.path.isfile(file_name):
                     return file_name
@@ -1138,7 +1352,7 @@ class DataSource(object):
 
         pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
 
-    def load_config(self, run=None, exp=None, user=None, file_name=None, path=None, **kwargs):
+    def load_config(self, run=None, exp=None, user=None, file_name=None, path=None, quiet=True, **kwargs):
         """
         Load DataSource configuration.  Overwrites any existing config.
         
@@ -1167,7 +1381,7 @@ class DataSource(object):
                 if 'module' in item:
                     module_dict = item.pop('module')
                     if module_dict:
-                        print alias, module_dict
+                        #print alias, module_dict
                         kwargs = module_dict.get('kwargs', {})
                         kwargs.update({'alias': alias, 
                                        'srcstr': module_dict.get('srcstr'),
@@ -1191,8 +1405,21 @@ class DataSource(object):
                                     det_config[attr][a] = val
                                 else:
                                     print alias, attr, 'No overwrite', a, val
-                    else:
+                    elif attr != 'stats':
                         det_config[attr] = config_dict
+
+                # Need to be careful with stats objects to make sure added with dims correctly
+                stats_config = item.get('stats')
+                if stats_config:
+                    evt = self.events.current
+                    while alias not in evt._attrs:
+                        evt = self.events.next()
+                    detector = getattr(evt, alias)
+                    for name, stat_item in stats_config.items():
+                        attr = stat_item['attr']
+                        print 'adding stats for', attr, name, 
+                        detector.add.stats(attr, name=name)
+                    self.reload()
 
     def show_info(self, **kwargs):
         """
@@ -2612,7 +2839,12 @@ class EvrData(PsanaTypeData):
             else:
                 return False
         except:
-            return False
+            try:
+                return (eventCode in self.eventCodes)
+            except:
+                pass
+        
+        return False
 
     def present(self, *args):
         """
@@ -2812,6 +3044,7 @@ class Detector(object):
             self._xarray_info.update({'coords': {}, 'dims': {}, 'attrs': {}})
         
         self._source = ds.configData._sources.get(self.src)
+        #
 
         if self.src:
             if verbose:
@@ -2847,6 +3080,16 @@ class Detector(object):
             self._tabclass = 'detector'
 
         self._init = True
+
+    @property
+    def _source_info(self):
+        """
+        sourceData information.  Objects converted to str.
+        """
+        src_info = self.sourceData._source.copy()
+        if 'src' in src_info:
+            src_info['src'] = str(src_info['src'])
+        return src_info
 
     @property
     def add(self):
@@ -2928,6 +3171,7 @@ class Detector(object):
                     'image':     image_dims,
                     'calib':     raw_dims,
                     'raw':       raw_dims,
+                    'corr':      raw_dims,
                     }
            # # temporary fix for Opal2000, Opal4000 and Opa8000
            # elif self._pydet.dettype in [7,8,9]:
@@ -2935,11 +3179,16 @@ class Detector(object):
 
             else:
                 if self.calibData.image_xaxis is not None and self.calibData.image_xaxis.size > 0:
-                    raw_dims = (['X', 'Y'], self.calibData.shape)
+                    raw_dims = (['xaxis', 'yaxis'], self.calibData.shape)
                     image_shape = (len(self.calibData.image_xaxis),len(self.calibData.image_yaxis))
                     image_dims = (['X', 'Y'], image_shape)
                     #dims_dict = {'calib':     image_dims}
-                    dims_dict = {'raw':     image_dims}
+                    dims_dict = {
+                        'image':     image_dims,
+                        'raw':       raw_dims,
+                        'corr':      raw_dims,
+                        'calib':     raw_dims,
+                        }
                 else:
                     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
 
@@ -2987,8 +3236,8 @@ class Detector(object):
             if self.calibData.ndim == 3:
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
                 attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
-                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms'
-                         'image_xaxis', 'image_yaxis']
+                        # 'image_xaxis', 'image_yaxis',
+                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
                 coords_dict = {
                         'X': self.calibData.image_xaxis,
                         'Y': self.calibData.image_yaxis
@@ -3001,8 +3250,10 @@ class Detector(object):
                                'Y': np.arange(coords_shape[1])}
 
             elif self.calibData.ndim == 2 and  self.calibData.shape[0] > 0:
-                raw_dims = (['X', 'Y'], self.calibData.shape)
-                attrs = []
+                raw_dims = (['xaxis', 'yaxis'], self.calibData.shape)
+                attrs = ['areas', 'coords_x', 'coords_y', 'coords_z', 
+                        # 'image_xaxis', 'image_yaxis',
+                         'gain', 'indexes_x', 'indexes_y', 'pedestals', 'rms']
                 coords_dict = {
                         'X': self.calibData.image_xaxis,
                         'Y': self.calibData.image_yaxis
@@ -3496,7 +3747,7 @@ class Detector(object):
 
         return None
 
-    def _get_stats(self, attr, stats=['mean', 'std', 'min', 'max']):
+    def _get_stats(self, attr, stats=['mean', 'std', 'var', 'min', 'max']):
         """
         Get xarray.DataArray of Welford stats as defined by stats AddOn.
         """
@@ -3504,9 +3755,12 @@ class Detector(object):
         import numpy as np
         import xarray as xr
         
-        coords = stat_info.get('coords').copy()
+        # Need to fix handling of coords to be robust
+        #coords = stat_info.get('coords').copy()
+        coords = {}
         dims = stat_info.get('dims')
         eventCodes = stat_info['funcs'].keys()
+        attrs = stat_info['attrs']
         steps = []
         for ec, item in stat_info['funcs'].items():
             for step, fec in item.items():
@@ -3517,7 +3771,7 @@ class Detector(object):
         neventCodes = len(eventCodes)
         nstats = len(stats)
         aevents = np.zeros(shape=(nsteps,neventCodes))
-        dim_names = [a for a in dims[0]]
+        dim_names = ['_'.join([self._alias,a]) for a in dims[0]]
         dim_shape = list(dims[1])
         dim_names.insert(0,'codes')
         dim_shape.insert(0,neventCodes)
@@ -3538,11 +3792,11 @@ class Detector(object):
                     if np.any(vals):
                         asums[istat, istep, iec] = vals         
 
-        da = xr.DataArray(asums, dims=ddims[0], coords=coords)
-        da.coords['events']= (['steps', 'codes'], aevents)
+        da = xr.DataArray(asums, dims=ddims[0], coords=coords, 
+                attrs=attrs, name='_'.join([self._alias, attr]))
+        da.coords['_'.join([self._alias,'events'])]= (['steps', 'codes'], aevents)
 
         return da
-
 
     def _get_projection(self, attr):
         """
@@ -4150,7 +4404,7 @@ class AddOn(object):
         return name
 
     def stats(self, attr=None, doc=None, 
-            name=None, eventCodes=None, **kwargs):
+            name=None, eventCodes=None, attrs={}, **kwargs):
         """
         Calculate running statistics (mean, std, min, max, count) of detector data attribute 
         during event iteration using Welford algorithm.
@@ -4170,17 +4424,31 @@ class AddOn(object):
             return
 
         if not eventCodes:
-            eventCodes = [self._det.configData.eventCode]
-        elif not isinstance(eventCodes, list):
-            eventCodes = [eventCodes]
+            code0 = self._det.configData.eventCode
+            if not code0:
+                code0 = 40
+                if code0 not in self._ds.configData._eventcodes:
+                    code0 = self._ds.configData._eventcodes.keys()
 
-        if not self._det_config['xarray'].get('coords'):
+            eventCodes = code0
+
+        if not isinstance(eventCodes, list):
+            eventCodes = [eventCodes]
+        # Need to update dims always
+        if True or not self._det_config['xarray'].get('coords'):
             self._det._update_xarray_info()
 
         dims = self._det_config['xarray'].get('dims', {}).get(attr, {})
+        if not dims:
+            dims = self._det_config['xarray'].get('dims', {}).get('raw', {})
         all_coords = self._det_config['xarray'].get('coords', {})
-        coords = {dim: coord for dim, coord in all_coords.items() if dim in dims[0]}
-        attrs = self._det_config['xarray'].get('attrs', {})
+        #coords = {dim: coord for dim, coord in all_coords.items() if dim in dims[0]}
+        #coords = {dim: coord for dim, coord in all_coords.items() if not isinstance(coord[0], list) or len(set(coord[0]) & set(dims[0])) > 0}
+        #coords = {dim: coord for dim, coord in all_coords.items() if coord[0] == dims[0]}
+        coords = {}
+        #attrs = self._det_config['xarray'].get('attrs', {})
+        stat_attrs = self._det._source_info
+        stat_attrs.update(**attrs)
 
 #        try:
 #            dims = self._det_config['xarray']['dims'].get(attr)
@@ -4199,6 +4467,7 @@ class AddOn(object):
                 'coords': coords,
                 'funcs': {},
                 'eventCodes': eventCodes,
+                'attrs': stat_attrs,
                 'stats': ['mean', 'std', 'min', 'max'],
                 }})
 
@@ -5160,7 +5429,7 @@ class ImageData(object):
     Attributes come from psana.Detector with low level implementation 
     done in C++ or python.  Boost is used for the C++.
     """
-    _attrs = ['image', 'raw', 'calib', 'shape', 'size'] 
+    _attrs = ['image', 'raw', 'calib', 'corr', 'shape', 'size'] 
     _attr_info = {
             'shape':       {'doc': 'Shape of raw data array', 
                             'unit': ''},
@@ -5171,6 +5440,8 @@ class ImageData(object):
             'calib':       {'doc': 'Calibrated data',
                             'unit': 'ADU'},
             'image':       {'doc': 'Reconstruced 2D image from calibStore geometry',
+                            'unit': 'ADU'},
+            'corr':        {'doc': 'Pedestal corrected data (no common mode correction)',
                             'unit': 'ADU'},
             } 
 
@@ -5187,6 +5458,17 @@ class ImageData(object):
         Instrument to which this detector belongs.
         """
         return self._det.instrument()
+
+    @property
+    def corr(self):
+        """
+        Pedestal corrected raw data.
+        """
+        ped = self._det.pedestals(self._evt)
+        if ped is not None:
+            return self.raw-ped
+        else:
+            return self.raw
 
     def make_image(self, nda):
         """

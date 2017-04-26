@@ -16,6 +16,8 @@ pd.set_option('max_colwidth', 66)
 pd.set_option('display.width', 110)
 plt.rcParams['axes.labelsize'] = 16 
 
+default_path = 'scratch'
+
 def hover(hover_color="#ffff99"):
     return dict(selector="tr:hover",
                 props=[("background-color", "%s" % hover_color)])
@@ -82,7 +84,9 @@ class Build_experiment(object):
 
         self._init_output(**kwargs)
         if auto:
-            self.add_defaults()
+            # assume first 2% are setup
+            run_min = int(self._es.xruns.run.max()*.01)
+            self.add_defaults(run_min=run_min)
             self.to_html()
  
     def _get_exp_summary(self, **kwargs):
@@ -99,22 +103,56 @@ class Build_experiment(object):
         except:
             traceback.print_exc()
 
-        run_sets = self._es.get_run_sets(run_min=None, run_max=None, **kwargs)
+        try:
+            #self.add_xy_ploterr('photon_beam_energy', 'run', title='Photon Beam Energy')
+            #self.add_xy_ploterr('photon_current', 'run', title='Photon Current')
+            for attr in self._es._machine_coords:
+                self.add_xy_ploterr(attr, 'run', title=attr.replace('_',' '), catagory='Summary')
+            
+            for attr in self._es.get_scans().keys():
+                self.add_xy_ploterr(attr, 'run', title=attr.replace('_',' '), catagory='Scan Summary')
+
+        except:
+            traceback.print_exc()
+
+        run_sets = self._es.get_run_sets(run_min=run_min, run_max=run_max, **kwargs)
         if len(run_sets) > 3:
                 self.logger.info('Adding moved ')
-                self.add_epics(**kwargs)
+                self.add_epics(run_min=run_min, run_max=run_max, **kwargs)
         else:
             for run_set in run_sets:
                 self.logger.info('Adding moved {:}'.format(run_set))
                 self.add_epics(run_min=run_set[0], run_max=run_set[1], **kwargs)
+
+        try:
+            self.add_last_set()
+        except:
+            traceback.print_exc()
+            self.logger.info('Failed adding last set')
+
+    def add_table(self, df, catagory=None, tbl_type=None, name=None, howto=[], doc=[], hidden=False): 
+        if not catagory:
+            catagory = 'Tables'
+        if not tbl_type:
+            tbl_type = ', '.join(a.columns)
+        if not name:
+            name = '__'.join(a.columns)
+        
+        self._add_catagory(catagory)
+        self.results[catagory]['table'].update({tbl_type: 
+                                                   {'DataFrame': df, 
+                                                    'name': name,
+                                                    'howto': howto, 
+                                                    'hidden': hidden, 
+                                                    'doc': doc}})
+
 
     def add_last_set(self, **kwargs):
         es = self._es
         df = es.last_set(**kwargs) 
    
         alias = 'Epics'
-        if alias not in self.results: 
-            self.results[alias] = {'figure': {}, 'table': {}, 'text': {}}
+        self._add_catagory(alias)
         doc = []
         doc.append('Last time Epics PV was set')
         howto = []
@@ -141,7 +179,7 @@ class Build_experiment(object):
             if not isinstance(dets, list):
                 dets = [dets]
         else:
-            dets = list(set([a.split('_')[0] for a in es.xset.data_vars.keys()]))
+            #dets = list(set([a.split('_')[0] for a in es.xset.data_vars.keys()]))
             dets = es.get_moved(run_min=run_min, run_max=run_max, group=group)
     
         alias = 'Epics'
@@ -165,7 +203,7 @@ class Build_experiment(object):
                 self.logger.info('Adding {:} plot for {:}'.format(alias, det))
                 self.add_plot(alias, det, howto=howto)
 
-    def add_scans(self, dets=None, min_steps=2, **kwargs):
+    def add_scans(self, dets=None, min_steps=4, **kwargs):
         """
         Add summary of scans.
         """
@@ -184,8 +222,7 @@ class Build_experiment(object):
             dfscan = df.where(df[attrs].T.sum() > min_steps).dropna()
             dfscan = dfscan.T.where(dfscan.sum() > min_steps).dropna().T.astype(int)
            
-            if alias not in self.results: 
-                self.results[alias] = {'figure': {}, 'table': {}, 'text': {}}
+            self._add_catagory(alias)
             doc = []
             doc.append('Scans involving {:} devices'.format(det))
             howto = []
@@ -210,31 +247,42 @@ class Build_experiment(object):
 
             for run in dfscan.index:
                 self._es.plot_scan(run, attrs=attrs)
-                self.add_plot(alias, 'Run {:03} {:}'.format(run, det), howto=['es.plot_scan({:})'.format(run)])
+                howto=['es.plot_scan({:}, attrs={:})'.format(run, attrs)]
+                self.add_plot(alias, 'Run {:03} {:}'.format(run, det), howto=howto )
 
+    def _add_catagory(self, catagory):
+        if catagory not in self.results:
+            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}}
+    
     def add_plot(self, catagory, plt_type, howto=[], show=False):
         """Add a plot to RunSummary.
         """
-        if catagory not in self.results:
-            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}}
-        
-        plt_file = '{:}_{:}.png'.format(catagory, plt_type).replace(' ','_') 
-        self.results[catagory]['figure'].update({plt_type: {'path': self.output_dir, 
-                                                         'png': plt_file,
-                                                         'howto': howto}})
-        plt.savefig(os.path.join(self.output_dir, plt_file))
-        if show:
-            plt.show()
-        else:
-            plt.close()
+        try:
+            self._add_catagory(catagory)
 
-    def _init_output(self, path=None, filename='experiment', **kwargs):
+            plt_file = '{:}_{:}.png'.format(catagory, plt_type).replace(' ','_') 
+            self.results[catagory]['figure'].update({plt_type: {'path': self.output_dir, 
+                                                             'png': plt_file,
+                                                             'howto': howto}})
+            plt.savefig(os.path.join(self.output_dir, plt_file))
+            if show:
+                plt.show()
+            else:
+                plt.close()
+
+        except:
+            traceback.print_exc()
+            self.logger.info('Could not add Plot {:} {:}'.format(catagory, plt_type))
+
+    def _init_output(self, path=default_path, filename='experiment', **kwargs):
         """Set output path and build appropriate directories for html
         """
         if not path:
             path = os.path.join(self.res_dir, 'RunSummary')
         elif path == 'home':
             path = os.path.join(os.path.expanduser('~'), 'RunSummary', self.exp)
+        elif path == 'scratch':
+            path = os.path.join(self.scratch_dir, 'RunSummary')
         
         print 'Setting output path to', path
 
@@ -409,6 +457,36 @@ class Build_experiment(object):
         self.html._finish_page()
         self.html.myprint(tofile=True)
 
+    def add_xy_ploterr(self, attr, xaxis=None, howto=None, catagory=None, text=None, table=None, **kwargs):
+        from plotting import xy_ploterr
+        x = self._es.xscan
+        if not howto:
+            howto = []
+        if not catagory:
+            catagory = x[attr].attrs.get('alias', 'Summary')
+        
+        howto.append("Custom plot see PyDataSource.plotting.xy_ploterr method")
+        p = xy_ploterr(x, attr, xaxis=xaxis, **kwargs)
+        if not xaxis:
+            xaxis=x.scan_variables[0]
+        plt_type = '{:} vs {:}'.format(attr, xaxis)   
+        if kwargs.get('logy'):
+            if kwargs.get('logx'):
+                plt_type+=' log-log'
+            else:
+                plt_type+=' log scale'
+        elif kwargs.get('logx'):
+            plt_type+=' lin-log'
+
+        print catagory, plt_type
+        self.add_plot(catagory, plt_type, howto=howto)
+        if table is not None:
+            self.results[catagory]['table'].update({attr:{'DataFrame': table, 
+                                                        'name': 'df_tbl',
+                                                        'howto': [], 
+                                                        'doc': text}})
+
+
 
 class Build_html(object):
     """Class to build an html RunSummary report.
@@ -482,13 +560,15 @@ class Build_html(object):
 
         self._init_output(**kwargs)
     
-    def _init_output(self, path=None, filename=None, **kwargs):
+    def _init_output(self, path=default_path, filename=None, **kwargs):
         """Set output path and build appropriate directories for html
         """
         if not path:
             path = os.path.join(self.res_dir, 'RunSummary')
         elif path == 'home':
             path = os.path.join(os.path.expanduser('~'), 'RunSummary', self.exp)
+        elif path == 'scratch':
+            path = os.path.join(self.scratch_dir, 'RunSummary')
         
         print 'Setting output path to', path
 
@@ -517,7 +597,7 @@ class Build_html(object):
             if not quiet:
                 print 'adding detector', alias
             if 'cuts' in self._xdat.attrs:
-                for cut in self._xdat.attrs['cuts']:
+                for cut in self._xdat.attrs.get('cuts', []):
                     self.add_detector(alias, cut=cut, **kwargs)
                 
             else:
@@ -530,10 +610,8 @@ class Build_html(object):
         """
         attrs = [a for a in self._xdat.variables.keys() if a.endswith('events')]
         if attrs and self.nsteps == 1:
-            if alias not in self.results: 
-                self.results[alias] = {'figure': {}, 'table': {}, 'text': {}}
-        
-            df_tbl = self._xdat[attrs].sel(steps=0).to_array().to_pandas()
+            self._add_catagory(alias)
+            df_tbl = self._xdat.reset_coords()[attrs].sel(steps=0).to_array().to_pandas()
             self.eventStats = df_tbl
             doc = []
             doc.append("A summary of the mean, stdev, min and max values were created "
@@ -578,8 +656,9 @@ class Build_html(object):
         if groupby is None:
             groupby = x.attrs.get('scan_variables')
 
-        if groupby and not np.shape(groupby):
-            groupby = [groupby]
+        #if groupby and not np.shape(groupby):
+        if groupby is not None:
+            groupby = list(set(groupby))
 
         attr_names = None
         if not attrs:
@@ -612,9 +691,7 @@ class Build_html(object):
             catagory = alias+' '+cut
 
         if attrs:
-            if catagory not in self.results: 
-                self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}}
-            
+            self._add_catagory(catagory)
             nattrs = len(attrs)
             if nattrs == 4:
                 nrows = 2
@@ -640,46 +717,52 @@ class Build_html(object):
                 if len(itimes) > 1:
                     xselect = xselect.isel_points(time=itimes[1])
 
-            df = xselect.to_array().to_pandas().T
-            
-            howto = ["plt.rcParams['axes.labelsize'] = {:}".format(labelsize)]
-            howto.append("attrs = {:}".format(attrs))
-            if cut:
-                howto.append("itimes = x[attrs].groupby({:}).groups[1]".format(cut))
-                howto.append("xselect = x[attrs].isel_points(times=itimes)")
-            else:
-                howto.append("xselect = x[attrs]")
+            try:
+                df = xselect.to_array().to_pandas().T
+                
+                howto = ["plt.rcParams['axes.labelsize'] = {:}".format(labelsize)]
+                howto.append("attrs = {:}".format(attrs))
+                if cut:
+                    howto.append("itimes = x[attrs].groupby({:}).groups[1]".format(cut))
+                    howto.append("xselect = x[attrs].isel_points(times=itimes)")
+                else:
+                    howto.append("xselect = x[attrs]")
 
-            howto.append("df = xselect.to_array().to_pandas().T")
+                howto.append("df = xselect.to_array().to_pandas().T")
 
-            df_attrs = pd.DataFrame({attr_names[attr]: {a: x[attr].attrs.get(a) for a in desc_attrs} \
-                                     for attr in attrs}).T[desc_attrs]
-            
-            # Need to add in howto print formatted df_attrs, but tricky
-            self.results[catagory]['table'].update({'attrs': {'DataFrame': df_attrs, 'name': 'df_attrs',
-                        'format': {'unit': '{:<10s}', 'doc': '{:<69s}'}}})
-            
-            df.rename(inplace=True, columns=attr_names)
-            howto.append("attr_names={:}".format(attr_names))
-            howto.append("df.rename(inplace=True, columns=attr_names)")
-            self.results[catagory]['text'].update({'setup':{'howto': howto}})
-            
-            #df_attrs.to_string(formatters={'unit': '{:<10s}'.format, 'doc': '{:<60s}'.format},justify='left')
+                df_attrs = pd.DataFrame({attr_names[attr]: {a: x[attr].attrs.get(a) for a in desc_attrs} \
+                                         for attr in attrs}).T[desc_attrs]
+                
+                # Need to add in howto print formatted df_attrs, but tricky
+                self.results[catagory]['table'].update({'attrs': {'DataFrame': df_attrs, 'name': 'df_attrs',
+                            'format': {'unit': '{:<10s}', 'doc': '{:<69s}'}}})
+                
+                df.rename(inplace=True, columns=attr_names)
+                howto.append("attr_names={:}".format(attr_names))
+                howto.append("df.rename(inplace=True, columns=attr_names)")
+                self.results[catagory]['text'].update({'setup':{'howto': howto}})
+                
+                #df_attrs.to_string(formatters={'unit': '{:<10s}'.format, 'doc': '{:<60s}'.format},justify='left')
 
-            df_tbl = df.describe(percentiles=percentiles).T.round({'count':0})
-            howto = ["df_tbl = df.describe(percentiles={:}).T.round({:})".format(percentiles,{'count':0})]
-            howto.append("print df_tbl")
+                df_tbl = df.describe(percentiles=percentiles).T.round({'count':0})
+                howto = ["df_tbl = df.describe(percentiles={:}).T.round({:})".format(percentiles,{'count':0})]
+                howto.append("print df_tbl")
 
-            # make table using pandas
-            if make_table:
-                self.results[catagory]['table'].update({'stats':{'DataFrame': df_tbl, 'name': 'df_tbl', 'howto': howto}})
-           
-            # make time plots
-            if make_timeplot:
-                plt_type = 'time'
-                df.plot(subplots=True, sharex=True, layout=layout, figsize=figsize)
-                howto = ["df.plot(subplots=True, sharex=True, layout={:}, figsize={:})".format(layout, figsize)]
-                self.add_plot(catagory, plt_type, howto=howto)
+                # make table using pandas
+                if make_table:
+                    self.results[catagory]['table'].update({'stats':{'DataFrame': df_tbl, 'name': 'df_tbl', 'howto': howto}})
+               
+                # make time plots
+                if make_timeplot:
+                    plt_type = 'time'
+                    df.plot(subplots=True, sharex=True, layout=layout, figsize=figsize)
+                    howto = ["df.plot(subplots=True, sharex=True, layout={:}, figsize={:})".format(layout, figsize)]
+                    self.add_plot(catagory, plt_type, howto=howto)
+
+            except:
+                traceback.print_exc()
+                print 'Could not build df to describe ', attrs
+                print xselect
 
             # Make groupby plots
             if groupby:
@@ -688,7 +771,7 @@ class Build_html(object):
                 for grp in groupby:
                     
 #                    try:
-                    if True:
+                    try:
                         # not sure why this is a list sometimes
                         if isinstance(grp, list):
                             grp = grp[0]
@@ -750,8 +833,9 @@ class Build_html(object):
                         #        plt_type = 'summary_{:}_ec{:}'.format(name, code) 
                         #        self.add_plot(alias, plt_type, howto=howto)
 
-                    else:
+                    except:
                     #except:
+                        traceback.print_exc()
                         print 'Failed adding:', group
                         plt.cla()
                         plt.close()
@@ -879,7 +963,7 @@ class Build_html(object):
         if not catagory:
             catagory = x[attr].attrs.get('alias', 'Summary')
         
-        howto.append("Custom plot see RunSummary.plotting.xy_ploterr method")
+        howto.append("Custom plot see PyDataSource.plotting.xy_ploterr method")
         p = xy_ploterr(x, attr, xaxis=xaxis, **kwargs)
         if not xaxis:
             xaxis=x.scan_variables[0]
@@ -1039,17 +1123,17 @@ class Build_html(object):
     def add_setup(self, catagory, howto):
         """Add text to beginning of HowTo.
         """
-        if catagory not in self.results:
-            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}}
-
+        self._add_catagory(catagory)
         self.results[catagory]['text'].update({'setup':{'howto': howto}})
 
+    def _add_catagory(self, catagory):
+        if catagory not in self.results:
+            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}}
+    
     def add_plot(self, catagory, plt_type, howto=[], show=False):
         """Add a plot to RunSummary.
         """
-        if catagory not in self.results:
-            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}}
-        
+        self._add_catagory(catagory)
         plt_file = '{:}_{:}.png'.format(catagory, plt_type).replace(' ','_') 
         self.results[catagory]['figure'].update({plt_type: {'path': self.output_dir, 
                                                          'png': plt_file,
@@ -1095,9 +1179,8 @@ class Build_html(object):
             else:
                 alias = attr.split('_')[0]
 
-            if alias not in self.results:
-                self.results[alias] = {'figure': {}, 'table': {}, 'text': {}}
-
+            catagory = alias
+            self._add_catagory(catagory)
             # Make groupby plots
             if groupby:
                 if not isinstance(groupby, list):
@@ -1370,8 +1453,8 @@ class Build_html(object):
 
         for attr in variables:
             alias = self._xdat[attr].alias
-            if alias not in self.results:
-                self.results[alias] = {'figure': {}, 'table': {}, 'text': {}}
+            catagory = alias
+            self._add_catagory(catagory)
 
             if len(self._xdat[attr].shape) == 3 and 'time' in self._xdat[attr]:
                 xdat = self._xdat[attr]

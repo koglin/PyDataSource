@@ -4,7 +4,7 @@ import operator
 import time
 import traceback
 import numpy as np
-
+from xarray_utils import *
 
 """
 DEVELOPMENT MODULE:  Direct write to_hdf5 to be xarray compatible without using xarray.
@@ -245,13 +245,16 @@ def process_one_file(file_name, transform_func=None, engine='h5netcdf'):
     import xarray as xr
     # use a context manager, to ensure the file gets closed after use
     with xr.open_dataset(file_name, engine=engine) as ds:
-        if 'nevents' in ds.attrs:
+        if 'nevents' in ds.attrs and 'time' in ds.dims:
             try:
                 ds = ds.isel(time=slice(None, ds.nevents))
             except:
                 traceback.print_exc()
                 print 'cannot select', ds.nevents
-        ds['time'] = [np.datetime64(int(sec*1e9+nsec), 'ns') for sec,nsec in zip(ds.sec.values,ds.nsec.values)]
+
+        if 'time' in ds.dims:
+            ds['time'] = [np.datetime64(int(sec*1e9+nsec), 'ns') for sec,nsec in zip(ds.sec.values,ds.nsec.values)]
+        
         # transform_func should do some sort of selection or
         # aggregation
         if transform_func is not None:
@@ -273,9 +276,13 @@ def merge_datasets(file_names, engine='h5netcdf',
         try:
             print 'processing', file_name
             xo = process_one_file(file_name, engine=engine)
-            det = xo.attrs.get('alias', 'base')
+            det = xo.attrs.get('alias')
+            if not det:
+                det = file_name.split('/')[-1].split('_')[-1].split('.')[0]
+
             if det not in xattrs:
                 xattrs[det] = xo.attrs
+
             datasets.append(xo)
             #if file_name == min(paths, key=len):
             #    xattrs = xo.attrs
@@ -293,14 +300,15 @@ def merge_datasets(file_names, engine='h5netcdf',
             print 'Saving', save_file
         x.to_netcdf(save_file, engine=engine)
 
-    return x
+    return x, xattrs
 
 def read_chunked(run=None, path=None, exp=None, dim='time', 
         h5folder='scratch', subfolder='nc',
         omit_attrs=['ichunk', 'nevents'], 
         merge=False, quiet=False,
         save=True, save_path=None,
-        transform_func=None, engine='h5netcdf'):
+        cleanup=False, 
+        transform_func=None, engine='h5netcdf', **kwargs):
     """
     Read netcdf files and return concatenated xarray Dataset object
 
@@ -319,17 +327,31 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
     """
     import xarray as xr
     import glob
-    if exp:
-        instrument = exp[0:3]
+    if not run:
+        raise Exception('run must be provided')
+
     if not path:
+        if exp:
+            instrument = exp[0:3]
+        else:
+            raise Exception('exp must be provided')
+
         path = '/reg/d/psdm/{:}/{:}/{:}/{:}/Run{:04}/'.format(instrument, 
                 exp,h5folder,subfolder,run)
+
+    if not os.path.isdir(path):
+        file_name = os.path.join(os.path.dirname(os.path.dirname(path)), 'run{:04}.nc'.format(run))
+        if file_name:
+            return xr.open_dataset(file_name, engine='h5netcdf')
+        else:
+            raise Exception( 'File does not exist: {:}'.format(file_name) )
 
     files = glob.glob('{:}/run{:04}_*.nc'.format(path, run)) 
     #dets = set([a.lstrip('{:}/run{:04}_'.format(path,run)).split('_')[1].split('.')[0] for a in files])
     datachunks = []
     chunks = set([int(a.lstrip('{:}/run{:04}_'.format(path,run)).lstrip('C').split('.')[0].split('_')[0]) for a in files])
     xattrs = {}
+    axattrs = {}
     for chunk in chunks:
         merge_chunk = False
         if not merge:
@@ -337,7 +359,7 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
             try:
                 if not quiet:
                     print 'Loading chunk', chunk
-                xchunk = process_one_file(file_name)
+                x = process_one_file(file_name)
             except:
                 merge_chunk = True
 
@@ -346,29 +368,35 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
                 print 'Merging chunk', chunk
             file_names = glob.glob('{:}//run{:04}_C{:02}_*.nc'.format(path,run,chunk)) 
             save_file = '{:}//run{:04}_C{:02}.nc'.format(path,run,chunk)
-            xchunk = merge_datasets(file_names, save_file=save_file, quiet=quiet)
-    
-        datachunks.append(xchunk)
+            #x = merge_datasets(file_names, save_file=save_file, quiet=quiet)
+            x, cxattrs = merge_datasets(file_names, quiet=quiet)
+            axattrs[chunk] = cxattrs
+
+        if len(chunks) > 1:
+            datachunks.append(x)
+            try:
+                xattrs[chunk] = x.attrs
+            except:
+                traceback.print_exc()
+                return xchunk
+
+    if len(chunks) > 1:
         try:
-            xattrs[chunk] = xchunk.attrs
+            if not quiet:
+                print 'Concat all chunks'
+            x = resort(xr.concat(datachunks, dim))
         except:
             traceback.print_exc()
-            return xchunk
+            print 'Concat Failed'
+            return datachunks
 
-    try:
-        if not quiet:
-            print 'Concat all chunks'
-        x = resort(xr.concat(datachunks, dim))
+        if xattrs:
+            x.attrs.update(**xattrs[0])
+    try: 
+        x = x.set_coords([a for a in x.data_vars if a.endswith('present')]) 
     except:
-        traceback.print_exc()
-        print 'Concat Failed'
-        return datachunks
+        pass
 
-    if xattrs:
-        x.attrs.update(**xattrs[0])
-    
-    x = x.set_coords([a for a in x.data_vars if a.endswith('present')]) 
-    
     nsteps = x.attrs.get('nsteps', 1)
 #    steps = set([x.step.values])
 #    if 'steps' not in x:
@@ -401,40 +429,40 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
         
         if not quiet:
             print 'Saving Run {:} to {:}'.format(run, save_path) 
-        x.to_netcdf(save_file, engine=engine)
+        
+        try:
+            x.to_netcdf(save_file, engine=engine)
+            if cleanup:
+                try:
+                    files = glob.glob('{:}/run{:04}_*.nc'.format(path, run)) 
+                    for f in files:
+                        os.remove(f)
+                    os.rmdir(path)          
+                except:
+                    print 'Cleanup failed:  Could not delete files {:}'.format(files)
+                    traceback.print_exc()
+        except:
+            print 'Write Failed to {:}'.format(save_file)
+            traceback.print_exc()
+            return x
 
     return x
 
 
-def to_hdf5(self, save=True, cleanup=False, base=False, **kwargs):
+def to_hdf5(self, save=True, cleanup=True, **kwargs):
     """Write PyDataSource.DataSource to hdf5 file.
     """
     path, file_base = write_hdf5(self, **kwargs)
     exp = self.data_source.exp
-    run = self.data_source.run
+    run = int(self.data_source.run)
 #    x = open_h5netcdf(path=path, file_base=file_base, combine=True) 
 #    file_name = os.path.join(path,file_base+'_*.nc')
     try:
-        x = read_chunked(path=path, file_base=file_base)
+        x = read_chunked(exp=exp, run=run, save=save, cleanup=cleanup, **kwargs)
     except:
         print 'Could not read files', path, file_base
         traceback.print_exc()
-
-    if save:
-        try:
-            file_name = os.path.join(path,file_base+'.nc')
-            x.to_netcdf(file_name, engine='h5netcdf')
-        except:
-            print 'Could not save xarray data', file_name
-            traceback.print_exc()
-            return x
-
-        if cleanup:
-            try:
-                print 'Need to implement cleanup'
-            except:
-                print 'Could not cleanup individual files'
-                traceback.print_exc()
+        return None
 
     return x
 
@@ -499,15 +527,18 @@ def write_hdf5(self, nevents=None, max_size=10001,
         store_data=[],
         chunk_steps=False,
         ichunk=None,
-        nchunks=24,
+        nchunks=1,
         #code_flags={'XrayOff': [162], 'XrayOn': [-162], 'LaserOn': [183, -162], 'LaserOff': [184, -162]},
         code_flags={'XrayOff': [162], 'XrayOn': [-162]},
         drop_unused_codes=True,
         pvs=[], epics_attrs=[], 
         eventCodes=None,  
         save=None, 
+        mpi=False,
         mpio=False, 
         no_events=False,
+        debug=False,
+        default_stats=True,
         **kwargs):
     """
     DEVELOPMENT:  Write directly to hdf5 with h5netcdf package.  
@@ -532,6 +563,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
         Default is all event codes in DataSource
     drop_unused_codes : bool
         If true drop unused eventCodes [default=True]
+    default_stats : bool
+        If true include stats for waveforms and calib image data.
 
     Example
     -------
@@ -551,12 +584,13 @@ def write_hdf5(self, nevents=None, max_size=10001,
     except:
         raise Exception('xarray package not available. Use for example conda environment with "source conda_setup"')
 
-           
     rank = MPI.COMM_WORLD.rank  # The process ID (integer 0-3 for 4-process run)
+
     if not no_events:
         ichunk=rank
-    
+   
     self.reload()
+    
     evt = self.events.next(publish=publish, init=publish)
     dtime = evt.EventId
     if not eventCodes:
@@ -581,7 +615,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 nevents = int(np.ceil(self.nevents/float(nchunks)))
                 ievent0 = (ichunk-1)*nevents
             
-            print 'Do {:} of {:} events for {:} chunk'.format(nevents, self.nevents, ichunk)
+            print 'Do {:} of {:} events for chunk {:}'.format(nevents, self.nevents, ichunk)
         else:
             nevents = nevents_total
     
@@ -604,7 +638,6 @@ def write_hdf5(self, nevents=None, max_size=10001,
         os.mkdir(path)
 
     if not file_base:
-        #if ichunk is None:
         if True:
             file_base = 'run{:04}'.format(int(run))
         else:
@@ -612,8 +645,9 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
     adat = {}
     axdat = {}
+    axfuncs = {}
     atimes = {}
-    btimes = []
+    #btimes = []
     xcoords = {}
     axcoords = {}
 
@@ -634,76 +668,107 @@ def write_hdf5(self, nevents=None, max_size=10001,
     #xbase = h5netcdf.File(file_name, 'w')
 
     neventCodes = len(eventCodes)
-    det_funcs = {}
-    epics_pvs = {}
-    for pv in pvs:
-        epics_pvs[pv] = {} 
 
-    if True:
-        # Experiment Attributes
-        xbase.attrs['data_source'] = str(self.data_source)
-        xbase.attrs['run'] = self.data_source.run
-        for attr in ['instrument', 'experiment', 'expNum', 'calibDir']:
-            xbase.attrs[attr] = getattr(self, attr)
 
-        
-        ttypes = {'sec': 'int32', 
-                  'nsec': 'int32', 
-                  'fiducials': 'int32', 
-                  'ticks': 'int32', 
-                  'run': 'int32'}
-        
-        # explicitly order EventId coords in desired order 
-        if ichunk == 0:
-            print 'Begin processing {:} events'.format(nevents)
-     
-        cattrs =  ['sec', 'nsec', 'fiducials', 'ticks', 'run', 'step']
-
-        for attr in cattrs:
-            xcoords[attr] = xbase.create_variable(attr, ('time',), int)
-
-        coordinates = ' '.join(cattrs)
-
-        # Event Codes -- earlier bool was not supported but now is. 
-        #if not no_events:
-        if True:
-            for code in eventCodes:
-                xbase.create_variable('ec{:}'.format(code), ('time',), bool)
-                coordinates += ' ec{:}'.format(code)
-
-            for attr, ec in code_flags.items():
-                xbase.create_variable(attr, ('time',), bool)
-                xbase[attr].attrs['doc'] = 'Event code flag: True if all positive and no negative "codes" are in eventCodes'
-                xbase[attr].attrs['codes'] = ec
-
-        xbase.attrs['event_flags'] = code_flags.keys()
-
-        #xbase.create_variable('steps', ('isteps'), data=range(nsteps))
-        #xbase.create_variable('codes', ('icodes'), data=eventCodes)
-     
-        # Scan Attributes -- cxbase.create_variable('codes', data=eventCodes)annot put None or dicts as attrs in netcdf4
-        # e.g., pvAliases is a dict
-        if hasattr(self.configData, 'ScanData') and self.configData.ScanData:
-            if self.configData.ScanData.nsteps == 1:
-                attrs = ['nsteps']
-            else:
-                attrs = ['nsteps', 'pvControls', 'pvMonitors', 'pvLabels']
-                #xbase.coords['pvControls'] = self.configData.ScanData.pvControls
-                #xbase.create_variable('pvControls'] = self.configData.ScanData.pvControls
-                for attr, vals in self.configData.ScanData.control_values.items():
-                    alias = self.configData.ScanData.pvAliases[attr]
-                    xbase.create_variable(alias+'_steps', ('steps',), data=vals) 
-                    xbase.create_variable(alias, ('time',), vals.dtype)
-                    coordinates += ' '+alias+'+steps'
-                    coordinates += ' '+alias
-
-            for attr in attrs:
-                val = getattr(self.configData.ScanData, attr)
-                if val:
-                    xbase.attrs[attr] = val 
- 
-    base_coordinates = coordinates
+    # Experiment Attributes
+    xbase.attrs['data_source'] = str(self.data_source)
+    xbase.attrs['run'] = self.data_source.run
+    for attr in ['instrument', 'experiment', 'expNum', 'calibDir']:
+        xbase.attrs[attr] = getattr(self, attr)
     
+    ttypes = {'sec': 'int32', 
+              'nsec': 'int32', 
+              'fiducials': 'int32', 
+              'ticks': 'int32', 
+              'run': 'int32'}
+    
+    # explicitly order EventId coords in desired order 
+    if ichunk == 0:
+        print 'Begin processing {:} events'.format(nevents)
+ 
+    cattrs =  ['sec', 'nsec', 'fiducials', 'ticks', 'run', 'step']
+
+    for attr in cattrs:
+        xcoords[attr] = xbase.create_variable(attr, ('time',), int)
+
+    coordinates = ' '.join(cattrs)
+
+    # Event Codes -- earlier bool was not supported but now is. 
+    #if not no_events:
+    for code in eventCodes:
+        attr = 'ec{:}'.format(code)
+        xbase.create_variable(attr, ('time',), bool)
+        coordinates += ' {:}'.format(attr)
+
+    for attr, ec in code_flags.items():
+        xbase.create_variable(attr, ('time',), bool)
+        xbase[attr].attrs['doc'] = 'Event code flag: True if all positive and no negative "codes" are in eventCodes'
+        xbase[attr].attrs['codes'] = ec
+        coordinates += ' {:}'.format(attr)
+
+    xbase.attrs['event_flags'] = code_flags.keys()
+   
+    # add epics pvs expected to change during run
+   
+
+    #xbase.create_variable('steps', ('isteps'), data=range(nsteps))
+    #xbase.create_variable('codes', ('icodes'), data=eventCodes)
+ 
+    # Scan Attributes -- cxbase.create_variable('codes', data=eventCodes)annot put None or dicts as attrs in netcdf4
+    # e.g., pvAliases is a dict
+    
+
+    # build epics_pvs from input list of aliases and from exp_summary epicsArchive scan detection 
+    epics_pvs = {}
+    scan_variables = []
+    try:
+        xpvs = self.exp_summary.xpvs
+        attr_lookup = {item.attrs.get('pv'): dict(item.attrs) for a, item in xpvs.data_vars.items()}
+        for attr in pvs:
+            if attr in self.epicsData.aliases():
+                pv = self.epicsData.pvName(attr)
+                epics_pvs[attr] =  {'pv': pv, 'attrs': attr_lookup.get(pv, {})}
+
+        for attr in self.scan_pvs:
+            pvattrs = dict(xpvs.get(attr).attrs)
+            pvbase = pvattrs.get('pv')
+            if pvbase:
+                scan_variables.append(attr)
+                pvdict = {self.epicsData.alias(pv): {'pv': pv, 'attrs': pvattrs} \
+                            for pv in self.epicsData.pvNames() if pv.startswith(pvbase)}
+                epics_pvs.update(**pvdict)
+
+    except:
+        attr_lookup = {}
+        print 'Could not auto load epics pvs moved during run' 
+        traceback.print_exc()
+ 
+    if hasattr(self.configData, 'ScanData') and self.configData.ScanData:
+        pvMonitors = self.configData.ScanData.pvMonitors
+        if not pvMonitors:
+            pvMonitors = [pv.split('.')[0]+'.RBV' for pv in self.configData.ScanData.pvControls]
+
+        for pv in pvMonitors:
+            try:
+                alias = self.configData.ScanData.pvAliases.get(pv)
+                if not alias:
+                    alias = self.epicsData.alias(pv)
+                if alias:
+                    epics_pvs[alias] =  {'pv': pv, 'attrs': attr_lookup.get(pv, {})}
+            except:
+                print 'Could not add pvMonitor', pv
+
+    axpvs = {}
+    for attr, item in epics_pvs.items():
+        pv = item.get('pv')
+        axpvs[pv] = xbase.create_variable(attr, ('time',), float)
+        axpvs[pv].attrs.update(item.get('attrs',{}))
+        coordinates += ' {:}'.format(attr)
+    
+    base_coordinates = coordinates
+    scan_variables = epics_pvs.keys() 
+    xbase.attrs['scan_variables'] = scan_variables
+   
     for srcstr, src_info in self.configData._sources.items():
         det = src_info['alias']
         if ichunk == 0:
@@ -729,37 +794,45 @@ def write_hdf5(self, nevents=None, max_size=10001,
             if hasattr(detector, '_update_xarray_info'):
                 detector._update_xarray_info()
             
-            config_info = detector._xarray_info.get('attrs')
+            config_info = {}
+            # make sure not objects -- should be moved into PyDataSoruce
+            for confg_attr, config_item in detector._xarray_info.get('attrs').items():
+                if hasattr(config_item, '__func__'):
+                    config_info[attr] = str(config_item)
+                else:
+                    config_info[attr] = config_item
+
 #            if attrs:
 #                axdat[det].coords[det+'_config'] = ([det+'_steps'], range(nsteps))
 #                axdat[det].coords[det+'_config'].attrs.update(attrs)
 
             adat[det] = {}
             axcoords[det] = {}
-            det_funcs[det] = {}
+            #det_funcs[det] = {}
             xarray_dims = detector._xarray_info.get('dims')
-            funcs = []
+            axfuncs[det] = [] 
             # Add default attr information.
-            src_info.update(**detector.sourceData._source)
-            if 'src' in src_info:
-                src_info['src'] = str(src_info['src'])
+            src_info.update(**detector._source_info)
+            #if 'src' in src_info:
+            #    src_info['src'] = str(src_info['src'])
             
             if not no_events:
-                axdat[det].attrs.update(**config_info)
+#                axdat[det].attrs.update(**config_info)
                 axdat[det].attrs.update(**src_info)
-                axdat[det].attrs['funcs'] = funcs
+#                axdat[det].attrs['funcs'] = funcs
             
             attr = 'present'
             alias = det+'_'+attr
             xbase.create_variable(alias, ('time',), bool)
             xbase[alias].attrs.update(**config_info)
             xbase[alias].attrs.update(**src_info)
-            xbase[alias].attrs['funcs'] = funcs
-            if not no_events:
-                axdat[det].create_variable(alias, ('time',), bool)
-                axdat[det][alias].attrs.update(**config_info)
-                axdat[det][alias].attrs.update(**src_info)
-                axdat[det][alias].attrs['funcs'] = funcs
+#            xbase[alias].attrs['funcs'] = funcs
+
+#            if not no_events:
+#                axdat[det].create_variable(alias, ('time',), bool)
+#                axdat[det][alias].attrs.update(**config_info)
+#                axdat[det][alias].attrs.update(**src_info)
+#                axdat[det][alias].attrs['funcs'] = funcs
             
             if xarray_dims is not None: 
                 for attr,item in sorted(xarray_dims.items(), key=operator.itemgetter(0)):
@@ -796,7 +869,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
                         if hasattr(aitm, 'dtype') and aitm.dtype is np.dtype('O'):
                             attr_info.pop(a)
 
-                    det_funcs[det][attr] = {'alias': alias, 'det': det, 'attr': attr, 'attr_info': attr_info}
+                    #det_funcs[det][attr] = {'alias': alias, 'det': det, 'attr': attr, 'attr_info': attr_info}
                     if np.product(item[1]) <= max_size or alias in store_data:
                         a = [det+'_'+name for name in item[0]]
                         a.insert(0, 'time')
@@ -811,15 +884,16 @@ def write_hdf5(self, nevents=None, max_size=10001,
                         if not no_events:
                             for xname, xshape in zip(a, b):
                                 if xname not in axdat[det].dimensions:
+                                    print 'coord', det, name, xshape, alias, a
                                     axdat[det].dimensions[xname] = xshape
 
                             adat[det][alias] = axdat[det].create_variable(alias, a, float)
-                            funcs.append(attr)
+                            axfuncs[det].append(attr)
                             try:
                                 axdat[det][alias].attrs.update(**attr_info)
                             except:
                                 print 'Cannot add attrs', attr_info
-                            det_funcs[det][attr]['event'] = {'dims': a, 'shape': b}
+                            #det_funcs[det][attr]['event'] = {'dims': a, 'shape': b}
             
             coordinates = ' '.join(['sec', 'nsec', 'fiducials', 'ticks', 'run', 'step'])
             if not no_events:
@@ -830,28 +904,36 @@ def write_hdf5(self, nevents=None, max_size=10001,
             if coords:
                 for coord, item in sorted(coords.items(), key=operator.itemgetter(0)):
                     alias = det+'_'+coord
-                    attr_info = detector.calibData._attr_info.get(coord)
                     try:
+                        attr_info = detector.calibData._attr_info.get(coord)
                         if isinstance(item, tuple):
-                            dims = {det+'_'+dim for dim in item[0]}
+                            dims = [det+'_'+dim for dim in item[0]]
                             vals = item[1]
-                            xbase.create_variable(alias, dims, data=vals)
+                            print 'coord', det, alias, dims, vals.shape
                             if not no_events:
                                 axcoords[det][alias] = axdat[det].create_variable(alias, dims, data=vals)
+                            else:
+                                xbase.create_variable(alias, dims, data=vals)
+                        
                         else:
-                            xbase.create_variable(alias, (alias,), data=item)
                             if not no_events:
                                 axcoords[det][alias] = axdat[det].create_variable(alias, (alias,), data=item)
+                            else:
+                                xbase.create_variable(alias, (alias,), data=item)
+                        
                         if attr_info:
-                            xbase[alias].attrs.update(**attr_info)
                             if not no_events:
                                 axdat[det][alias].attrs.update(**attr_info)
+                            else:
+                                xbase[alias].attrs.update(**attr_info)
+                        
                         coordinates += ' '+alias
+                    
                     except:
                         if ichunk == 0:
                             print 'Missing coord', det, coord, item
             
-            base_coordinates += coordinates
+            #base_coordinates += coordinates
             if not no_events:
                 axdat[det].attrs['coordinates'] = coordinates
 
@@ -860,11 +942,16 @@ def write_hdf5(self, nevents=None, max_size=10001,
             traceback.print_exc()
 # Need to fix handling of detector image axis
 
-    xbase.attrs['coordinates'] = base_coordinates
-                  
+    if default_stats:
+        self._add_default_stats()
+    
     if ichunk == 0:
         print 'Dataset configured'
     #return xbase, axdat 
+
+    if debug:
+        print 'funcs'
+        print axfuncs
 
     self.reload()
     if True or not no_events:
@@ -872,6 +959,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
         igood = -1
         aievt = {}
         aievents = {}
+        asteps = [] 
 
         # keep track of events for each det
         for srcstr, srcitem in self.configData._sources.items():
@@ -919,7 +1007,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
             elif ievent < self.nevents:
                 try:
-                    evt = self.events.next(publish=publish, init=publish)
+                    #evt = self.events.next(publish=publish, init=publish)
+                    evt = self.events.next(publish=publish)
                 except:
                     ievent = -1
                     continue
@@ -927,7 +1016,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 ievent = -1
                 continue
 
-            if len(set(eventCodes) & set(evt.Evr.eventCodes)) == 0:
+            # Note that old data does not have configData eventCodes
+            if eventCodes and len(set(eventCodes) & set(evt.Evr.eventCodes)) == 0:
                 continue
            
             dtime = evt.EventId
@@ -943,8 +1033,10 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 iwrite += ievent0
 
             istep = self._istep
+            asteps.append(istep)
             xbase['step'][iwrite] = istep
-            btimes.append(dtime)
+            xbase['run'][iwrite] = run
+            #btimes.append(dtime)
             
             for attr in ['sec', 'nsec', 'fiducials', 'ticks']:
                 xbase[attr][iwrite] = getattr(dtime, attr)
@@ -957,12 +1049,12 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 if evt.Evr.present(codes):
                     xbase[attr][iwrite] = True
 
-#            for pv, pvarray in epics_pvs.items():
-#                try:
-#                    val = float(self.epicsData.getPV(pv).data()) 
-#                    pvarray.update({dtime: val})
-#                except:
-#                    print 'cannot update pv', pv, dtime
+            for pv, xpv in axpvs.items():
+                try:
+                    xpv[iwrite] = float(self.epicsData.getPV(pv).data()) 
+                except:
+                    #print 'cannot update pv', pv, iwrite
+                    pass
 
             for det in evt._attrs:
                 xbase[det+'_present'][iwrite] = True
@@ -975,20 +1067,31 @@ def write_hdf5(self, nevents=None, max_size=10001,
                     if mpio:
                         iwrite += ievent0
                     aievents[det].append(ievent)
-                    axdat[det][det+'_present'][iwrite] = True
-                    for attr in ['sec', 'nsec', 'fiducials', 'ticks']:
-                        axdat[det][attr][iwrite] = getattr(dtime, attr)
-                    
-                    for attr in  axdat[det].attrs['funcs']:
+                    #axdat[det][det+'_present'][iwrite] = True
+                    try:
+                        for attr in ['sec', 'nsec', 'fiducials', 'ticks']:
+                            axdat[det][attr][iwrite] = getattr(dtime, attr)
+                    except:
+                        traceback.print_exc()
+                        print axdat, dtime, det, attr, iwrite
+                        return axdat, dtime, det, attr, iwrite
+
+                    axdat[det]['step'][iwrite] = istep
+                    axdat[det]['run'][iwrite] = run
+                    for attr in  axfuncs[det]:
                         vals = getattr(detector, attr)
                         alias = det+'_'+attr
                         if vals is not None:
                             try:
+                                if debug:
+                                    print det, attr, vals
                                 axdat[det][alias][iwrite] = vals
                             except:
-                                print 'Event Error', alias, det, attr, ievent, vals
+                                if debug:
+                                    print 'Event Error', alias, det, attr, ievent, vals
                                 vals = None
         
+        print self.stats
         xbase.attrs['nevents'] = igood+1
         for det in axdat:
             axdat[det].attrs['nevents'] = aievt[det]+1
@@ -1011,7 +1114,31 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
             print 'total time', time.time()-time0
 
+    if hasattr(self.configData, 'ScanData') and self.configData.ScanData:
+        if self.configData.ScanData.nsteps == 1:
+            attrs = ['nsteps']
+        else:
+            attrs = ['nsteps', 'pvControls', 'pvMonitors', 'pvLabels']
+#            for pv, vals in self.configData.ScanData.control_values.items():
+#                alias = self.configData.ScanData.pvAliases[pv]
+#                xbase.create_variable(alias+'_steps', ('steps',), data=vals) 
+#                base_coordinates += ' '+alias+'+steps'
+
+        for attr in attrs:
+            val = getattr(self.configData.ScanData, attr)
+            if val:
+                xbase.attrs[attr] = val 
+ 
+    xbase.attrs['coordinates'] = base_coordinates
+ 
+    det = 'stats'
+    file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,det))
+    print self.stats
+    self.save_stats(file_name=file_name)
+
     xbase.close()
+
+#    for alias in self._device_sets
 
     return path, file_base
 
@@ -1086,139 +1213,32 @@ def write_hdf5(self, nevents=None, max_size=10001,
 #        return xbase
 
 
-def to_summary(x, dim='time', groupby='step', 
-        save_summary=False,
-        normby=None,
-        omit_list=['run', 'sec', 'nsec', 'fiducials', 'ticks'],
-        stats=['mean', 'std', 'min', 'max', 'count'],
-        **kwargs):
-    """
-    Summarize a run.
-    
-    Parameters
-    ---------
-    x : xarray.Dataset
-        input xarray Dataset
-    dim : str
-        dimension to summarize over [default = 'time']
-    groupby : str
-        coordinate to groupby [default = 'step']
-    save_summary : bool
-        Save resulting xarray Dataset object
-    normby : list or dict
-        Normalize data by attributes
-    omit_list : list
-        List of Dataset attributes to omit
-    stats : list
-        List of statistical operations to be performed for summary.
-        Default = ['mean', 'std', 'min', 'max', 'count']
-    """
-    import xarray as xr
-    xattrs = x.attrs
-    data_attrs = {attr: x[attr].attrs for attr in x}
-    if 'Damage_cut' in x:
-        x = x.where(x.Damage_cut).dropna(dim)
-   
-    coords = [c for c in x.coords if c != dim and c not in omit_list and dim in x.coords[c].dims] 
-    x = x.reset_coords(coords)
-    if isinstance(normby, dict):
-        for norm_attr, attrs in normby.items():
-            x = normalize_data(x, attrs, norm_attr=norm_attr)
-    elif isinstance(normby, list):
-        x = normalize_data(x, normby)
 
-    # With new xarray 0.9.1 need to make sure loaded otherwise h5py error
-    x.load()
-    xgroups = {}
-    if groupby:
-        group_vars = [attr for attr in x.keys() if groupby+'s' in x[attr].dims]
-        if group_vars:
-            xgroups = {attr: x[attr].rename({groupby+'s': groupby}) for attr in group_vars}
-            for attr in group_vars:
-                del x[attr]
-        x = x.groupby(groupby)
-
-    dsets = [getattr(x, func)(dim=dim) for func in stats]
-    x = xr.concat(dsets, stats).rename({'concat_dim': 'stat'})
-    for attr,val in xattrs.items():
-        x.attrs[attr] = val
-    for attr,item in data_attrs.items():
-        if attr in x:
-            x[attr].attrs.update(item)
-
-    for c in coords:                                                       
-        x = x.set_coords(c)
-    
-    for attr in group_vars:
-        x[attr] = xgroups[attr]
-    x = resort(x)
-    if save_summary:
-        to_h5netcdf(x)
-    return x
-
-def add_steps(x, attr, name=None):
-    vals = getattr(x, attr).values
-    steps = np.sort(list(set(vals)))
-    asteps = np.digitize(vals, steps)
-    if not name:
-        name = attr+'_step'
- 
-    x.coords[name] = (['time'], asteps)
-
-
-def add_index(x, attr, name=None, nbins=8, bins=None, percentiles=None):
-
-    if not bins:
-        if not percentiles:
-            percentiles = (arange(nbins+1))/float(nbins)*100.
-
-        bins = np.percentile(x[attr].to_pandas().dropna(), percentiles)
-
-    if not name:
-        name = attr+'_index'
-
-    #per = [percentiles[i-1] for i in np.digitize(x[attr].values, bins)]
-    x[name] = (['time'], np.digitize(x[attr].values, bins))
-
-
-def normalize_data(x, variables=[], norm_attr='PulseEnergy', name='norm', quiet=True):
-    """
-    Normalize a list of variables with norm_attr [default = 'PulseEnergy']
-    """
-    if not variables:
-        variables = [a for a in get_correlations(x) if not a.endswith('_'+name)]    
-
-    for attr in variables:
-        aname = attr+'_'+name
-        try:
-            x[aname] = x[attr]/x[norm_attr]
-            x[aname].attrs = x[attr].attrs
-            try:
-                x[aname].attrs['doc'] = x[aname].attrs.get('doc','')+' -- normalized to '+norm_attr
-                units = x[attr].attrs.get('unit')
-                norm_units = x[norm_attr].attrs.get('unit')
-                if units and norm_units:
-                    x[aname].attrs['unit'] = '/'.join([units, norm_units])
-            except:
-                if not quiet:
-                    print 'cannot add attrs for', aname
-        except:
-            print 'Cannot normalize {:} with {:}'.format(attr, norm_attr)
-
-    return  resort(x)
-
-def resort(x):
-    """
-    Resort alphabitically xarray Dataset
-    """
-    coords = sorted([c for c in x.coords.keys() if c not in x.coords.dims])
-    x = x.reset_coords()
-    x = x[sorted(x.data_vars)]
-
-    for c in coords:                                                       
-        x = x.set_coords(c)
-
-    return x
+#def normalize_data(x, variables=[], norm_attr='PulseEnergy', name='norm', quiet=True):
+#    """
+#    Normalize a list of variables with norm_attr [default = 'PulseEnergy']
+#    """
+#    if not variables:
+#        variables = [a for a in get_correlations(x) if not a.endswith('_'+name)]    
+#
+#    for attr in variables:
+#        aname = attr+'_'+name
+#        try:
+#            x[aname] = x[attr]/x[norm_attr]
+#            x[aname].attrs = x[attr].attrs
+#            try:
+#                x[aname].attrs['doc'] = x[aname].attrs.get('doc','')+' -- normalized to '+norm_attr
+#                units = x[attr].attrs.get('unit')
+#                norm_units = x[norm_attr].attrs.get('unit')
+#                if units and norm_units:
+#                    x[aname].attrs['unit'] = '/'.join([units, norm_units])
+#            except:
+#                if not quiet:
+#                    print 'cannot add attrs for', aname
+#        except:
+#            print 'Cannot normalize {:} with {:}'.format(attr, norm_attr)
+#
+#    return  resort(x)
 
 def map_indexes(xx, yy, ww):                                                                      
     """
@@ -1242,98 +1262,98 @@ def map_indexes(xx, yy, ww):
     a[xx,yy] = ww
     return a
 
-def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs):
-    """Plot summary data with error bars, e.g.,
-        xy_ploterr(x, 'MnScatter','Sample_z',logy=True)
-    """
-    import numpy as np
-    import matplotlib.pyplot as plt
-    if not attr:
-        print 'Must supply plot attribute'
-        return
-
-    if 'groupby' in kwargs:
-        groupby=kwargs['groupby']
-    elif 'step' in a.dims:
-        groupby='step'
-    else:
-        groupby='run'
-
-    run = a.attrs.get('run')
-    experiment = a.attrs.get('experiment', '')
-    runstr = '{:} Run {:}'.format(experiment, run)
-    name = a.attrs.get('name', runstr)
-    if not title:
-        title = '{:}: {:}'.format(name, attr)
-
-    if not xaxis:
-        xaxis = a.attrs.get('scan_variables')
-        if xaxis:
-            xaxis = xaxis[0]
-
-    ylabel = kwargs.get('ylabel', '')
-    if not ylabel:
-        ylabel = a[attr].name
-        unit = a[attr].attrs.get('unit')
-        if unit:
-            ylabel = '{:} [{:}]'.format(ylabel, unit)
-
-    xlabel = kwargs.get('xlabel', '')
-    if not xlabel:
-        xlabel = a[xaxis].name
-        unit = a[xaxis].attrs.get('unit')
-        if unit:
-            xlabel = '{:} [{:}]'.format(xlabel, unit)
-    
-    if xaxis:
-        if 'stat' in a[xaxis].dims:
-            xerr = a[xaxis].sel(stat='std').values
-            a[xaxis+'_axis'] = ([groupby], a[xaxis].sel(stat='mean').values)
-            xaxis = xaxis+'_axis'
-        else:
-            xerr = None
-
-        a = a.swap_dims({groupby:xaxis})
-    
-    else:
-        xerr = None
-
-    if desc is None:
-        desc = a[attr].attrs.get('doc', '')
-
-    ndims = len(a[attr].dims)
-    if ndims == 2:
-        c = a[attr].to_pandas().T
-        if xerr is not None:
-            c['xerr'] = xerr
-        c = c.sort_index()
-        
-        plt.figure()
-        plt.gca().set_position((.1,.2,.8,.7))
-        p = c['mean'].plot(yerr=c['std'],xerr=c.get('xerr'), title=title, fmt=fmt, **kwargs)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        if desc:
-            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   
- 
-        return p 
-    elif ndims == 3:
-        plt.figure()
-        plt.gca().set_position((.1,.2,.8,.7))
-        pdim = [d for d in a[attr].dims if d not in ['stat', groupby, xaxis]][0]
-        for i in range(len(a[attr].coords[pdim])):
-            c = a[attr].sel(**{pdim:i}).drop(pdim).to_pandas().T.sort_index()
-            p = c['mean'].plot(yerr=c['std'], fmt=fmt, **kwargs)
-
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        p.set_title(title)
-        if desc:
-            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   
-
-        return p 
-    else:
-        print 'Too many dims to plot'
+#def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs):
+#    """Plot summary data with error bars, e.g.,
+#        xy_ploterr(x, 'MnScatter','Sample_z',logy=True)
+#    """
+#    import numpy as np
+#    import matplotlib.pyplot as plt
+#    if not attr:
+#        print 'Must supply plot attribute'
+#        return
+#
+#    if 'groupby' in kwargs:
+#        groupby=kwargs['groupby']
+#    elif 'step' in a.dims:
+#        groupby='step'
+#    else:
+#        groupby='run'
+#
+#    run = a.attrs.get('run')
+#    experiment = a.attrs.get('experiment', '')
+#    runstr = '{:} Run {:}'.format(experiment, run)
+#    name = a.attrs.get('name', runstr)
+#    if not title:
+#        title = '{:}: {:}'.format(name, attr)
+#
+#    if not xaxis:
+#        xaxis = a.attrs.get('scan_variables')
+#        if xaxis:
+#            xaxis = xaxis[0]
+#
+#    ylabel = kwargs.get('ylabel', '')
+#    if not ylabel:
+#        ylabel = a[attr].name
+#        unit = a[attr].attrs.get('unit')
+#        if unit:
+#            ylabel = '{:} [{:}]'.format(ylabel, unit)
+#
+#    xlabel = kwargs.get('xlabel', '')
+#    if not xlabel:
+#        xlabel = a[xaxis].name
+#        unit = a[xaxis].attrs.get('unit')
+#        if unit:
+#            xlabel = '{:} [{:}]'.format(xlabel, unit)
+#    
+#    if xaxis:
+#        if 'stat' in a[xaxis].dims:
+#            xerr = a[xaxis].sel(stat='std').values
+#            a[xaxis+'_axis'] = ([groupby], a[xaxis].sel(stat='mean').values)
+#            xaxis = xaxis+'_axis'
+#        else:
+#            xerr = None
+#
+#        a = a.swap_dims({groupby:xaxis})
+#    
+#    else:
+#        xerr = None
+#
+#    if desc is None:
+#        desc = a[attr].attrs.get('doc', '')
+#
+#    ndims = len(a[attr].dims)
+#    if ndims == 2:
+#        c = a[attr].to_pandas().T
+#        if xerr is not None:
+#            c['xerr'] = xerr
+#        c = c.sort_index()
+#        
+#        plt.figure()
+#        plt.gca().set_position((.1,.2,.8,.7))
+#        p = c['mean'].plot(yerr=c['std'],xerr=c.get('xerr'), title=title, fmt=fmt, **kwargs)
+#        plt.xlabel(xlabel)
+#        plt.ylabel(ylabel)
+#        if desc:
+#            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   
+# 
+#        return p 
+#    elif ndims == 3:
+#        plt.figure()
+#        plt.gca().set_position((.1,.2,.8,.7))
+#        pdim = [d for d in a[attr].dims if d not in ['stat', groupby, xaxis]][0]
+#        for i in range(len(a[attr].coords[pdim])):
+#            c = a[attr].sel(**{pdim:i}).drop(pdim).to_pandas().T.sort_index()
+#            p = c['mean'].plot(yerr=c['std'], fmt=fmt, **kwargs)
+#
+#        plt.xlabel(xlabel)
+#        plt.ylabel(ylabel)
+#        p.set_title(title)
+#        if desc:
+#            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   
+#
+#        return p 
+#    else:
+#        print 'Too many dims to plot'
 
 def make_image(self, pixel=.11, ix0=None, iy0=None):
     """Return image from 3-dim detector DataArray."""

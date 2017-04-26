@@ -87,10 +87,13 @@ OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
 : ${PYFILE="__main__.py"}
 : ${MAX_SIZE="10001"}
 echo $DIR
-STEPS=`python "$DIRNAME/$PYFILE" nsteps --exp=$EXP --run=$RUN`
-
-#STEPS=`python "$DIR/../python/PyDataSource/__main__.py" nsteps --exp=$EXP --run=$RUN`
-: ${CONFIG:=`python "$DIRNAME/$PYFILE" config --exp=$EXP --run=$RUN`}
+if [[ $RUN == *"-"* ]]; then
+    echo "Starting Batch"
+    : ${CONFIG:=`python "$DIRNAME/$PYFILE" config --exp=$EXP --run=$RUN`}
+else
+    STEPS=`python "$DIRNAME/$PYFILE" nsteps --exp=$EXP --run=$RUN`
+    : ${CONFIG:=`python "$DIRNAME/$PYFILE" config --exp=$EXP --run=$RUN`}
+fi
 
 python "$DIRNAME/$PYFILE" configData --exp=$EXP --run=$RUN
 
@@ -106,13 +109,17 @@ echo 'pydir:' $DIRNAME
 echo 'Runs:' $RUN
 echo '==============================='
 
-: ${CHUNK:="$STEPS"}
-CHUNK_MIN=1
-CHUNK_MAX=$((CHUNK))
-CHUNKS="$((CHUNK_MIN))-$((CHUNK_MAX))"
-CHUNKS=40
+if [[ $RUN == *"-"* ]]; then
+    CHUNKS=1
+    OUTLOG="$OUTDIR/batch_jobs"
+else
+    : ${CHUNK:="$STEPS"}
+    CHUNK_MIN=1
+    CHUNK_MAX=$((CHUNK))
+    CHUNKS="$((CHUNK_MIN))-$((CHUNK_MAX))"
+    OUTLOG="$OUTDIR/mpi_jobs"
+fi
 
-OUTLOG="$OUTDIR/Run$RUN"
 if [[ ! -a $OUTLOG ]];  then
     mkdir -p $OUTLOG
 fi
@@ -120,17 +127,24 @@ fi
 if [ $MAKEBASE ]; then
 
     bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" base --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
+#    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" base --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
 
 elif [ $USEMPI ]; then
 
     echo 'MPI'
-    mpiexec -n "$CHUNKS" python "$DIRNAME/$PYFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --max_size=10
+    CHUNKS=24
+    mpiexec -n "$CHUNKS" python "$DIRNAME/$PYFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
     #@mpiexec -n "$CHUNKS" python "$DIRNAME/$PYFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE"
     #mpiexec -n 4 python "$DIRNAME/$PYFILE" mpi --exp="$EXP" --run="$RUN" --nchunks=4 --nevents="$NUMBER_OF_EVENTS" --config="$CONFIG" --max_size="$MAX_SIZE"
 
-elif [ $CHUNK -eq 1 ]; then
+#elif [ $CHUNK -eq 1 ]; then
+elif [[ $RUN == *"-"* ]]; then
 
-    echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX --config="$CONFIG" --nevents="$NUMBER_OF_EVENTS" --max_size="$MAX_SIZE"
+    echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" batch --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG"
+    
+    bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" batch --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG"
+
+#    echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX --nevents="$NUMBER_OF_EVENTS" --max_size="$MAX_SIZE"
 
 #    bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX  --config="$CONFIG" --nevents="$NUMBER_OF_EVENTS" --max_size="$MAX_SIZE"
 
@@ -139,8 +153,7 @@ else
 
     echo bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
 
-    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
-
+#    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
 
 fi
 
