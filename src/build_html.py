@@ -201,7 +201,15 @@ class Build_experiment(object):
             
             if result is not None:
                 self.logger.info('Adding {:} plot for {:}'.format(alias, det))
-                self.add_plot(alias, det, howto=howto)
+                self.add_plot(alias, det+' Data', howto=howto)
+
+            dfattrs = pd.DataFrame({attr: es.xset[attr].attrs for attr in attrs if attr in es.xset})
+            self.results[alias]['table'].update({det+' Configuration': 
+                                                       {'DataFrame': dfattrs, 
+                                                        'name': 'attrs',
+                                                        'howto': None, 
+                                                        'hidden': True, 
+                                                        'doc': None}})
 
     def add_scans(self, dets=None, min_steps=4, **kwargs):
         """
@@ -218,7 +226,6 @@ class Build_experiment(object):
         alias = 'Scans'
         for det in dets:
             attrs = [a for a in df.keys() if a.startswith(det)]
-            dfattrs = pd.DataFrame({attr: es.xscan[attr].attrs for attr in attrs})
             dfscan = df.where(df[attrs].T.sum() > min_steps).dropna()
             dfscan = dfscan.T.where(dfscan.sum() > min_steps).dropna().T.astype(int)
            
@@ -238,6 +245,7 @@ class Build_experiment(object):
                                                         'hidden': False, 
                                                         'doc': None}})
             doc='Number of times each {:} device was moved (or state changed) during run.'.format(det)
+            dfattrs = pd.DataFrame({attr: es.xscan[attr].attrs for attr in attrs if attr in es.xscan})
             self.results[alias]['table'].update({det+' Configuration': 
                                                        {'DataFrame': dfattrs, 
                                                         'name': 'attrs',
@@ -637,6 +645,7 @@ class Build_html(object):
                            labelsize=20,
                            robust_attrs=None,
                            plot_errors=False,
+                           bins=50, 
                            cut=None, 
                            show=False):
         """Add a single detector based on alias
@@ -852,7 +861,7 @@ class Build_html(object):
                     howto = []
                     plt_type = 'hist'
                     #dfcut.hist(alpha=0.2, layout=layout, figsize=figsize)
-                    df.hist(alpha=0.2, layout=layout, figsize=figsize)
+                    df.hist(bins=bins, alpha=0.2, layout=layout, figsize=figsize)
                     howto.append("df.hist(alpha=0.2, layout={:}, figsize={:})".format(layout, figsize))
                     self.add_plot(catagory, plt_type, howto=howto)
                 except:

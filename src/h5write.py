@@ -521,6 +521,7 @@ def get_config_xarray(ds=None, exp=None, run=None, path=None, file_name=None,
 
 # Need to add in 'chunking based on steps'
 def write_hdf5(self, nevents=None, max_size=10001, 
+        aliases={},
         path='', file_base=None, 
         h5folder='scratch', subfolder='nc',
         publish=False,
@@ -539,6 +540,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
         no_events=False,
         debug=False,
         default_stats=True,
+        auto_update=True,
         **kwargs):
     """
     DEVELOPMENT:  Write directly to hdf5 with h5netcdf package.  
@@ -590,7 +592,6 @@ def write_hdf5(self, nevents=None, max_size=10001,
         ichunk=rank
    
     self.reload()
-    
     evt = self.events.next(publish=publish, init=publish)
     dtime = evt.EventId
     if not eventCodes:
@@ -768,9 +769,10 @@ def write_hdf5(self, nevents=None, max_size=10001,
     base_coordinates = coordinates
     scan_variables = epics_pvs.keys() 
     xbase.attrs['scan_variables'] = scan_variables
-   
+  
     for srcstr, src_info in self.configData._sources.items():
-        det = src_info['alias']
+        det0 = src_info['alias']
+        det = aliases.get(det0, det0)
         if ichunk == 0:
             print 'configuring', det
         nmaxevents = 100
@@ -790,8 +792,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 evt.next(publish=publish, init=publish)
                 ievt += 1
             
-            detector = getattr(evt,det)
-            if hasattr(detector, '_update_xarray_info'):
+            detector = getattr(evt,det0)
+            if auto_update and hasattr(detector, '_update_xarray_info'):
                 detector._update_xarray_info()
             
             config_info = {}
@@ -963,7 +965,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
         # keep track of events for each det
         for srcstr, srcitem in self.configData._sources.items():
-            det = srcitem.get('alias')
+            det0 = srcitem.get('alias')
+            det = aliases.get(det0, det0)
             aievt[det] = -1
             aievents[det] = []
       
@@ -1056,12 +1059,14 @@ def write_hdf5(self, nevents=None, max_size=10001,
                     #print 'cannot update pv', pv, iwrite
                     pass
 
-            for det in evt._attrs:
+            for det0 in evt._attrs:
+                det = aliases.get(det0, det0)
                 xbase[det+'_present'][iwrite] = True
             
             if not no_events:
-                for det in evt._attrs:
-                    detector = evt._dets.get(det)
+                for det0 in evt._attrs:
+                    det = aliases.get(det0, det0)
+                    detector = evt._dets.get(det0)
                     aievt[det] += 1 
                     iwrite = aievt[det]
                     if mpio:
@@ -1133,8 +1138,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
  
     det = 'stats'
     file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,det))
-    print self.stats
-    self.save_stats(file_name=file_name)
+    print self._get_stats(aliases=aliases)
+    self.save_stats(file_name=file_name, aliases=aliases)
 
     xbase.close()
 

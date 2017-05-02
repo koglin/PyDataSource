@@ -701,6 +701,19 @@ class DataSource(object):
             step = self.steps.next()
             self.reload()
 
+    # not robust -- orig alias used in other places
+#    def rename(self, **kwargs):
+#        """
+#        Rename detector.
+#        """
+#        for aold, anew in kwargs.items():
+#            self._aliases[anew] = self._aliases.pop(aold)   
+#            self._detectors[anew] = self._detectors.pop(aold)   
+#            self._device_sets[anew] = self._device_sets.pop(aold)
+#            self.configData._config_srcs[anew] = self.configData._config_srcs.pop(aold)
+#            self.configData.Sources._aliases[anew] = self.configData.Sources._aliases.pop(aold)
+#            self._detectors[anew]._alias = anew
+#
     def _get_exp_summary(self, reload=False, **kwargs):
         """
         Load experiment summary
@@ -806,7 +819,17 @@ class DataSource(object):
         if self.data_source.idx:
             self.runs = Runs(self, **kwargs)
             self.events = self.runs.next().events
-        
+            if 'BldInfo(EBeam)' not in self.configData._sources:
+                try:
+                    self.add_detector('BldInfo(EBeam)', alias='EBeam')
+                except:
+                    pass
+            if 'BldInfo(FEEGasDetEnergy)' not in self.configData._sources:
+                try:
+                    self.add_detector('BldInfo(FEEGasDetEnergy)', alias='FEEGasDetEnergy')
+                except:
+                    pass
+
         elif self.data_source.smd:
             self.steps = Steps(self, **kwargs)
             # SmdEvents automatically goes to next step if no events in current step.
@@ -880,7 +903,7 @@ class DataSource(object):
         """
         return self._get_stats()
 
-    def _get_stats(self, attrs=None):
+    def _get_stats(self, attrs=None, aliases={}):
         """
         xarray Dataset of Welford stats.
         
@@ -898,7 +921,7 @@ class DataSource(object):
             if 'stats' in det_config:
                 for attr, item in det_config['stats'].items():
                     if not attrs or '.'.join([alias,attr]) in attrs:
-                        datasets.append(self._detectors[alias]._get_stats(attr))
+                        datasets.append(self._detectors[alias]._get_stats(attr, alias=aliases.get(alias)))
         
         try:
             x = xr.merge(datasets)
@@ -919,6 +942,7 @@ class DataSource(object):
 
     def save_stats(self, attrs=None, file_name=None, path=None, 
             h5folder='scratch', subfolder='nc',
+            aliases={},
             engine='h5netcdf', **kwargs):
         """
         Save Welford stats as xarray compatible hdf5 files (using h5netcdf engine).
@@ -929,7 +953,7 @@ class DataSource(object):
         """
         import xarray as xr
         import os
-        data_sets = self._get_stats(attrs=attrs)
+        data_sets = self._get_stats(attrs=attrs, aliases=aliases)
         try:
             if not data_sets:
                 print 'No stats to save'
@@ -1182,6 +1206,13 @@ class DataSource(object):
                 # but could overwrite aliases for new data
                 if alias not in self._aliases:
                     self._aliases[alias] = srcstr
+                    try:
+                        psana_src = psana.Source(srcstr)
+                    except:
+                        psana_src = None
+                    self.configData._sources[srcstr] = {'alias': alias,
+                                                        'group': 0,
+                                                        'src': psana_src}
                 elif srcstr != self._aliases.get(alias):
                     raise Exception('{:} alias already taken'.format(alias))
 
@@ -3081,6 +3112,13 @@ class Detector(object):
 
         self._init = True
 
+#    # Does not quite work.  Need to invesigate how to rename robustly
+#    def rename(self, alias):
+#        """
+#        Rename detector.
+#        """
+#        self._ds.rename(**{self._alias: alias})
+
     @property
     def _source_info(self):
         """
@@ -3747,7 +3785,7 @@ class Detector(object):
 
         return None
 
-    def _get_stats(self, attr, stats=['mean', 'std', 'var', 'min', 'max']):
+    def _get_stats(self, attr, alias=None, stats=['mean', 'std', 'var', 'min', 'max']):
         """
         Get xarray.DataArray of Welford stats as defined by stats AddOn.
         """
@@ -3771,7 +3809,9 @@ class Detector(object):
         neventCodes = len(eventCodes)
         nstats = len(stats)
         aevents = np.zeros(shape=(nsteps,neventCodes))
-        dim_names = ['_'.join([self._alias,a]) for a in dims[0]]
+        if not alias:
+            alias = self._alias
+        dim_names = ['_'.join([alias,a]) for a in dims[0]]
         dim_shape = list(dims[1])
         dim_names.insert(0,'codes')
         dim_shape.insert(0,neventCodes)
@@ -3793,8 +3833,8 @@ class Detector(object):
                         asums[istat, istep, iec] = vals         
 
         da = xr.DataArray(asums, dims=ddims[0], coords=coords, 
-                attrs=attrs, name='_'.join([self._alias, attr]))
-        da.coords['_'.join([self._alias,'events'])]= (['steps', 'codes'], aevents)
+                attrs=attrs, name='_'.join([alias, attr]))
+        da.coords['_'.join([alias,'events'])]= (['steps', 'codes'], aevents)
 
         return da
 
@@ -6125,5 +6165,7 @@ def _update_stats(evt):
                                 print 'stats update error', det._alias, name, attr, ec, istep, vals
                         except:
                             print 'stats update error', det._alias, name, attr, ec, istep, vals
+#            else:
+#                print alias, name, attr, vals
 
 

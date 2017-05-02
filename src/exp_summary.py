@@ -23,9 +23,13 @@ def write_exp_summary(self, file_name=None, path='scratch', **kwargs):
 
     if not os.path.isdir(path):
         os.mkdir(path)
-   
-    with open(path+'/'+file_name, 'wb') as pickle_file:
-        pickle.dump(pickle.dumps(self, protocol=-1), pickle_file, protocol=-1)
+  
+    try:
+        with open(path+'/'+file_name, 'wb') as pickle_file:
+            pickle.dump(pickle.dumps(self, protocol=-1), pickle_file, protocol=-1)
+    except:
+        traceback.print_exc()
+        print 'Failes writing pickle file', path+'/'+file_name
 
 def read_exp_summary(exp=None, file_name=None, path='scratch', **kwargs):
     """
@@ -577,7 +581,9 @@ class ExperimentSummary(object):
             tstart = self._tstart
         if not tend:
             tend = self._tend
-        return self._arch._get_json(pv, tstart, tend, False)[0]
+        vals = self._arch._get_json(pv, tstart, tend, False)
+        if vals:
+            return vals[0]
 
     def _in_archive(self, pv):
         """
@@ -610,20 +616,22 @@ class ExperimentSummary(object):
         if not pvs:
             import PyDataSource
             if not run:
-                run = max(self.runs_with_xtc)
+                if self.runs_with_xtc:
+                    run = max(self.runs_with_xtc)
                 #run=rns['num'].max()
             
-            ds = PyDataSource.DataSource(exp=self.exp, run=run)
             #pvnames = {pv:ds.epicsData.alias(pv) for pv in ds.epicsData.pvNames()}
             pvnames = {}
-            for pv in ds.epicsData.pvNames():
-                pvalias = ds.epicsData.alias(pv)
-                if not pvalias:
-                    pvalias = re.sub(':|\.','_',pv)
-                else:
-                    pvalias = re.sub(':|\.|-| ','_',pvalias)
-                
-                pvnames[pv] = pvalias
+            if run:
+                ds = PyDataSource.DataSource(exp=self.exp, run=run)
+                for pv in ds.epicsData.pvNames():
+                    pvalias = ds.epicsData.alias(pv)
+                    if not pvalias:
+                        pvalias = re.sub(':|\.','_',pv)
+                    else:
+                        pvalias = re.sub(':|\.|-| ','_',pvalias)
+                    
+                    pvnames[pv] = pvalias
 
             for a in omit:
                 for pv in pvnames.copy():
@@ -668,95 +676,103 @@ class ExperimentSummary(object):
         time_last = time0
         for pv, alias in pvs.items():
             data_fields[alias] = {}
-            try:
-                #dat = arch._get_json(pv, tstart, tend, False)[0]
-                dat = self._get_pv_from_arch(pv)
-                attrs = {a: dat['meta'].get(val) for a,val in meta_attrs.items() if val in dat['meta']}
-                for attr, item in self._fields.items():  
+            dat = self._get_pv_from_arch(pv)
+            if dat:
+                try:
+                    attrs = {a: dat['meta'].get(val) for a,val in meta_attrs.items() if val in dat['meta']}
+                    for attr, item in self._fields.items():  
+                        try:
+                            field=item[0]
+                            pv_desc = pv.split('.')[0]+'.'+field
+                            if self._in_archive(pv_desc):
+                                desc = self._get_pv_from_arch(pv_desc)
+                                if desc:
+                                    vals = {}
+                                    fattrs = attrs.copy()
+                                    fattrs.update(**desc['meta'])
+                                    fattrs['doc'] = item[1]
+                                    val = None
+                                    # remove redundant data
+                                    for item in desc['data']:
+                                        newval =  item.get('val')
+                                        if not val or newval != val:
+                                            val = newval
+                                            vt = np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns')
+                                            vals[vt] = val
+                                   
+                                    data_fields[alias][attr] = xr.DataArray(vals.values(), coords=[vals.keys()], dims=['time'], 
+                                                                            name=alias+'_'+attr, attrs=fattrs) 
+                                    attrs[attr] = val
+             
+                        except:
+                            traceback.print_exc()
+                            print 'cannot get meta for', alias, attr
+                            pass
+                    vals = [item['val'] for item in dat['data']]
+                    doc = attrs.get('description','')
+                    units = attrs.get('units', '')
+                    time_next = time.time()
+                    if not quiet:
+                        try:
+                            print '{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}'.format(time_next-time_last, \
+                                            alias, len(vals), np.array(vals).mean(), units, doc, pv)
+                        except:
+                            print '{:8.3f} {:28} {:8} {:>10} {:4} {:20} {:}'.format(time_next-time_last, \
+                                            alias, len(vals), vals[0], units, doc, pv)
+                   
                     try:
-                        field=item[0]
-                        pv_desc = pv.split('.')[0]+'.'+field
-                        #desc = arch._get_json(pv_desc, tstart, tend, False)[0]
-                        if self._in_archive(pv_desc):
-                            desc = self._get_pv_from_arch(pv_desc)
-                            vals = {}
-                            fattrs = attrs.copy()
-                            fattrs.update(**desc['meta'])
-                            fattrs['doc'] = item[1]
-                            val = None
-                            # remove redundant data
-                            for item in desc['data']:
-                                newval =  item.get('val')
-                                if not val or newval != val:
-                                    val = newval
-                                    vt = np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns')
-                                    vals[vt] = val
-                           
-                            data_fields[alias][attr] = xr.DataArray(vals.values(), coords=[vals.keys()], dims=['time'], 
-                                                                    name=alias+'_'+attr, attrs=fattrs) 
-                            attrs[attr] = val
-     
+                        if vals:
+                            if isinstance(vals[0],str):
+                                if not quiet:
+                                    print alias, 'string'
+                                vals = np.array(vals, dtype=str)
+                            else:
+                                times = [np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns') for item in dat['data']]
+                                # Simple way to remove duplicates
+                                # Duplicates will break xarray merge
+        #                        times_o = [a for a in times]
+        #                        vals_o = [v for v in vals]
+        #                        try:
+        #                            aa = dict(zip(times, vals))
+        #                            #aa = sorted(dict(zip(times, vals)).items(), key=operator.itemgetter(0))
+        #                        except:
+        #                            print 'cannot sort', alias
+        #                            aa = dict(zip(times, vals))
+        #                        times = np.array(aa.keys(), dtype=times[0].dtype)
+        #                        vals = np.array(aa.values())
+        #                        if not alias.endswith('set') and alias not in machine_pvs and len(aa) > max_size:
+        #                            print '    ... resampling', alias
+        #                            inds = range(0,len(aa), len(aa)/max_size)
+        #                            times = times[inds]
+        #                            vals = vals[inds]
+        #
+                                if alias in machine_pvs:
+                                    dfs = pd.Series(vals, times).sort_index()
+                                    dfs = dfs[~dfs.index.duplicated()]
+                                    dfs = dfs.to_xarray().rename({'index': 'time'})
+                                    data_machine[alias] = dfs 
+                                    data_machine[alias].name = alias
+                                    data_machine[alias].attrs = attrs
+                                    #data_machine[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs)
+                                elif len(vals) > 1:
+                                    dfs = pd.Series(vals, times).sort_index()
+                                    dfs = dfs[~dfs.index.duplicated()]
+                                    dfs = dfs.to_xarray().rename({'index': 'time'})
+                                    data_arrays[alias] = dfs 
+                                    data_arrays[alias].name = alias
+                                    data_arrays[alias].attrs = attrs
+                                    #data_arrays[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs) 
+                                else:
+                                    data_points[alias] = {'value': vals[0], 'time': times[0], 
+                                                          'pv': attrs['pv'], 'units': attrs.get('units','')}
                     except:
                         traceback.print_exc()
-                        print 'cannot get meta for', alias, attr
-                        pass
-                vals = [item['val'] for item in dat['data']]
-                doc = attrs.get('description','')
-                units = attrs.get('units', '')
-                time_next = time.time()
-                if not quiet:
-                    try:
-                        print '{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}'.format(time_next-time_last, \
-                                        alias, len(vals), np.array(vals).mean(), units, doc, pv)
-                    except:
-                        print '{:8.3f} {:28} {:8} {:>10} {:4} {:20} {:}'.format(time_next-time_last, \
-                                        alias, len(vals), vals[0], units, doc, pv)
-               
-                try:
-                    if isinstance(vals[0],str):
                         if not quiet:
-                            print alias, 'string'
-                        vals = np.array(vals, dtype=str)
-                    else:
-                        times = [np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns') for item in dat['data']]
-                        # Simple way to remove duplicates
-                        # Duplicates will break xarray merge
-#                        times_o = [a for a in times]
-#                        vals_o = [v for v in vals]
-#                        try:
-#                            aa = dict(zip(times, vals))
-#                            #aa = sorted(dict(zip(times, vals)).items(), key=operator.itemgetter(0))
-#                        except:
-#                            print 'cannot sort', alias
-#                            aa = dict(zip(times, vals))
-#                        times = np.array(aa.keys(), dtype=times[0].dtype)
-#                        vals = np.array(aa.values())
-#                        if not alias.endswith('set') and alias not in machine_pvs and len(aa) > max_size:
-#                            print '    ... resampling', alias
-#                            inds = range(0,len(aa), len(aa)/max_size)
-#                            times = times[inds]
-#                            vals = vals[inds]
-#
-                        if alias in machine_pvs:
-                            data_machine[alias] = pd.Series(vals, times).sort_index().to_xarray().rename({'index': 'time'})
-                            data_machine[alias].name = alias
-                            data_machine[alias].attrs = attrs
-                            #data_machine[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs)
-                        elif len(vals) > 1:
-                            data_arrays[alias] = pd.Series(vals, times).sort_index().to_xarray().rename({'index': 'time'})
-                            data_arrays[alias].name = alias
-                            data_arrays[alias].attrs = attrs
-                            #data_arrays[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs) 
-                        else:
-                            data_points[alias] = {'value': vals[0], 'time': times[0], 'pv': attrs['pv'], 'units': attrs.get('units','')}
+                            print 'Error loadinig', alias
                 except:
                     traceback.print_exc()
                     if not quiet:
-                        print 'Error loadinig', alias
-            except:
-                traceback.print_exc()
-                if not quiet:
-                    print 'Error loading', alias
+                        print 'Error loading', alias
 
         if not quiet:
             print '... Merging'
@@ -907,11 +923,15 @@ class ExperimentSummary(object):
         ca = xcut.count().to_array()
         xcut = xcut.drop(ca['variable'][ca == 0].values)
         coords = ['begin_time','end_time','duration','run_id','prep_time']
-        xcut = xcut.reset_coords(self._machine_coords) 
+        recoords = list(set(self._machine_coords) & set(xcut.coords.keys()))
+        if recoords:
+            xcut = xcut.reset_coords(recoords) 
         dgrp = xcut.groupby('run')
         dsets = [getattr(dgrp, func)(dim='time') for func in stats]
         mvs = xr.concat(dsets, stats).rename({'concat_dim': 'stat'})
-        xscan = resort(self.xruns.merge(mvs)).set_coords(coords).set_coords(self._machine_coords)
+        xscan = resort(self.xruns.merge(mvs)).set_coords(coords)
+        if recoords:
+            xscan = xscan.set_coords(recoords)
         for attr in xscan.data_vars:
             xscan[attr].attrs = self.xepics[attr].attrs
  
