@@ -162,7 +162,7 @@
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-
+<span class="kn">from</span> <span class="nn">xarray_utils</span> <span class="k">import</span> <span class="o">*</span>
 <span class="c1">#from pylab import *</span>
 
 <span class="k">def</span> <span class="nf">runlist_to_str</span><span class="p">(</span><span class="n">runs</span><span class="p">,</span> <span class="n">portable</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -365,72 +365,72 @@
 
     <span class="k">return</span> <span class="n">xdat</span></div>
 
-<div class="viewcode-block" id="to_summary"><a class="viewcode-back" href="../../generated/PyDataSource.to_summary.html#PyDataSource.to_summary">[docs]</a><span class="k">def</span> <span class="nf">to_summary</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> 
-        <span class="n">save_summary</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">normby</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">omit_list</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">,</span> <span class="s1">&#39;nsec&#39;</span><span class="p">,</span> <span class="s1">&#39;fiducials&#39;</span><span class="p">,</span> <span class="s1">&#39;ticks&#39;</span><span class="p">],</span>
-        <span class="n">stats</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="s1">&#39;count&#39;</span><span class="p">]):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Summarize a run.</span>
-<span class="sd">    </span>
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    x : xarray.Dataset</span>
-<span class="sd">        input xarray Dataset</span>
-<span class="sd">    dim : str</span>
-<span class="sd">        dimension to summarize over [default = &#39;time&#39;]</span>
-<span class="sd">    groupby : str</span>
-<span class="sd">        coordinate to groupby [default = &#39;step&#39;]</span>
-<span class="sd">    save_summary : bool</span>
-<span class="sd">        Save resulting xarray Dataset object</span>
-<span class="sd">    normby : list or dict</span>
-<span class="sd">        Normalize data by attributes</span>
-<span class="sd">    omit_list : list</span>
-<span class="sd">        List of Dataset attributes to omit</span>
-<span class="sd">    stats : list</span>
-<span class="sd">        List of statistical operations to be performed for summary.</span>
-<span class="sd">        Default = [&#39;mean&#39;, &#39;std&#39;, &#39;min&#39;, &#39;max&#39;, &#39;count&#39;]</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
-    <span class="n">xattrs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">attrs</span>
-    <span class="n">data_attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">attr</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">x</span><span class="p">}</span>
-
-    <span class="k">if</span> <span class="s1">&#39;Damage_cut&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Damage_cut</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
-   
-    <span class="n">coords</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">dim</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">omit_list</span> <span class="ow">and</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">]</span> 
-    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">normby</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">norm_attr</span><span class="p">,</span> <span class="n">attrs</span> <span class="ow">in</span> <span class="n">normby</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">normalize_data</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">attrs</span><span class="p">,</span> <span class="n">norm_attr</span><span class="o">=</span><span class="n">norm_attr</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">normby</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">normalize_data</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">normby</span><span class="p">)</span>
-
-    <span class="c1"># With new xarray 0.9.1 need to make sure loaded otherwise h5py error</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">groupby</span><span class="p">:</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span>
-
-    <span class="n">dsets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">func</span><span class="p">)(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">]</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dsets</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s1">&#39;concat_dim&#39;</span><span class="p">:</span> <span class="s1">&#39;stat&#39;</span><span class="p">})</span>
-    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span><span class="n">val</span> <span class="ow">in</span> <span class="n">xattrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">x</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
-    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span><span class="n">item</span> <span class="ow">in</span> <span class="n">data_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
-            <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>                                                       
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">set_coords</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-    
-    <span class="n">x</span> <span class="o">=</span> <span class="n">resort</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    
-    <span class="k">if</span> <span class="n">save_summary</span><span class="p">:</span>
-        <span class="n">to_h5netcdf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">x</span></div>
+<span class="c1">#def to_summary(x, dim=&#39;time&#39;, groupby=&#39;step&#39;, </span>
+<span class="c1">#        save_summary=False,</span>
+<span class="c1">#        normby=None,</span>
+<span class="c1">#        omit_list=[&#39;run&#39;, &#39;sec&#39;, &#39;nsec&#39;, &#39;fiducials&#39;, &#39;ticks&#39;],</span>
+<span class="c1">#        stats=[&#39;mean&#39;, &#39;std&#39;, &#39;min&#39;, &#39;max&#39;, &#39;count&#39;]):</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#    Summarize a run.</span>
+<span class="c1">#    </span>
+<span class="c1">#    Parameters</span>
+<span class="c1">#    ----------</span>
+<span class="c1">#    x : xarray.Dataset</span>
+<span class="c1">#        input xarray Dataset</span>
+<span class="c1">#    dim : str</span>
+<span class="c1">#        dimension to summarize over [default = &#39;time&#39;]</span>
+<span class="c1">#    groupby : str</span>
+<span class="c1">#        coordinate to groupby [default = &#39;step&#39;]</span>
+<span class="c1">#    save_summary : bool</span>
+<span class="c1">#        Save resulting xarray Dataset object</span>
+<span class="c1">#    normby : list or dict</span>
+<span class="c1">#        Normalize data by attributes</span>
+<span class="c1">#    omit_list : list</span>
+<span class="c1">#        List of Dataset attributes to omit</span>
+<span class="c1">#    stats : list</span>
+<span class="c1">#        List of statistical operations to be performed for summary.</span>
+<span class="c1">#        Default = [&#39;mean&#39;, &#39;std&#39;, &#39;min&#39;, &#39;max&#39;, &#39;count&#39;]</span>
+<span class="c1">#</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#    import xarray as xr</span>
+<span class="c1">#    xattrs = x.attrs</span>
+<span class="c1">#    data_attrs = {attr: x[attr].attrs for attr in x}</span>
+<span class="c1">#</span>
+<span class="c1">#    if &#39;Damage_cut&#39; in x:</span>
+<span class="c1">#        x = x.where(x.Damage_cut).dropna(dim)</span>
+<span class="c1">#   </span>
+<span class="c1">#    coords = [c for c in x.coords if c != dim and c not in omit_list and dim in x.coords[c].dims] </span>
+<span class="c1">#    x = x.reset_coords(coords)</span>
+<span class="c1">#</span>
+<span class="c1">#    if isinstance(normby, dict):</span>
+<span class="c1">#        for norm_attr, attrs in normby.items():</span>
+<span class="c1">#            x = normalize_data(x, attrs, norm_attr=norm_attr)</span>
+<span class="c1">#    elif isinstance(normby, list):</span>
+<span class="c1">#        x = normalize_data(x, normby)</span>
+<span class="c1">#</span>
+<span class="c1">#    # With new xarray 0.9.1 need to make sure loaded otherwise h5py error</span>
+<span class="c1">#    x.load()</span>
+<span class="c1">#</span>
+<span class="c1">#    if groupby:</span>
+<span class="c1">#        x = x.groupby(groupby)</span>
+<span class="c1">#</span>
+<span class="c1">#    dsets = [getattr(x, func)(dim=dim) for func in stats]</span>
+<span class="c1">#    x = xr.concat(dsets, stats).rename({&#39;concat_dim&#39;: &#39;stat&#39;})</span>
+<span class="c1">#    for attr,val in xattrs.items():</span>
+<span class="c1">#        x.attrs[attr] = val</span>
+<span class="c1">#    for attr,item in data_attrs.items():</span>
+<span class="c1">#        if attr in x:</span>
+<span class="c1">#            x[attr].attrs.update(item)</span>
+<span class="c1">#</span>
+<span class="c1">#    for c in coords:                                                       </span>
+<span class="c1">#        x = x.set_coords(c)</span>
+<span class="c1">#    </span>
+<span class="c1">#    x = resort(x)</span>
+<span class="c1">#    </span>
+<span class="c1">#    if save_summary:</span>
+<span class="c1">#        to_h5netcdf(x)</span>
+<span class="c1">#</span>
+<span class="c1">#    return x</span>
 
 <span class="k">def</span> <span class="nf">add_steps</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">vals</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
@@ -940,18 +940,18 @@
 
     <span class="k">return</span>  <span class="n">resort</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">resort</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Resort alphabitically xarray Dataset</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">coords</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">dims</span><span class="p">])</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="nb">sorted</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)]</span>
-
-    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>                                                       
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">set_coords</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">x</span>
+<span class="c1">#def resort(x):</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#    Resort alphabitically xarray Dataset</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#    coords = sorted([c for c in x.coords.keys() if c not in x.coords.dims])</span>
+<span class="c1">#    x = x.reset_coords()</span>
+<span class="c1">#    x = x[sorted(x.data_vars)]</span>
+<span class="c1">#</span>
+<span class="c1">#    for c in coords:                                                       </span>
+<span class="c1">#        x = x.set_coords(c)</span>
+<span class="c1">#</span>
+<span class="c1">#    return x</span>
 
 <span class="k">def</span> <span class="nf">map_indexes</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">ww</span><span class="p">):</span>                                                                      
     <span class="sd">&quot;&quot;&quot;</span>

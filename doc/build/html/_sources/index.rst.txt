@@ -10,7 +10,7 @@ Table of Contents
 -----------------
 
 .. toctree::
-   :maxdepth: 2 
+   :maxdepth: 1 
 
    data_access.rst
    data_processing.rst

@@ -15,8 +15,7 @@ Below is an example of setting of a psana conda release where sepcific versions 
 
 .. code-block:: bash 
 
-    .  /reg/g/psdm/etc/ana_env.sh
-    source conda_setup
+    source /reg/g/psdm/bin/conda_setup
    
     kinit
 
@@ -27,8 +26,6 @@ Below is an example of setting of a psana conda release where sepcific versions 
     cd conda
 
     condarel --addpkg --name PyDataSource --tag HEAD
-
-    source conda_setup
 
     scons
 

@@ -180,41 +180,22 @@
 <h1>PyDataSource.to_summary<a class="headerlink" href="#pydatasource-to-summary" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
 <dt id="PyDataSource.to_summary">
-<code class="descclassname">PyDataSource.</code><code class="descname">to_summary</code><span class="sig-paren">(</span><em>x, dim='time', groupby='step', save_summary=False, normby=None, omit_list=['run', 'sec', 'nsec', 'fiducials', 'ticks'], stats=['mean', 'std', 'min', 'max', 'count']</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/psxarray.html#to_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.to_summary" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">PyDataSource.</code><code class="descname">to_summary</code><span class="sig-paren">(</span><em>x, dim='time', groupby='step', save_summary=False, normby=None, omit_list=['run', 'sec', 'nsec', 'fiducials', 'ticks'], stats=['mean', 'std', 'var', 'min', 'max', 'count'], **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/xarray_utils.html#to_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.to_summary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Summarize a run.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>x</strong> : xarray.Dataset</p>
-<blockquote>
-<div><p>input xarray Dataset</p>
-</div></blockquote>
-<p><strong>dim</strong> : str</p>
-<blockquote>
-<div><p>dimension to summarize over [default = &#8216;time&#8217;]</p>
-</div></blockquote>
-<p><strong>groupby</strong> : str</p>
-<blockquote>
-<div><p>coordinate to groupby [default = &#8216;step&#8217;]</p>
-</div></blockquote>
-<p><strong>save_summary</strong> : bool</p>
-<blockquote>
-<div><p>Save resulting xarray Dataset object</p>
-</div></blockquote>
-<p><strong>normby</strong> : list or dict</p>
-<blockquote>
-<div><p>Normalize data by attributes</p>
-</div></blockquote>
-<p><strong>omit_list</strong> : list</p>
-<blockquote>
-<div><p>List of Dataset attributes to omit</p>
-</div></blockquote>
-<p><strong>stats</strong> : list</p>
-<blockquote class="last">
-<div><p>List of statistical operations to be performed for summary.
-Default = [&#8216;mean&#8217;, &#8216;std&#8217;, &#8216;min&#8217;, &#8216;max&#8217;, &#8216;count&#8217;]</p>
-</div></blockquote>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>xarray.Dataset</em>) &#8211; input xarray Dataset</li>
+<li><strong>dim</strong> (<em>str</em>) &#8211; dimension to summarize over [default = &#8216;time&#8217;]</li>
+<li><strong>groupby</strong> (<em>str</em>) &#8211; coordinate to groupby [default = &#8216;step&#8217;]</li>
+<li><strong>save_summary</strong> (<em>bool</em>) &#8211; Save resulting xarray Dataset object</li>
+<li><strong>normby</strong> (<em>list</em><em> or </em><em>dict</em>) &#8211; Normalize data by attributes</li>
+<li><strong>omit_list</strong> (<em>list</em>) &#8211; List of Dataset attributes to omit</li>
+<li><strong>stats</strong> (<em>list</em>) &#8211; List of statistical operations to be performed for summary.
+Default = [&#8216;mean&#8217;, &#8216;std&#8217;, &#8216;var&#8217;, &#8216;min&#8217;, &#8216;max&#8217;, &#8216;count&#8217;]</li>
+</ul>
 </td>
 </tr>
 </tbody>

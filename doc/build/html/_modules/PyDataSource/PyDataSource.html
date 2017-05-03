@@ -697,8 +697,8 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">pvAliases</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pv</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pvControls</span><span class="p">):</span>
-                <span class="n">alias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pvLabels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">pvAliases</span><span class="p">[</span><span class="n">pv</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;-|:|\.| &#39;</span><span class="p">,</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">alias</span><span class="p">)</span>
+                <span class="n">alias</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;-|:|\.| &#39;</span><span class="p">,</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pvLabels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pvAliases</span><span class="p">[</span><span class="n">pv</span><span class="p">]</span> <span class="o">=</span> <span class="n">alias</span> 
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">control_values</span><span class="p">[</span><span class="n">pv</span><span class="p">])</span>
 
         <span class="n">ds</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span></div>
@@ -818,7 +818,7 @@
             <span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
             <span class="s1">&#39;devName&#39;</span><span class="p">:</span> <span class="p">{</span>
 <span class="c1">##                &#39;Evr&#39;: &#39;evr&#39;, </span>
-<span class="c1">##                &#39;Imp&#39;: &#39;imp&#39;,</span>
+<span class="c1">#                &#39;Imp&#39;: &#39;impbox&#39;,</span>
 <span class="c1">#                &#39;Acqiris&#39;: &#39;acqiris&#39;,</span>
 <span class="c1">##                &#39;Epix&#39;: &#39;epix100&#39;,</span>
 <span class="c1">##                &#39;Cspad&#39;: &#39;cspad&#39;,</span>
@@ -838,6 +838,7 @@
 
 <div class="viewcode-block" id="DataSource.__init__"><a class="viewcode-back" href="../../generated/PyDataSource.DataSource.html#PyDataSource.DataSource.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="c1">#self._device_sets = {&#39;DataSource&#39;: {}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exp_summary</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_device_sets</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_current_data</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
@@ -857,7 +858,64 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">smd</span><span class="p">:</span>
             <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
-    
+
+    <span class="c1"># not robust -- orig alias used in other places</span>
+<span class="c1">#    def rename(self, **kwargs):</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        Rename detector.</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        for aold, anew in kwargs.items():</span>
+<span class="c1">#            self._aliases[anew] = self._aliases.pop(aold)   </span>
+<span class="c1">#            self._detectors[anew] = self._detectors.pop(aold)   </span>
+<span class="c1">#            self._device_sets[anew] = self._device_sets.pop(aold)</span>
+<span class="c1">#            self.configData._config_srcs[anew] = self.configData._config_srcs.pop(aold)</span>
+<span class="c1">#            self.configData.Sources._aliases[anew] = self.configData.Sources._aliases.pop(aold)</span>
+<span class="c1">#            self._detectors[anew]._alias = anew</span>
+<span class="c1">#</span>
+    <span class="k">def</span> <span class="nf">_get_exp_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load experiment summary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">exp_summary</span> <span class="k">import</span> <span class="n">get_exp_summary</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exp_summary</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="n">reload</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp_summary</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">exp_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Experiment summary.  Reload if not up to date with current data_source run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp_summary</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">es</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_exp_summary</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">es</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp_summary</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">es</span><span class="o">.</span><span class="n">xruns</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="n">es</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_exp_summary</span><span class="p">(</span><span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">es</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scan_pvs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dict of pv alias and number of times set during run.</span>
+<span class="sd">        For more detailed information on scan see for example xarray Dataset retruned from:</span>
+<span class="sd">            xpvscan = ds.exp_summary.get_scan_data(run_number)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exp_summary</span><span class="o">.</span><span class="n">dfscan</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">moved_pvs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dict of pv alias and values that were set prior to run..</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exp_summary</span><span class="o">.</span><span class="n">dfset</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
     <span class="k">def</span> <span class="nf">load_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Load a run with psana.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -919,7 +977,17 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">runs</span> <span class="o">=</span> <span class="n">Runs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">runs</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="o">.</span><span class="n">events</span>
-        
+            <span class="k">if</span> <span class="s1">&#39;BldInfo(EBeam)&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_sources</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_detector</span><span class="p">(</span><span class="s1">&#39;BldInfo(EBeam)&#39;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">&#39;EBeam&#39;</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">if</span> <span class="s1">&#39;BldInfo(FEEGasDetEnergy)&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_sources</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_detector</span><span class="p">(</span><span class="s1">&#39;BldInfo(FEEGasDetEnergy)&#39;</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="s1">&#39;FEEGasDetEnergy&#39;</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">smd</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">steps</span> <span class="o">=</span> <span class="n">Steps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="c1"># SmdEvents automatically goes to next step if no events in current step.</span>
@@ -944,10 +1012,131 @@
 
         <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset_stats</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Reload the current run.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load_run</span><span class="p">(</span><span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reset_stats</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">reset_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset Welford stats objects.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        attrs:  Optional list of stats objects to reset (e.g., [CsPad.calib_stats])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">attrs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">attrs</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">det_config</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_sets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s1">&#39;stats&#39;</span> <span class="ow">in</span> <span class="n">det_config</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">det_config</span><span class="p">[</span><span class="s1">&#39;stats&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">attrs</span> <span class="ow">or</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">alias</span><span class="p">,</span><span class="n">attr</span><span class="p">])</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                        <span class="n">item</span><span class="p">[</span><span class="s1">&#39;funcs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    
+    <span class="k">def</span> <span class="nf">_add_default_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">[],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add default statistics for each Image and Waveform Detectors</span>
+<span class="sd">        if not stats already created</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detectors</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        
+        <span class="n">attrs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">attrs</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">det</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detectors</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">det</span><span class="o">.</span><span class="n">_det_config</span><span class="p">[</span><span class="s1">&#39;stats&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">det</span><span class="o">.</span><span class="n">_det_class</span> <span class="o">==</span> <span class="n">WaveformData</span><span class="p">:</span>
+                    <span class="n">det</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s1">&#39;waveform&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">det</span><span class="o">.</span><span class="n">_det_class</span> <span class="o">==</span> <span class="n">ImageData</span><span class="p">:</span>
+                    <span class="n">det</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        xarray Dataset of all Welford stats.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stats</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">aliases</span><span class="o">=</span><span class="p">{}):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        xarray Dataset of Welford stats.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        attrs:  Optional list of stats objects to save (e.g., [CsPad.calib_stats])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+        <span class="kn">import</span> <span class="nn">os</span>
+        <span class="k">if</span> <span class="n">attrs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attrs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">attrs</span><span class="p">]</span>
+
+        <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">det_config</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_sets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="s1">&#39;stats&#39;</span> <span class="ow">in</span> <span class="n">det_config</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">det_config</span><span class="p">[</span><span class="s1">&#39;stats&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">attrs</span> <span class="ow">or</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">alias</span><span class="p">,</span><span class="n">attr</span><span class="p">])</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                        <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_detectors</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span><span class="o">.</span><span class="n">_get_stats</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="n">aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">alias</span><span class="p">)))</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;merge failed&#39;</span>
+            <span class="k">return</span> <span class="n">datasets</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">xsteps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;steps&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">xsteps</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">pv</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">ScanData</span><span class="o">.</span><span class="n">control_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">alias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">ScanData</span><span class="o">.</span><span class="n">pvAliases</span><span class="p">[</span><span class="n">pv</span><span class="p">]</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">alias</span><span class="o">+</span><span class="s1">&#39;_steps&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="p">((</span><span class="s1">&#39;steps&#39;</span><span class="p">),</span> <span class="n">vals</span><span class="p">[</span><span class="n">xsteps</span><span class="p">])</span> 
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;could not add steps&#39;</span>
+
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">save_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+            <span class="n">h5folder</span><span class="o">=</span><span class="s1">&#39;scratch&#39;</span><span class="p">,</span> <span class="n">subfolder</span><span class="o">=</span><span class="s1">&#39;nc&#39;</span><span class="p">,</span>
+            <span class="n">aliases</span><span class="o">=</span><span class="p">{},</span>
+            <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;h5netcdf&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save Welford stats as xarray compatible hdf5 files (using h5netcdf engine).</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        attrs:  Optional list of stats objects to save (e.g., [CsPad.calib_stats])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+        <span class="kn">import</span> <span class="nn">os</span>
+        <span class="n">data_sets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stats</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span><span class="p">,</span> <span class="n">aliases</span><span class="o">=</span><span class="n">aliases</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">data_sets</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;No stats to save&#39;</span>
+                <span class="k">return</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_sets</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="nb">print</span> <span class="s1">&#39;Cannot save stats&#39;</span>
+                <span class="k">return</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_name</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">instrument</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">instrument</span>
+                <span class="n">exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">exp</span>
+                <span class="n">run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/reg/d/psdm/</span><span class="si">{:}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">/Run</span><span class="si">{:04}</span><span class="s1">/&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> 
+                        <span class="n">exp</span><span class="p">,</span><span class="n">h5folder</span><span class="p">,</span><span class="n">subfolder</span><span class="p">,</span><span class="n">run</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        
+            <span class="n">file_base</span> <span class="o">=</span> <span class="s1">&#39;run</span><span class="si">{:04}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">run</span><span class="p">))</span>
+            <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="s1">&#39;stats&#39;</span><span class="p">))</span>
+   
+        <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_load_ConfigData</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ConfigData</span> <span class="o">=</span> <span class="n">ConfigData</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -1023,6 +1212,14 @@
             <span class="n">xarray_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">to_xarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">xarray_kwargs</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write directly to hdf5 in xarray comatable netcdf4 format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">h5write</span>
+        <span class="n">xarray_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xarray_kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">xarray_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">h5write</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">xarray_kwargs</span><span class="p">)</span>
+        
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">configData</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1066,6 +1263,48 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">Sources</span>
+
+    <span class="k">def</span> <span class="nf">_make_smd_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute script to make small data file for old files.        </span>
+<span class="sd"> </span>
+<span class="sd">            Usage:  ./smldata  [-f &lt;xtc filename&gt;] [-i &lt;input index&gt;] [-o &lt;index filename&gt;] [-s &lt;size threshold&gt;] [-h]</span>
+<span class="sd">              Options:</span>
+<span class="sd">                -h                     Show usage.</span>
+<span class="sd">                -f &lt;xtc filename&gt;      Set input xtc filename</span>
+<span class="sd">                -i &lt;index filename&gt;    Set input index filename</span>
+<span class="sd">                   Note 1: -i option is used for testing. The program will parse</span>
+<span class="sd">                     the index file to see if it is valid, and output to another</span>
+<span class="sd">                     index file if -o option is specified</span>
+<span class="sd">                   Note 2: -i will overwrite -f option</span>
+<span class="sd">                -o &lt;index filename&gt;    Set output index filename</span>
+<span class="sd">                -s &lt;size threshold&gt;    Set L1Accept xtc size threshold</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">subprocess</span>
+        <span class="kn">import</span> <span class="nn">glob</span>
+        <span class="kn">import</span> <span class="nn">os</span>
+
+        <span class="n">exp_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;/reg/d/psdm/&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">exp</span><span class="p">)</span>
+        <span class="n">xtc_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">exp_dir</span><span class="p">,</span><span class="s1">&#39;xtc&#39;</span><span class="p">)</span>
+        <span class="n">smd_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xtc_dir</span><span class="p">,</span><span class="s1">&#39;smalldata&#39;</span><span class="p">)</span>
+        <span class="n">script_path</span> <span class="o">=</span> <span class="s1">&#39;/reg/common/package/pdsdata/8.7.3/x86_64-rhel7-opt/bin/&#39;</span>
+        <span class="n">xtc_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">xtc_dir</span><span class="o">+</span><span class="s1">&#39;/*-r</span><span class="si">{:04}</span><span class="s1">-s*.xtc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">smd_dir</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">smd_dir</span><span class="p">)</span>
+        
+        <span class="nb">print</span> <span class="s1">&#39;WARNING:  Need to have priviledge to do this...&#39;</span>
+        <span class="nb">print</span> <span class="s1">&#39;  ask for help from CDS&#39;</span>
+        <span class="nb">print</span> <span class="s1">&#39;Execute the following commands from psana:&#39;</span>
+        <span class="nb">print</span> <span class="s1">&#39;------------------------------------------&#39;</span>
+        <span class="k">for</span> <span class="n">file_in</span> <span class="ow">in</span> <span class="n">xtc_files</span><span class="p">:</span>
+            <span class="n">file_out</span> <span class="o">=</span> <span class="n">file_in</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/xtc/&#39;</span><span class="p">,</span><span class="s1">&#39;/xtc/smalldata/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;xtc&#39;</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;smd.xtc&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">file_out</span><span class="p">):</span>
+                <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">smldata -f </span><span class="si">{:}</span><span class="s1"> -o </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">script_path</span><span class="p">,</span> <span class="n">file_in</span><span class="p">,</span> <span class="n">file_out</span><span class="p">)</span>
+                <span class="nb">print</span> <span class="n">cmd</span>
+                <span class="c1">#subproc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;# Small data file already exists: </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_out</span><span class="p">)</span>
+
 
     <span class="k">def</span> <span class="nf">_init_detectors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize psana.Detector classes based on psana env information.</span>
@@ -1120,6 +1359,20 @@
                 <span class="n">srcstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">alias</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">srcstr</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1"> not a valid Detector&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alias</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># update aliases with srcstr -- required for old data</span>
+                <span class="c1"># but could overwrite aliases for new data</span>
+                <span class="k">if</span> <span class="n">alias</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">srcstr</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">psana_src</span> <span class="o">=</span> <span class="n">psana</span><span class="o">.</span><span class="n">Source</span><span class="p">(</span><span class="n">srcstr</span><span class="p">)</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">psana_src</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_sources</span><span class="p">[</span><span class="n">srcstr</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;alias&#39;</span><span class="p">:</span> <span class="n">alias</span><span class="p">,</span>
+                                                        <span class="s1">&#39;group&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                                                        <span class="s1">&#39;src&#39;</span><span class="p">:</span> <span class="n">psana_src</span><span class="p">}</span>
+                <span class="k">elif</span> <span class="n">srcstr</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">alias</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1"> alias already taken&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alias</span><span class="p">))</span>
 
         <span class="n">det</span> <span class="o">=</span> <span class="n">alias</span>
         
@@ -1261,7 +1514,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
                 <span class="n">file_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">.config&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">run</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
                     <span class="k">return</span> <span class="n">file_name</span>
@@ -1288,7 +1541,7 @@
 
         <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_device_sets</span><span class="p">)</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DataSource.load_config"><a class="viewcode-back" href="../../generated/PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config">[docs]</a>    <span class="k">def</span> <span class="nf">load_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="DataSource.load_config"><a class="viewcode-back" href="../../generated/PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config">[docs]</a>    <span class="k">def</span> <span class="nf">load_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load DataSource configuration.  Overwrites any existing config.</span>
 <span class="sd">        </span>
@@ -1317,7 +1570,7 @@
                 <span class="k">if</span> <span class="s1">&#39;module&#39;</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
                     <span class="n">module_dict</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;module&#39;</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">module_dict</span><span class="p">:</span>
-                        <span class="nb">print</span> <span class="n">alias</span><span class="p">,</span> <span class="n">module_dict</span>
+                        <span class="c1">#print alias, module_dict</span>
                         <span class="n">kwargs</span> <span class="o">=</span> <span class="n">module_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;kwargs&#39;</span><span class="p">,</span> <span class="p">{})</span>
                         <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;alias&#39;</span><span class="p">:</span> <span class="n">alias</span><span class="p">,</span> 
                                        <span class="s1">&#39;srcstr&#39;</span><span class="p">:</span> <span class="n">module_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;srcstr&#39;</span><span class="p">),</span>
@@ -1341,8 +1594,21 @@
                                     <span class="n">det_config</span><span class="p">[</span><span class="n">attr</span><span class="p">][</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
                                 <span class="k">else</span><span class="p">:</span>
                                     <span class="nb">print</span> <span class="n">alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="s1">&#39;No overwrite&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">val</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">det_config</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_dict</span></div>
+                    <span class="k">elif</span> <span class="n">attr</span> <span class="o">!=</span> <span class="s1">&#39;stats&#39;</span><span class="p">:</span>
+                        <span class="n">det_config</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">config_dict</span>
+
+                <span class="c1"># Need to be careful with stats objects to make sure added with dims correctly</span>
+                <span class="n">stats_config</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stats&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">stats_config</span><span class="p">:</span>
+                    <span class="n">evt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">current</span>
+                    <span class="k">while</span> <span class="n">alias</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">evt</span><span class="o">.</span><span class="n">_attrs</span><span class="p">:</span>
+                        <span class="n">evt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                    <span class="n">detector</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">evt</span><span class="p">,</span> <span class="n">alias</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">stat_item</span> <span class="ow">in</span> <span class="n">stats_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">attr</span> <span class="o">=</span> <span class="n">stat_item</span><span class="p">[</span><span class="s1">&#39;attr&#39;</span><span class="p">]</span>
+                        <span class="nb">print</span> <span class="s1">&#39;adding stats for&#39;</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> 
+                        <span class="n">detector</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="nf">show_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -2762,7 +3028,12 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="kc">False</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">eventCode</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eventCodes</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+        
+        <span class="k">return</span> <span class="kc">False</span>
 
     <span class="k">def</span> <span class="nf">present</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -2962,6 +3233,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_xarray_info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;coords&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;dims&#39;</span><span class="p">:</span> <span class="p">{},</span> <span class="s1">&#39;attrs&#39;</span><span class="p">:</span> <span class="p">{}})</span>
         
         <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_sources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
+        <span class="c1">#</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">src</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
@@ -2997,6 +3269,23 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_tabclass</span> <span class="o">=</span> <span class="s1">&#39;detector&#39;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_init</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<span class="c1">#    # Does not quite work.  Need to invesigate how to rename robustly</span>
+<span class="c1">#    def rename(self, alias):</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        Rename detector.</span>
+<span class="c1">#        &quot;&quot;&quot;</span>
+<span class="c1">#        self._ds.rename(**{self._alias: alias})</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_source_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        sourceData information.  Objects converted to str.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">src_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sourceData</span><span class="o">.</span><span class="n">_source</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;src&#39;</span> <span class="ow">in</span> <span class="n">src_info</span><span class="p">:</span>
+            <span class="n">src_info</span><span class="p">[</span><span class="s1">&#39;src&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">src_info</span><span class="p">[</span><span class="s1">&#39;src&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">src_info</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3078,6 +3367,7 @@
                     <span class="s1">&#39;image&#39;</span><span class="p">:</span>     <span class="n">image_dims</span><span class="p">,</span>
                     <span class="s1">&#39;calib&#39;</span><span class="p">:</span>     <span class="n">raw_dims</span><span class="p">,</span>
                     <span class="s1">&#39;raw&#39;</span><span class="p">:</span>       <span class="n">raw_dims</span><span class="p">,</span>
+                    <span class="s1">&#39;corr&#39;</span><span class="p">:</span>      <span class="n">raw_dims</span><span class="p">,</span>
                     <span class="p">}</span>
            <span class="c1"># # temporary fix for Opal2000, Opal4000 and Opa8000</span>
            <span class="c1"># elif self._pydet.dettype in [7,8,9]:</span>
@@ -3085,11 +3375,16 @@
 
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_xaxis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_xaxis</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">raw_dims</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="n">raw_dims</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;xaxis&#39;</span><span class="p">,</span> <span class="s1">&#39;yaxis&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                     <span class="n">image_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_xaxis</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_yaxis</span><span class="p">))</span>
                     <span class="n">image_dims</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">],</span> <span class="n">image_shape</span><span class="p">)</span>
                     <span class="c1">#dims_dict = {&#39;calib&#39;:     image_dims}</span>
-                    <span class="n">dims_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;raw&#39;</span><span class="p">:</span>     <span class="n">image_dims</span><span class="p">}</span>
+                    <span class="n">dims_dict</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;image&#39;</span><span class="p">:</span>     <span class="n">image_dims</span><span class="p">,</span>
+                        <span class="s1">&#39;raw&#39;</span><span class="p">:</span>       <span class="n">raw_dims</span><span class="p">,</span>
+                        <span class="s1">&#39;corr&#39;</span><span class="p">:</span>      <span class="n">raw_dims</span><span class="p">,</span>
+                        <span class="s1">&#39;calib&#39;</span><span class="p">:</span>     <span class="n">raw_dims</span><span class="p">,</span>
+                        <span class="p">}</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">dims_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;raw&#39;</span><span class="p">:</span> <span class="p">([</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">evtData</span><span class="o">.</span><span class="n">data16</span><span class="o">.</span><span class="n">shape</span><span class="p">)}</span>
 
@@ -3137,8 +3432,8 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
                 <span class="n">raw_dims</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;sensor&#39;</span><span class="p">,</span> <span class="s1">&#39;row&#39;</span><span class="p">,</span> <span class="s1">&#39;column&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                 <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;areas&#39;</span><span class="p">,</span> <span class="s1">&#39;coords_x&#39;</span><span class="p">,</span> <span class="s1">&#39;coords_y&#39;</span><span class="p">,</span> <span class="s1">&#39;coords_z&#39;</span><span class="p">,</span> 
-                         <span class="s1">&#39;gain&#39;</span><span class="p">,</span> <span class="s1">&#39;indexes_x&#39;</span><span class="p">,</span> <span class="s1">&#39;indexes_y&#39;</span><span class="p">,</span> <span class="s1">&#39;pedestals&#39;</span><span class="p">,</span> <span class="s1">&#39;rms&#39;</span>
-                         <span class="s1">&#39;image_xaxis&#39;</span><span class="p">,</span> <span class="s1">&#39;image_yaxis&#39;</span><span class="p">]</span>
+                        <span class="c1"># &#39;image_xaxis&#39;, &#39;image_yaxis&#39;,</span>
+                         <span class="s1">&#39;gain&#39;</span><span class="p">,</span> <span class="s1">&#39;indexes_x&#39;</span><span class="p">,</span> <span class="s1">&#39;indexes_y&#39;</span><span class="p">,</span> <span class="s1">&#39;pedestals&#39;</span><span class="p">,</span> <span class="s1">&#39;rms&#39;</span><span class="p">]</span>
                 <span class="n">coords_dict</span> <span class="o">=</span> <span class="p">{</span>
                         <span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_xaxis</span><span class="p">,</span>
                         <span class="s1">&#39;Y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_yaxis</span>
@@ -3151,8 +3446,10 @@
                                <span class="s1">&#39;Y&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">coords_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])}</span>
 
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span>  <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">raw_dims</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;Y&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-                <span class="n">attrs</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">raw_dims</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;xaxis&#39;</span><span class="p">,</span> <span class="s1">&#39;yaxis&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;areas&#39;</span><span class="p">,</span> <span class="s1">&#39;coords_x&#39;</span><span class="p">,</span> <span class="s1">&#39;coords_y&#39;</span><span class="p">,</span> <span class="s1">&#39;coords_z&#39;</span><span class="p">,</span> 
+                        <span class="c1"># &#39;image_xaxis&#39;, &#39;image_yaxis&#39;,</span>
+                         <span class="s1">&#39;gain&#39;</span><span class="p">,</span> <span class="s1">&#39;indexes_x&#39;</span><span class="p">,</span> <span class="s1">&#39;indexes_y&#39;</span><span class="p">,</span> <span class="s1">&#39;pedestals&#39;</span><span class="p">,</span> <span class="s1">&#39;rms&#39;</span><span class="p">]</span>
                 <span class="n">coords_dict</span> <span class="o">=</span> <span class="p">{</span>
                         <span class="s1">&#39;X&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_xaxis</span><span class="p">,</span>
                         <span class="s1">&#39;Y&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calibData</span><span class="o">.</span><span class="n">image_yaxis</span>
@@ -3646,7 +3943,7 @@
 
         <span class="k">return</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="nf">_get_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">stats</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="nf">_get_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stats</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">]):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get xarray.DataArray of Welford stats as defined by stats AddOn.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -3654,9 +3951,12 @@
         <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
         <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
         
-        <span class="n">coords</span> <span class="o">=</span> <span class="n">stat_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coords&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="c1"># Need to fix handling of coords to be robust</span>
+        <span class="c1">#coords = stat_info.get(&#39;coords&#39;).copy()</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">dims</span> <span class="o">=</span> <span class="n">stat_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dims&#39;</span><span class="p">)</span>
         <span class="n">eventCodes</span> <span class="o">=</span> <span class="n">stat_info</span><span class="p">[</span><span class="s1">&#39;funcs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">stat_info</span><span class="p">[</span><span class="s1">&#39;attrs&#39;</span><span class="p">]</span>
         <span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">ec</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">stat_info</span><span class="p">[</span><span class="s1">&#39;funcs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">for</span> <span class="n">step</span><span class="p">,</span> <span class="n">fec</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -3667,7 +3967,9 @@
         <span class="n">neventCodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eventCodes</span><span class="p">)</span>
         <span class="n">nstats</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stats</span><span class="p">)</span>
         <span class="n">aevents</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">nsteps</span><span class="p">,</span><span class="n">neventCodes</span><span class="p">))</span>
-        <span class="n">dim_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">alias</span><span class="p">:</span>
+            <span class="n">alias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_alias</span>
+        <span class="n">dim_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">alias</span><span class="p">,</span><span class="n">a</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
         <span class="n">dim_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">dim_names</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;codes&#39;</span><span class="p">)</span>
         <span class="n">dim_shape</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">neventCodes</span><span class="p">)</span>
@@ -3688,11 +3990,11 @@
                     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">vals</span><span class="p">):</span>
                         <span class="n">asums</span><span class="p">[</span><span class="n">istat</span><span class="p">,</span> <span class="n">istep</span><span class="p">,</span> <span class="n">iec</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals</span>         
 
-        <span class="n">da</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">asums</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">ddims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span>
-        <span class="n">da</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;events&#39;</span><span class="p">]</span><span class="o">=</span> <span class="p">([</span><span class="s1">&#39;steps&#39;</span><span class="p">,</span> <span class="s1">&#39;codes&#39;</span><span class="p">],</span> <span class="n">aevents</span><span class="p">)</span>
+        <span class="n">da</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">asums</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">ddims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> 
+                <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">]))</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">alias</span><span class="p">,</span><span class="s1">&#39;events&#39;</span><span class="p">])]</span><span class="o">=</span> <span class="p">([</span><span class="s1">&#39;steps&#39;</span><span class="p">,</span> <span class="s1">&#39;codes&#39;</span><span class="p">],</span> <span class="n">aevents</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">da</span>
-
 
     <span class="k">def</span> <span class="nf">_get_projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -4300,7 +4602,7 @@
         <span class="k">return</span> <span class="n">name</span>
 
     <span class="k">def</span> <span class="nf">stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
-            <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eventCodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eventCodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="p">{},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate running statistics (mean, std, min, max, count) of detector data attribute </span>
 <span class="sd">        during event iteration using Welford algorithm.</span>
@@ -4320,17 +4622,31 @@
             <span class="k">return</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">eventCodes</span><span class="p">:</span>
-            <span class="n">eventCodes</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">eventCode</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eventCodes</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-            <span class="n">eventCodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">eventCodes</span><span class="p">]</span>
+            <span class="n">code0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">eventCode</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">code0</span><span class="p">:</span>
+                <span class="n">code0</span> <span class="o">=</span> <span class="mi">40</span>
+                <span class="k">if</span> <span class="n">code0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_eventcodes</span><span class="p">:</span>
+                    <span class="n">code0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_eventcodes</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det_config</span><span class="p">[</span><span class="s1">&#39;xarray&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coords&#39;</span><span class="p">):</span>
+            <span class="n">eventCodes</span> <span class="o">=</span> <span class="n">code0</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eventCodes</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">eventCodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">eventCodes</span><span class="p">]</span>
+        <span class="c1"># Need to update dims always</span>
+        <span class="k">if</span> <span class="kc">True</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det_config</span><span class="p">[</span><span class="s1">&#39;xarray&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coords&#39;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">_update_xarray_info</span><span class="p">()</span>
 
         <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det_config</span><span class="p">[</span><span class="s1">&#39;xarray&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dims&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dims</span><span class="p">:</span>
+            <span class="n">dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det_config</span><span class="p">[</span><span class="s1">&#39;xarray&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dims&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="p">{})</span>
         <span class="n">all_coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det_config</span><span class="p">[</span><span class="s1">&#39;xarray&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coords&#39;</span><span class="p">,</span> <span class="p">{})</span>
-        <span class="n">coords</span> <span class="o">=</span> <span class="p">{</span><span class="n">dim</span><span class="p">:</span> <span class="n">coord</span> <span class="k">for</span> <span class="n">dim</span><span class="p">,</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">all_coords</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
-        <span class="n">attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det_config</span><span class="p">[</span><span class="s1">&#39;xarray&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attrs&#39;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="c1">#coords = {dim: coord for dim, coord in all_coords.items() if dim in dims[0]}</span>
+        <span class="c1">#coords = {dim: coord for dim, coord in all_coords.items() if not isinstance(coord[0], list) or len(set(coord[0]) &amp; set(dims[0])) &gt; 0}</span>
+        <span class="c1">#coords = {dim: coord for dim, coord in all_coords.items() if coord[0] == dims[0]}</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1">#attrs = self._det_config[&#39;xarray&#39;].get(&#39;attrs&#39;, {})</span>
+        <span class="n">stat_attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">_source_info</span>
+        <span class="n">stat_attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 
 <span class="c1">#        try:</span>
 <span class="c1">#            dims = self._det_config[&#39;xarray&#39;][&#39;dims&#39;].get(attr)</span>
@@ -4349,6 +4665,7 @@
                 <span class="s1">&#39;coords&#39;</span><span class="p">:</span> <span class="n">coords</span><span class="p">,</span>
                 <span class="s1">&#39;funcs&#39;</span><span class="p">:</span> <span class="p">{},</span>
                 <span class="s1">&#39;eventCodes&#39;</span><span class="p">:</span> <span class="n">eventCodes</span><span class="p">,</span>
+                <span class="s1">&#39;attrs&#39;</span><span class="p">:</span> <span class="n">stat_attrs</span><span class="p">,</span>
                 <span class="s1">&#39;stats&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;std&#39;</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">],</span>
                 <span class="p">}})</span>
 
@@ -5310,7 +5627,7 @@
 <span class="sd">    Attributes come from psana.Detector with low level implementation </span>
 <span class="sd">    done in C++ or python.  Boost is used for the C++.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">_attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">]</span> 
+    <span class="n">_attrs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="s1">&#39;corr&#39;</span><span class="p">,</span> <span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="s1">&#39;size&#39;</span><span class="p">]</span> 
     <span class="n">_attr_info</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;shape&#39;</span><span class="p">:</span>       <span class="p">{</span><span class="s1">&#39;doc&#39;</span><span class="p">:</span> <span class="s1">&#39;Shape of raw data array&#39;</span><span class="p">,</span> 
                             <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">},</span>
@@ -5321,6 +5638,8 @@
             <span class="s1">&#39;calib&#39;</span><span class="p">:</span>       <span class="p">{</span><span class="s1">&#39;doc&#39;</span><span class="p">:</span> <span class="s1">&#39;Calibrated data&#39;</span><span class="p">,</span>
                             <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;ADU&#39;</span><span class="p">},</span>
             <span class="s1">&#39;image&#39;</span><span class="p">:</span>       <span class="p">{</span><span class="s1">&#39;doc&#39;</span><span class="p">:</span> <span class="s1">&#39;Reconstruced 2D image from calibStore geometry&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;ADU&#39;</span><span class="p">},</span>
+            <span class="s1">&#39;corr&#39;</span><span class="p">:</span>        <span class="p">{</span><span class="s1">&#39;doc&#39;</span><span class="p">:</span> <span class="s1">&#39;Pedestal corrected data (no common mode correction)&#39;</span><span class="p">,</span>
                             <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;ADU&#39;</span><span class="p">},</span>
             <span class="p">}</span> 
 
@@ -5337,6 +5656,17 @@
 <span class="sd">        Instrument to which this detector belongs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">instrument</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">corr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pedestal corrected raw data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">pedestals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_evt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ped</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="o">-</span><span class="n">ped</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span>
 
     <span class="k">def</span> <span class="nf">make_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nda</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -5993,6 +6323,8 @@
                                 <span class="nb">print</span> <span class="s1">&#39;stats update error&#39;</span><span class="p">,</span> <span class="n">det</span><span class="o">.</span><span class="n">_alias</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">ec</span><span class="p">,</span> <span class="n">istep</span><span class="p">,</span> <span class="n">vals</span>
                         <span class="k">except</span><span class="p">:</span>
                             <span class="nb">print</span> <span class="s1">&#39;stats update error&#39;</span><span class="p">,</span> <span class="n">det</span><span class="o">.</span><span class="n">_alias</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">ec</span><span class="p">,</span> <span class="n">istep</span><span class="p">,</span> <span class="n">vals</span>
+<span class="c1">#            else:</span>
+<span class="c1">#                print alias, name, attr, vals</span>
 
 
 </pre></div>
