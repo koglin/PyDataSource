@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Batch jobs might fail if this is not set
+#  https://stackoverflow.com/questions/39840184/python-code-crashes-with-cannot-connect-to-x-server-when-detaching-sshtmux-se
+unset DISPLAY XAUTHORITY
+
 export PYTHONPATH=
 
 args="$@"
@@ -50,7 +54,7 @@ do
         SINGLEJOB=1
         ;;
     b)
-        MAKEBASE=1
+        BUILD_HTML=1
         ;;
     m)
         USEMPI=1
@@ -124,12 +128,15 @@ if [[ ! -a $OUTLOG ]];  then
     mkdir -p $OUTLOG
 fi
 
-if [ $MAKEBASE ]; then
-
-    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" base --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
+#if [ $MAKEBASE ]; then
+#
 #    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" base --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
+##    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" base --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
+#
+#PSQUE=psanaq
+PSQUE=psnehq
 
-elif [ $USEMPI ]; then
+if [ $USEMPI ]; then
 
     echo 'MPI'
     CHUNKS=24
@@ -140,9 +147,17 @@ elif [ $USEMPI ]; then
 #elif [ $CHUNK -eq 1 ]; then
 elif [[ $RUN == *"-"* ]]; then
 
-    echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" batch --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG"
-    
-    bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" batch --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG"
+    if [ $BUILD_HTML ]; then
+        #ONLY Build html 
+        PYOPT='build'
+    else
+        PYOPT='batch'
+    fi
+
+    echo bsub -q "$PSQUE" -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
+    bsub -q "$PSQUE" -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
+
+#    bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" test --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
 
 #    echo bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" xarray --exp="$EXP" --run=\$LSB_JOBINDEX --nevents="$NUMBER_OF_EVENTS" --max_size="$MAX_SIZE"
 

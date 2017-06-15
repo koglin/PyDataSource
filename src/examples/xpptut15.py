@@ -313,7 +313,7 @@ def get_correlations(y, attr='PulseEnergy', confidence=0.1, method='pearson',
 
 def get_cov(y, attr='PulseEnergy',
         attrs=[], confidence=0.33,
-        omit_list=['sec', 'fiducials', 'ticks']):
+        omit_list=['sec', 'fiducials', 'ticks', 'Damage_cut']):
     """Find variables that correlate with given attr.
     """
     x = y.reset_coords()

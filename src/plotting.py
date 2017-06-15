@@ -15,6 +15,8 @@ def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs)
         groupby=kwargs['groupby']
     elif 'step' in a.dims:
         groupby='step'
+    elif 'steps' in a.dims:
+        groupby='steps'
     else:
         groupby='run'
 
@@ -30,6 +32,20 @@ def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs)
         if xaxis:
             xaxis = xaxis[0]
 
+    if xaxis:
+        if 'stat' in a[xaxis].dims:
+            xerr = a[xaxis].sel(stat='std').values
+            a[xaxis+'_axis'] = ([groupby], a[xaxis].sel(stat='mean').values)
+            xaxis = xaxis+'_axis'
+        else:
+            xerr = None
+
+        a = a.swap_dims({groupby:xaxis})
+    
+    else:
+        xaxis = groupby
+        xerr = None
+
     ylabel = kwargs.get('ylabel', '')
     if not ylabel:
         ylabel = a[attr].name
@@ -44,19 +60,6 @@ def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs)
         if unit:
             xlabel = '{:} [{:}]'.format(xlabel, unit)
     
-    if xaxis:
-        if 'stat' in a[xaxis].dims:
-            xerr = a[xaxis].sel(stat='std').values
-            a[xaxis+'_axis'] = ([groupby], a[xaxis].sel(stat='mean').values)
-            xaxis = xaxis+'_axis'
-        else:
-            xerr = None
-
-        a = a.swap_dims({groupby:xaxis})
-    
-    else:
-        xerr = None
-
     if desc is None:
         desc = a[attr].attrs.get('doc', '')
 
@@ -81,7 +84,10 @@ def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, fmt='o', **kwargs)
         plt.gca().set_position((.1,.2,.8,.7))
         pdim = [d for d in a[attr].dims if d not in ['stat', groupby, xaxis]][0]
         for i in range(len(a[attr].coords[pdim])):
-            c = a[attr].sel(**{pdim:i}).drop(pdim).to_pandas().T.sort_index()
+            c = a[attr].sel(**{pdim:i})
+            if pdim in c:
+                c = c.drop(pdim)
+            c = c.to_pandas().T.sort_index()
             p = c['mean'].plot(yerr=c['std'], fmt=fmt, **kwargs)
 
         plt.xlabel(xlabel)

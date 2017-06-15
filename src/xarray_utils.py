@@ -146,5 +146,55 @@ def add_steps(x, attr, name=None):
  
     x.coords[name] = (['time'], asteps)
 
+def get_correlations(y, attr, confidence=0.33, method='pearson',
+        omit_list=['sec', 'nsec', 'fiducials', 'ticks', 'Damage_cut', 'EBeam_damageMask']):
+    """Find variables that correlate with given attr.
+    """
+    x = y.reset_coords()
+    attrs = [a for a, item in x.data_vars.items() if item.dims == ('time',)]
+    cmatrix = x[attrs].to_dataframe().corr(method=method)
+    cattrs = {a: item for a, item in cmatrix[attr].iteritems() if item > confidence \
+            and a != attr and a not in omit_list}    
+    return cattrs
+
+def get_cov(y, attr, attrs=[], confidence=0.33,
+        omit_list=['sec', 'nsec', 'fiducials', 'ticks', 'Damage_cut', 'EBeam_damageMask']):
+    """Find variables that correlate with given attr.
+    """
+    x = y.reset_coords()    
+    if not attrs:
+        #attrs = [a for a, item in x.data_vars.items() if item.dims == ('time',)]
+        attrs = [a for a in get_correlations(x, attr, confidence=confidence).keys() if a not in omit_list \
+                and not a.startswith('FEEGasDetEnergy') and not a.startswith('Gasdet')]
+        attrs.append(attr)
+
+    df = x[attrs].to_dataframe()
+    cmatrix = df.cov()
+    #cattrs = {a: item for a, item in cmatrix[attr].iteritems() if a != attr and a not in omit_list}    
+    return cmatrix
+
+def heatmap(df, attrs=[], method='pearson', confidence=0.33, position=(0.3,0.35,0.45,0.6), show=False):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    fig = plt.figure() 
+    ax1 = fig.add_subplot(111)
+    #plt.gca().set_position(position)
+    if attrs:
+        df = df[attrs]
+    
+    corr = df.corr(method=method)
+    if confidence:
+        cattrs = df.keys()[((abs(corr)>=confidence).sum()>1).values]
+        corr = df[cattrs].corr(method=method)
+    
+    sns.heatmap(corr,annot=True)
+    plt.yticks(rotation=0)
+    plt.xticks(rotation=90) 
+    plt.gca().set_position(position)
+    if show:
+        plt.show()   
+
+
+
 
 

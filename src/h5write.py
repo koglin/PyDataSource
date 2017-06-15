@@ -235,7 +235,7 @@ def to_h5netcdf(xdat=None, ds=None, file_name=None, path=None,
                 
             file_name = os.path.join(path,file_base+'.nc')
     
-    xdat.to_netcdf(file_name, engine='h5netcdf')
+    xdat.to_netcdf(file_name, mode='w', engine='h5netcdf')
 
     return xdat
 
@@ -298,7 +298,7 @@ def merge_datasets(file_names, engine='h5netcdf',
     if save_file and isinstance(save_file, str):
         if not quiet:
             print 'Saving', save_file
-        x.to_netcdf(save_file, engine=engine)
+        x.to_netcdf(save_file, mode='w', engine=engine)
 
     return x, xattrs
 
@@ -431,7 +431,7 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
             print 'Saving Run {:} to {:}'.format(run, save_path) 
         
         try:
-            x.to_netcdf(save_file, engine=engine)
+            x.to_netcdf(save_file, mode='w', engine=engine)
             if cleanup:
                 try:
                     files = glob.glob('{:}/run{:04}_*.nc'.format(path, run)) 
@@ -540,6 +540,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
         no_events=False,
         debug=False,
         default_stats=True,
+        min_all_save=10,
         auto_update=True,
         **kwargs):
     """
@@ -567,6 +568,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
         If true drop unused eventCodes [default=True]
     default_stats : bool
         If true include stats for waveforms and calib image data.
+    min_all_save : int
+        Min number of events where all 'calib' data saved.  Sets max_size = 1e10
 
     Example
     -------
@@ -759,6 +762,19 @@ def write_hdf5(self, nevents=None, max_size=10001,
             except:
                 print 'Could not add pvMonitor', pv
 
+    apvControls = {} 
+    if hasattr(self.configData, 'ScanData') and self.configData.ScanData:
+        if self.configData.ScanData.nsteps > 1:
+            apvControls = self.configData.ScanData.control_values
+            for pv, vals in self.configData.ScanData.control_values.items():
+                alias = self.configData.ScanData.pvAliases[pv]
+                coordinates += ' {:}_control'.format(alias)
+                scan_variables.append(alias+'_control')
+                apvControls[pv] = xbase.create_variable(alias+'_control', ('time',), float) 
+                apvControls[pv].attrs.update({'pv': pv, 
+                                                 'step_values': vals, 
+                                                 'desc': 'daq pvControls values for {:}'.format(pv)})
+
     axpvs = {}
     for attr, item in epics_pvs.items():
         pv = item.get('pv')
@@ -798,11 +814,11 @@ def write_hdf5(self, nevents=None, max_size=10001,
             
             config_info = {}
             # make sure not objects -- should be moved into PyDataSoruce
-            for confg_attr, config_item in detector._xarray_info.get('attrs').items():
+            for config_attr, config_item in detector._xarray_info.get('attrs').items():
                 if hasattr(config_item, '__func__'):
-                    config_info[attr] = str(config_item)
+                    config_info[config_attr] = str(config_item)
                 else:
-                    config_info[attr] = config_item
+                    config_info[config_attr] = config_item
 
 #            if attrs:
 #                axdat[det].coords[det+'_config'] = ([det+'_steps'], range(nsteps))
@@ -872,7 +888,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
                             attr_info.pop(a)
 
                     #det_funcs[det][attr] = {'alias': alias, 'det': det, 'attr': attr, 'attr_info': attr_info}
-                    if np.product(item[1]) <= max_size or alias in store_data:
+                    if np.product(item[1]) <= max_size or alias in store_data or min_all_save >= nevents:
                         a = [det+'_'+name for name in item[0]]
                         a.insert(0, 'time')
                         try:
@@ -1051,6 +1067,13 @@ def write_hdf5(self, nevents=None, max_size=10001,
             for attr, codes in code_flags.items():
                 if evt.Evr.present(codes):
                     xbase[attr][iwrite] = True
+
+            # put pvControls step value for each event 
+            for pv, xpv in apvControls.items():
+                try:
+                    xpv[iwrite] = xpv.attrs['step_values'][istep]
+                except:
+                    print 'Cannot write pvControl', pv, iwrite, istep
 
             for pv, xpv in axpvs.items():
                 try:
@@ -1363,6 +1386,7 @@ def map_indexes(xx, yy, ww):
 def make_image(self, pixel=.11, ix0=None, iy0=None):
     """Return image from 3-dim detector DataArray."""
     import numpy as np
+    import xarray as xr
     base = self.name.split('_')[0]
     xx = self[base+'_indexes_x']
     yy = self[base+'_indexes_y']

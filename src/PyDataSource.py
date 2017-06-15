@@ -378,6 +378,10 @@ def psmon_publish(evt, quiet=True):
             detector = evt._dets.get(alias)
             for name, psmon_args in psplots.items():
                 eventCode = psmon_args['pubargs'].get('eventCode', None)
+                nskip = psmon_args['pubargs'].get('nskip', None)
+                if nskip and (evt._ds._ievent % nskip != 0):
+                    continue
+
                 if not quiet:
                     print eventCode, name, psmon_args
                 
@@ -895,6 +899,9 @@ class DataSource(object):
                     det.add.stats('waveform', **kwargs)
                 elif det._det_class == ImageData:
                     det.add.stats('calib', **kwargs)
+                elif 'data' in det._attrs:
+                    # currently just zyla
+                    det.add.stats('data', **kwargs)
 
     @property
     def stats(self):
@@ -1007,13 +1014,10 @@ class DataSource(object):
             self._device_sets.update({'DataSource': {}})
         return self._device_sets.get('DataSource') 
 
-    def to_xarray(self, batch=None, **kwargs):
+    def to_xarray(self, batch=None, build_html=False, **kwargs):
         """
         Build xarray object from PyDataSource.DataSource object.
-        
-        See Also
-        --------
-        PyDataSource.psxarray.to_xarray
+        Now using same method as to_hdf5
 
         Example
         -------
@@ -1050,18 +1054,39 @@ class DataSource(object):
             #subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
 
         else:
+            import h5write
             xarray_kwargs = self.xarray_kwargs.copy()
             xarray_kwargs.update(**kwargs)
-            return to_xarray(self, **xarray_kwargs)
+            #return to_xarray(self, **xarray_kwargs)
+            x = h5write.to_hdf5(self, **xarray_kwargs)
+            if build_html:
+                try:
+                    import build_html
+                    self.html = build_html.Build_html(x, auto=True) 
+                except:
+                    traceback.print_exc()
+                    print 'Could not build html run summary for', str(self)
 
-    def to_hdf5(self, **kwargs):
+            return x
+
+
+    def to_hdf5(self, build_html=False, **kwargs):
         """Write directly to hdf5 in xarray comatable netcdf4 format.
         """
         import h5write
         xarray_kwargs = self.xarray_kwargs.copy()
         xarray_kwargs.update(**kwargs)
-        return h5write.to_hdf5(self, **xarray_kwargs)
-        
+        x = h5write.to_hdf5(self, **xarray_kwargs)
+        if build_html:
+            try:
+                import build_html
+                self.html = build_html.Build_html(x, auto=True) 
+            except:
+                traceback.print_exc()
+                print 'Could not build html run summary for', str(self)
+
+        return x
+
     @property
     def configData(self):
         """
@@ -1361,7 +1386,9 @@ class DataSource(object):
                 if os.path.isfile(file_name):
                     return file_name
             
-            raise Exception('No valid config file found for {:} Run {:}'.format(exp, run))
+            print 'No valid config file found for {:} Run {:}'.format(exp, run)
+            return None
+            #raise Exception('No valid config file found for {:} Run {:}'.format(exp, run))
         
         else:
             return '{:}/run{:04}.config'.format(path, int(run))
@@ -1381,7 +1408,10 @@ class DataSource(object):
         if not file_name:
             file_name = self._get_config_file(run=self.data_source.run, path=path)
 
-        pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
+        if file_name:
+            pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
+        else:
+            print 'No valid file_name to save config'
 
     def load_config(self, run=None, exp=None, user=None, file_name=None, path=None, quiet=True, **kwargs):
         """
@@ -1405,52 +1435,55 @@ class DataSource(object):
 
 #        attrs = ['parameter', 'property', 'psplot', 'peak', 
 #                 'roi', 'projection', 'xarray']
- 
-        config = pd.read_json(file_name).to_dict()
-        for alias, item in config.items():
-            if alias in self._device_sets:
-                if 'module' in item:
-                    module_dict = item.pop('module')
-                    if module_dict:
-                        #print alias, module_dict
-                        kwargs = module_dict.get('kwargs', {})
-                        kwargs.update({'alias': alias, 
-                                       'srcstr': module_dict.get('srcstr'),
-                                       'module': module_dict.get('name'),
-                                       'path': module_dict.get('path'),
-                                       'desc': module_dict.get('desc')})
-                        self.add_detector(**kwargs)
+    
+        if not file_name:
+            print 'No config file to load'
+        else:
+            config = pd.read_json(file_name).to_dict()
+            for alias, item in config.items():
+                if alias in self._device_sets:
+                    if 'module' in item:
+                        module_dict = item.pop('module')
+                        if module_dict:
+                            #print alias, module_dict
+                            kwargs = module_dict.get('kwargs', {})
+                            kwargs.update({'alias': alias, 
+                                           'srcstr': module_dict.get('srcstr'),
+                                           'module': module_dict.get('name'),
+                                           'path': module_dict.get('path'),
+                                           'desc': module_dict.get('desc')})
+                            self.add_detector(**kwargs)
 
-                det_config = self._device_sets[alias]
-                for attr, config_dict in item.items():
-                    if False and isinstance(config_dict, dict):
-                        # Does not work yet to only try updating 
-                        for a, val in config_dict.items():
-                            if isinstance(val, dict):
-                                if a not in det_config[attr]:
-                                    det_config[attr][a] = {}
-                                for b, bval in val.items():
-                                    det_config[attr][a][b] = bval
-                            else:
-                                if a not in det_config[attr]:
-                                    det_config[attr][a] = val
+                    det_config = self._device_sets[alias]
+                    for attr, config_dict in item.items():
+                        if False and isinstance(config_dict, dict):
+                            # Does not work yet to only try updating 
+                            for a, val in config_dict.items():
+                                if isinstance(val, dict):
+                                    if a not in det_config[attr]:
+                                        det_config[attr][a] = {}
+                                    for b, bval in val.items():
+                                        det_config[attr][a][b] = bval
                                 else:
-                                    print alias, attr, 'No overwrite', a, val
-                    elif attr != 'stats':
-                        det_config[attr] = config_dict
+                                    if a not in det_config[attr]:
+                                        det_config[attr][a] = val
+                                    else:
+                                        print alias, attr, 'No overwrite', a, val
+                        elif attr != 'stats':
+                            det_config[attr] = config_dict
 
-                # Need to be careful with stats objects to make sure added with dims correctly
-                stats_config = item.get('stats')
-                if stats_config:
-                    evt = self.events.current
-                    while alias not in evt._attrs:
-                        evt = self.events.next()
-                    detector = getattr(evt, alias)
-                    for name, stat_item in stats_config.items():
-                        attr = stat_item['attr']
-                        print 'adding stats for', attr, name, 
-                        detector.add.stats(attr, name=name)
-                    self.reload()
+                    # Need to be careful with stats objects to make sure added with dims correctly
+                    stats_config = item.get('stats')
+                    if stats_config:
+                        evt = self.events.current
+                        while alias not in evt._attrs:
+                            evt = self.events.next()
+                        detector = getattr(evt, alias)
+                        for name, stat_item in stats_config.items():
+                            attr = stat_item['attr']
+                            print 'adding stats for', attr, name, 
+                            detector.add.stats(attr, name=name)
+                        self.reload()
 
     def show_info(self, **kwargs):
         """
@@ -3203,14 +3236,18 @@ class Detector(object):
         elif self._det_class == ImageData:
             if self.calibData.ndim == 3:
                 raw_dims = (['sensor', 'row', 'column'], self.calibData.shape)
-                image_shape = (self.calibData.image_xaxis.size, self.calibData.image_yaxis.size)
-                image_dims = (['X', 'Y'], image_shape) 
                 dims_dict = {
-                    'image':     image_dims,
                     'calib':     raw_dims,
                     'raw':       raw_dims,
                     'corr':      raw_dims,
                     }
+                try:
+                    image_shape = (self.calibData.image_xaxis.size, self.calibData.image_yaxis.size)
+                    image_dims = (['X', 'Y'], image_shape) 
+                    dims_dict.update({'image':     image_dims})
+                except:
+                    pass
+
            # # temporary fix for Opal2000, Opal4000 and Opa8000
            # elif self._pydet.dettype in [7,8,9]:
            #     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
@@ -3658,13 +3695,25 @@ class Detector(object):
             img = getattr_complete(self, item['attr'])
             if img is not None:
                 roi = item['roi']
-                if len(img.shape) == 1:
-                    return img[roi[0]:roi[1]]
-
+                if roi and len(img.shape) == 1:
+                    img = img[roi[0]:roi[1]]
+                    if img.size == 1:
+                        try:
+                            return img[0]
+                        except:
+                            return img
+                    else:
+                        return img
+                
                 sensor = item.get('sensor')
                 if sensor is not None:
                     img = img[sensor]
-                    
+                    if img.size == 1:
+                        try:
+                            return img[0]
+                        except:
+                            return img
+
                 return img[roi[0][0]:roi[0][1],roi[1][0]:roi[1][1]]
             else:
                 return None
@@ -4043,7 +4092,13 @@ class AddOn(object):
             attr = func_name.func_name
         
         self._det_config['property'][attr] = func_name 
-
+        
+        doc = kwargs.get('doc', '')
+        unit= kwargs.get('unit', '')
+        xattrs = {}
+        xattrs.update({'doc': doc, 'unit': unit})
+        self._det_config['xarray']['dims'].update(
+                    {attr: ([], (), xattrs)})
 
     def projection(self, attr=None, axis='x', 
             roi=None, sensor=None, name=None, 
@@ -4127,7 +4182,6 @@ class AddOn(object):
         try:
             img = getattr_complete(self._det,attr)
         except:
-            print 'Not valid'
             return
  
         if sensor is not None:
@@ -4289,7 +4343,7 @@ class AddOn(object):
             self.psplot(name)
 
     def roi(self, attr=None, sensor=None, roi=None, name=None, xaxis=None, yaxis=None, 
-                doc='', unit='ADU', publish=False, projection=None, **kwargs):       
+                doc='', unit='ADU', publish=False, projection=None, graphical=None, **kwargs):       
         """
         Make roi for given attribute, by default this is given the name img.
 
@@ -4336,7 +4390,7 @@ class AddOn(object):
         if sensor is not None:
             img = img[sensor]
 
-        if not roi:
+        if not roi and graphical is not False:
             try:
                 plotMax = np.percentile(img, 99.5)
                 plotMin = np.percentile(img, 5)
@@ -4359,18 +4413,48 @@ class AddOn(object):
         #    yroi = roi[1]
         #else:
         if not name:
-            nroi = len(self._det_config['roi'])
-            if nroi == 0:
-                name = 'roi'
+            if not roi:
+                name = 'sensor'+str(sensor)
             else:
-                name = 'roi'+str(nroi+1)
+                nroi = len(self._det_config['roi'])
+                if nroi == 0:
+                    name = 'roi'
+                else:
+                    name = 'roi'+str(nroi+1)
 
-        if len(img.shape) == 1:
-            xroi = roi
+        if sensor and not roi:
+            if doc == '':
+                doc = "{:} ROI of {:} data".format(name, attr)
+
+            xattrs = {}
+            xattrs.update({'doc': doc, 'unit': unit})
+            xattrs.update({'sensor': sensor})
+           
+            if img.size == 1:
+                self._det_config['xarray']['dims'].update(
+                        {name: ([], (), xattrs)})
+
+            elif len(img.shape) == 1:
+                self._det_config['xarray']['dims'].update(
+                        {name: (['x'+name], img.size, xattrs)})
+            
+            else:
+                self._det_config['xarray']['dims'].update(
+                        {name: (['y'+name, 'x'+name], img.size, xattrs)})
+
+            self._det_config['roi'].update({name: {'attr': attr, 
+                                                   'roi': None,
+                                                   'sensor': sensor,
+                                                   'xaxis': None,
+                                                   'doc': doc,
+                                                   'unit': unit}})
+ 
+        elif len(img.shape) == 1:
             xaxis_name = 'x'+name
+            xroi = roi
             if xroi[0] > xroi[1]:
                 raise Exception('Invalid roi {:}'.format(roi))
-            xroi = (max([xroi[0], 0]), min([xroi[1], img.shape[1]]))
+            xroi = (max([xroi[0], 0]), min([xroi[1], img.shape[0]]))
 
             if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
                 xaxis = np.arange(xroi[0],xroi[1])    
@@ -4965,7 +5049,9 @@ class AddOn(object):
             check if event code(s) are in data 
             (or alternatively not in date with - sign)
             see is_eventCodePresent
-       
+        nskip : int
+            number of events to skip between plot updates
+
         Keywords
         --------
         title : str
@@ -5026,7 +5112,7 @@ class AddOn(object):
         else:
             plot_type = None
 
-        pub_opts = ['eventCode']
+        pub_opts = ['eventCode', 'nskip']
         pub_kwargs = {key: item for key, item in kwargs.items() \
                       if key in pub_opts}
 
@@ -5037,6 +5123,13 @@ class AddOn(object):
                     plot_type = 'Image'
                 elif ndim == 1:
                     plot_type = 'XYPlot'
+                elif ndim == 5:
+                    # place holder for stats plots
+                    if self._getattr(attr).shape[3] <= 8:
+                        plot_type = 'xXYPlot'
+                    else:
+                        plot_type = 'xImage'
+
                 else:
                     plot_error = 'Data with ndim = {:} not valid'.format(ndim)
             except:

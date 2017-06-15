@@ -41,25 +41,28 @@ class Welford(object):
         self.add_data(x)
 
     def max(self):
-        """Max value for each element in array.
+        """
+        Max value for each element in array.
         """
         return self._max
 
     def min(self):
-        """Min value for each element in array.
+        """
+        Min value for each element in array.
         """
         return self._min
 
     def mean(self, axis=None):
-        """Compute the mean of accumulated data.
-           
-           Parameters
-           ----------
-           axis: None or int or tuple of ints, optional
-                Axis or axes along which the means are computed. The default is to
-                compute the mean of the flattened array.
         """
-        if self.n < 1:
+        Compute the mean of accumulated data.
+           
+        Parameters
+        ----------
+        axis: None or int or tuple of ints, optional
+             Axis or axes along which the means are computed. The default is to
+             compute the mean of the flattened array.
+        """
+        if self.n == 0:
             return None
 
         val = np.array(self._K + self._Ex / np.float64(self.n))
@@ -69,12 +72,14 @@ class Welford(object):
             return val
 
     def sum(self, axis=None):
-        """Compute the sum of accumulated data.
+        """
+        Compute the sum of accumulated data.
         """
         return self.mean(axis=axis)*self.n
 
     def var(self):
-        """Compute the variance of accumulated data.
+        """
+        Compute the variance of accumulated data.
         """
         if self.n <= 1:
             return  np.zeros(self.shape)
@@ -84,9 +89,18 @@ class Welford(object):
         return val
 
     def std(self):
-        """Compute the standard deviation of accumulated data.
+        """
+        Compute the standard deviation of accumulated data.
         """
         return np.sqrt(self.var())
+
+    def sem(self):
+        """
+        Compute the standard error in the mean of the accumulated data.
+        See Also:
+            https://en.wikipedia.org/wiki/Standard_error
+        """
+        return self.std()/sqrt(self.n)
 
 #    def __add__(self, val):
 #        """Add two Welford objects.

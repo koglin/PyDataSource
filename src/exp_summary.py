@@ -49,11 +49,19 @@ def read_exp_summary(exp=None, file_name=None, path='scratch', **kwargs):
     else:
         path = os.path.join(exp_dir,'results','RunSummary')
 
-    if glob.glob(path+'/'+file_name):
-        with open(path+'/'+file_name, 'rb') as pickle_file:
-            data = pickle.load(pickle_file)
+    full_file = path+'/'+file_name
+    if glob.glob(full_file):
+        try:
+            with open(full_file, 'rb') as pickle_file:
+                data = pickle.load(pickle_file)
 
-        return pickle.loads(data)
+            print 'pickle OK', path, file_name, full_file
+            return pickle.loads(data)
+        except:
+            print 'WHY'
+            traceback.print_exc()
+            print 'Failes reading pickle file', full_file
+            return None
 
     else:
         return None
@@ -591,6 +599,22 @@ class ExperimentSummary(object):
         """
         return self._arch.search_pvs(pv, do_print=False) != []
 
+
+#    def _load_eventCodes(self):
+#        """Currently not archived
+#        """
+#        data_codes = {}
+#        for num in range(67,217):
+#            pvs = {
+#                    'instrument': 'ECS:SYS0:0:EC_{:}_OWNER_NAME'.format(num),
+#                    'inst_num': 'ECS:SYS0:0:EC_{:}_OWNER_ID'.format(num),
+#                    'desc': 'EVNT:SYS0:1:NAME{:}'.format(num),
+#                    'ticks': 'EVNT:SYS0:1:ECS_{:}DLY.A'.format(num),
+#                  }
+#            data_codes[num] = {name: self._get_pv_from_arch(pv) for name, pv in pvs.items()}
+#
+#        self._data_codes = data_codes
+#
     def _load_epics(self, pvs=None, quiet=False, 
                     omit=['ABSE', 'SIOC', 'USEG', 'VGBA', 'GATT', 
                           'MIRR:FEE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],
@@ -754,6 +778,9 @@ class ExperimentSummary(object):
                                     data_machine[alias].name = alias
                                     data_machine[alias].attrs = attrs
                                     #data_machine[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs)
+                                elif len(vals) > max_size:
+                                    if not quiet:
+                                        print 'Skipping {:} due to too many data points {:}'.sformat(alias, len(vals))
                                 elif len(vals) > 1:
                                     dfs = pd.Series(vals, times).sort_index()
                                     dfs = dfs[~dfs.index.duplicated()]
@@ -831,7 +858,10 @@ class ExperimentSummary(object):
             return xmachine, dfend, dfbegin
 
         # add in machine info
-        phot_attrs = ['photon_current','photon_beam_energy']
+        #phot_attrs = ['photon_current','photon_beam_energy']
+        # Need to add this smarter to avoid huge arrays.
+        # Either interpolate or ffill and drop, e.g., photon_current.to_dataframe().ffill()
+        phot_attrs = []
         self._machine_coords = phot_attrs
         if set(phot_attrs) & set(xmachine.keys()) == set(phot_attrs):
             xepics = xepics.reset_coords().merge(xmachine[phot_attrs].reset_coords()).set_coords(phot_attrs)
@@ -969,10 +999,18 @@ class ExperimentSummary(object):
         self.xpvs = xpvs
 
         attrs = [a for a in self.xscan.data_vars.keys()]
-        self.dfscan = self.xscan.sel(stat='count').reset_coords()[attrs].dropna(dim='run', how='all').to_dataframe().astype(int)
-        
+        self.dfscan = self.xscan.sel(stat='count').reset_coords()[attrs]
+        try:
+            self.dfscan = self.dfscan.dropna(dim='run', how='all').to_dataframe().astype(int)
+        except:
+            traceback.print_exc()
+
         attrs = [a for a in self.xset.data_vars.keys()]
-        self.dfset = self.xset.reset_coords()[attrs].dropna(dim='run', how='all').to_dataframe()
+        self.dfset = self.xset.reset_coords()[attrs]
+        try:
+            self.dfset = self.dfset.dropna(dim='run', how='all').to_dataframe()
+        except:
+            traceback.print_exc()
 
         if not quiet:
             time_next = time.time()

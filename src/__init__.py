@@ -1,6 +1,9 @@
 __all__ = []
 
 #from PyDataSource import DataSource
+
+#import matplotlib as mpl
+#mpl.use('Agg')
 from PyDataSource import *
 from psxarray import * 
 import h5write
