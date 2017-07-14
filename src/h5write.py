@@ -80,7 +80,9 @@ def runstr_to_array(runstr, portable=False):
 
     return np.array(sorted(runs))
 
-def read_netcdfs(files, dim='time', transform_func=None, engine='h5netcdf'):
+def read_netcdfs(files, dim='time', 
+        make_cuts=True,
+        transform_func=None, engine='h5netcdf'):
     """
     Read netcdf files and return concatenated xarray Dataset object
 
@@ -143,11 +145,19 @@ def read_netcdfs(files, dim='time', transform_func=None, engine='h5netcdf'):
     if 'ichunk' in x.attrs:
         x.attrs.pop('ichunk')
     x.attrs['files'] = paths
+
+    if make_cuts:
+        try:
+            x = make_default_cuts(x)
+        except:
+            traceback.print_exc()
+            print 'Cannot make default cuts'
+
     return x 
 
 #ds = PyDataSource.DataSource('exp=cxij4915:run=49:smd')
 def open_h5netcdf(file_name=None, path='', file_base=None, exp=None, run=None, 
-        h5folder='scratch', subfolder='nc', chunk=False, combine=False, summary=False, **kwargs):
+        h5folder='scratch', subfolder='nc', chunk=False, combine=None, summary=False, **kwargs):
     """
     Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.
     """
@@ -157,7 +167,21 @@ def open_h5netcdf(file_name=None, path='', file_base=None, exp=None, run=None,
     
     if not file_name and not path:
         path = '/reg/d/psdm/{:}/{:}/{:}/{:}'.format(instrument, exp, h5folder, subfolder)
-    
+   
+    if not combine and not (chunk and run):
+        if not file_name:
+            if not file_base:
+                file_base = 'run{:04}'.format(int(run))
+                if summary:
+                    file_base += '_sum'
+
+            file_name = os.path.join(path,file_base+'.nc')
+
+        try:
+            return xr.open_dataset(file_name, engine='h5netcdf')
+        except:
+            combine = True
+
     if combine:
         if not file_name:
             if file_base:
@@ -181,18 +205,6 @@ def open_h5netcdf(file_name=None, path='', file_base=None, exp=None, run=None,
             x.attrs['files'] = files
 
         return x
-
-    else:
-        if not file_name:
-            if not file_base:
-                file_base = 'run{:04}'.format(int(run))
-                if summary:
-                    file_base += '_sum'
-
-            file_name = os.path.join(path,file_base+'.nc')
-
-        return xr.open_dataset(file_name, engine='h5netcdf')
-
 
 
 def to_h5netcdf(xdat=None, ds=None, file_name=None, path=None, 
@@ -289,9 +301,15 @@ def merge_datasets(file_names, engine='h5netcdf',
         except:
             traceback.print_exc()
             print 'Cannot open {:}'.format(file_name)
-            return xo, xattrs 
-   
-    x = resort(xr.merge(datasets))
+            #return xo, xattrs 
+    
+    try: 
+        x = resort(xr.merge(datasets))
+    except:
+        print 'Error merging... try omitting stats'
+        datasets = [xo for xo in datasets if 'stat' not in xo.dims]
+        x = resort(xr.merge(datasets))
+
     if 'base' in xattrs:
         x.attrs = xattrs['base']
 
@@ -305,6 +323,7 @@ def merge_datasets(file_names, engine='h5netcdf',
 def read_chunked(run=None, path=None, exp=None, dim='time', 
         h5folder='scratch', subfolder='nc',
         omit_attrs=['ichunk', 'nevents'], 
+        make_cuts=True,
         merge=False, quiet=False,
         save=True, save_path=None,
         cleanup=False, 
@@ -419,6 +438,13 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
         if attr in x.attrs:
             del x.attrs[attr]
     
+    if make_cuts:
+        try:
+            x = make_default_cuts(x)
+        except:
+            traceback.print_exc()
+            print 'Cannot make default cuts'
+
     if save:
         if isinstance(save, str):
             save_file = save
@@ -733,14 +759,15 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 pv = self.epicsData.pvName(attr)
                 epics_pvs[attr] =  {'pv': pv, 'attrs': attr_lookup.get(pv, {})}
 
-        for attr in self.scan_pvs:
-            pvattrs = dict(xpvs.get(attr).attrs)
-            pvbase = pvattrs.get('pv')
-            if pvbase:
-                scan_variables.append(attr)
-                pvdict = {self.epicsData.alias(pv): {'pv': pv, 'attrs': pvattrs} \
-                            for pv in self.epicsData.pvNames() if pv.startswith(pvbase)}
-                epics_pvs.update(**pvdict)
+        if self.scan_pvs is not None:
+            for attr in self.scan_pvs:
+                pvattrs = dict(xpvs.get(attr).attrs)
+                pvbase = pvattrs.get('pv')
+                if pvbase:
+                    scan_variables.append(attr)
+                    pvdict = {self.epicsData.alias(pv): {'pv': pv, 'attrs': pvattrs} \
+                                for pv in self.epicsData.pvNames() if pv.startswith(pvbase)}
+                    epics_pvs.update(**pvdict)
 
     except:
         attr_lookup = {}
@@ -777,11 +804,14 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
     axpvs = {}
     for attr, item in epics_pvs.items():
-        pv = item.get('pv')
-        axpvs[pv] = xbase.create_variable(attr, ('time',), float)
-        axpvs[pv].attrs.update(item.get('attrs',{}))
-        coordinates += ' {:}'.format(attr)
-    
+        try:
+            pv = item.get('pv')
+            axpvs[pv] = xbase.create_variable(attr, ('time',), float)
+            axpvs[pv].attrs.update(item.get('attrs',{}))
+            coordinates += ' {:}'.format(attr)
+        except:
+            print 'Failed to add epics PV',pv, attr
+
     base_coordinates = coordinates
     scan_variables = epics_pvs.keys() 
     xbase.attrs['scan_variables'] = scan_variables
@@ -1084,7 +1114,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
             for det0 in evt._attrs:
                 det = aliases.get(det0, det0)
-                xbase[det+'_present'][iwrite] = True
+                if det+'_present' in xbase:
+                    xbase[det+'_present'][iwrite] = True
             
             if not no_events:
                 for det0 in evt._attrs:
@@ -1101,24 +1132,31 @@ def write_hdf5(self, nevents=None, max_size=10001,
                             axdat[det][attr][iwrite] = getattr(dtime, attr)
                     except:
                         traceback.print_exc()
-                        print axdat, dtime, det, attr, iwrite
+                        print dtime, det, attr, iwrite
+                        print axdat
                         return axdat, dtime, det, attr, iwrite
 
                     axdat[det]['step'][iwrite] = istep
                     axdat[det]['run'][iwrite] = run
                     for attr in  axfuncs[det]:
-                        vals = getattr(detector, attr)
-                        alias = det+'_'+attr
-                        if vals is not None:
-                            try:
-                                if debug:
-                                    print det, attr, vals
-                                axdat[det][alias][iwrite] = vals
-                            except:
-                                if debug:
-                                    print 'Event Error', alias, det, attr, ievent, vals
-                                vals = None
-        
+                        try:
+                            vals = getattr(detector, attr)
+                            alias = det+'_'+attr
+                            if vals is not None:
+                                try:
+                                    if debug:
+                                        print det, attr, vals
+                                    axdat[det][alias][iwrite] = vals
+                                except:
+                                    if debug:
+                                        traceback.print_exc()
+                                        print 'Event Error', alias, det, attr, ievent, vals
+                                    vals = None
+                        except:
+                            if debug:
+                                traceback.print_exc()
+                                print 'Event Error', alias, det, attr, ievent
+
         print self.stats
         xbase.attrs['nevents'] = igood+1
         for det in axdat:
@@ -1388,30 +1426,133 @@ def make_image(self, pixel=.11, ix0=None, iy0=None):
     import numpy as np
     import xarray as xr
     base = self.name.split('_')[0]
-    xx = self[base+'_indexes_x']
-    yy = self[base+'_indexes_y']
-    a = np.zeros([xx.max()+1,yy.max()+1])
+    try:
+        xx = self[base+'_indexes_x']
+        yy = self[base+'_indexes_y']
+        a = np.zeros([xx.max()+1,yy.max()+1])
 
-    x = self.coords.get(base+'_ximage')
-    if not x:
-        if not ix0:
-            ix0 = a.shape[1]/2.
-        x = (np.arange(a.shape[1])-ix0)*pixel
-    y = self.coords.get(base+'_yimage')
-    if not y:
-        if not iy0:
-            iy0 = a.shape[0]/2.
-        y = (np.arange(a.shape[0])-iy0)*pixel
-    a[xx,yy] = self.data
-    if x is not None and y is not None:
-        try:
-            return xr.DataArray(a, coords=[(base+'_yimage', y), (base+'_ximage', x)],
-                                   attrs=self.attrs)
-        except:
-            pass
+        x = self.coords.get(base+'_ximage')
+        if not x:
+            if not ix0:
+                ix0 = a.shape[1]/2.
+            x = (np.arange(a.shape[1])-ix0)*pixel
+        y = self.coords.get(base+'_yimage')
+        if not y:
+            if not iy0:
+                iy0 = a.shape[0]/2.
+            y = (np.arange(a.shape[0])-iy0)*pixel
+        a[xx,yy] = self.data
+        if x is not None and y is not None:
+            try:
+                return xr.DataArray(a, coords=[(base+'_yimage', y), (base+'_ximage', x)],
+                                       attrs=self.attrs)
+            except:
+                pass
 
-    return xr.DataArray(a)
-    
+        return xr.DataArray(a)
+        
+    except:
+        newdim={self.dims[1]+'s': [self.dims[0],self.dims[1]]}
+        return self.stack(**newdim).drop(newdim.keys())
+
     #return xr.DataArray(a, coords=[(base+'_yimage', y.mean(axis=1)), (base+'_ximage', x.mean(axis=0))])
+
+def make_default_cuts(x, gasdetcut_mJ=0.5):
+    """
+    Make default cuts.
+    """
+    # FEEGasDetEnergy_f_12_ENRC is duplicate measurement -- can average if desired 
+    import numpy as np
+    try:
+        attr = 'FEEGasDetEnergy_f_11_ENRC'
+        x['Gasdet_pre_atten'] = (['time'], x[attr].values)
+        x['Gasdet_pre_atten'].attrs['doc'] = "Energy measurement before attenuation ({:})".format(attr)
+        for a in ['unit', 'alias']: 
+            try:
+                x['Gasdet_pre_atten'].attrs[a] = x[attr].attrs[a]  
+            except:
+                pass
+
+        # FEEGasDetEnergy_f_22_ENRC is duplicate measurement -- can average if desired 
+        attr = 'FEEGasDetEnergy_f_21_ENRC'
+        x['Gasdet_post_atten'] = (['time'], x[attr].values)
+        x['Gasdet_post_atten'].attrs['doc'] = "Energy measurement afeter attenuation ({:})".format(attr)
+        for a in ['unit', 'alias']: 
+            try:
+                x['Gasdet_post_atten'].attrs[a] = x[attr].attrs[a]  
+            except:
+                pass
+    
+        x = x.drop(['FEEGasDetEnergy_f_11_ENRC', 'FEEGasDetEnergy_f_12_ENRC',
+                    'FEEGasDetEnergy_f_21_ENRC', 'FEEGasDetEnergy_f_22_ENRC'])
+
+    except:
+        pass
+
+#      Need to add in experiment specific PulseEnergy with attenuation
+#        try:
+#            x['PulseEnergy'] = (['time'], x['Gasdet_post_atten'].values*x['dia_trans1'].values)
+#        except:
+#            x['PulseEnergy'] = (['time'], x['Gasdet_post_atten'].values*x.attrs['dia_trans1'])
+#        
+#        x['PulseEnergy'].attrs = x['Gasdet_pre_atten'].attrs
+#        x['PulseEnergy'].attrs['doc'] = "Energy measurement normalized by attenuators"
+#
+    try:
+        gasdetcut =  np.array(x.Gasdet_pre_atten.values > gasdetcut_mJ, dtype=np.byte)
+        x.coords['Gasdet_cut'] = (['time'], gasdetcut)
+        x.coords['Gasdet_cut'].attrs['doc'] = "Gas detector cut.  Gasdet_pre_atten > {:} mJ".format(gasdetcut_mJ)
+    except:
+        gasdetcut = np.ones(x.time.data.shape)
+
+#    damagecut = np.array(phasecut & gasdetcut & (x.EBeam_damageMask.values == 0), dtype=np.byte)
+    damagecut = np.array(gasdetcut, dtype=np.byte)
+    x.coords['Damage_cut'] = (['time'], damagecut)
+    x.coords['Damage_cut'].attrs['doc'] = "Combined Gas detector, Phase cavity and EBeam damage cut"
+
+    try:
+        x = x.rename( {'EBeam_ebeamPhotonEnergy': 'PhotonEnergy'} )
+    except:
+        pass
+
+    if not x.attrs.get('correlation_variables'):
+        cvars = []
+        for cvar in ['PhotonEnergy','Gasdet_post_atten']:
+            if cvar in x:
+                cvars.append(cvar)
+        x.attrs['correlation_variables'] = cvars
+
+    try:
+        sattrs = list(set(x.attrs.get('scan_variables',[])))
+        for pv in [a.replace('_steps','') for a in x.keys() if a.endswith('_steps')]:
+            if pv not in x:
+                x.coords[pv] = (('time',), x[pv+'_steps'].data[list(x.step.data.astype(int))])
+                x.coords[pv].attrs = x[pv+'_steps'].attrs
+                sattrs.append(pv)
+    except:
+        print 'Cannot add _steps as events'
+
+    try:
+        for pv in x.attrs.get('pvControls', []):
+            if pv+'_control' in x:
+                sattrs.append(pv+'_control')
+            elif pv in x:
+                sattrs.append(pv)
+        sattrs = list(set([attr for attr in sattrs if attr in x and len(set(x[attr].data)) > 3]))
+        x.attrs['scan_variables'] = sattrs
+
+    except:
+        print 'Cannot add pvControls to scan_variables'
+
+    try:
+        if 'XrayOff' in x and x.XrayOff.data.sum() > 0 and not x.attrs.get('cuts'):
+            x.attrs['cuts'] = ['XrayOn','XrayOff']
+            print 'Setting cuts', x.attrs['cuts']
+
+    except:
+        print 'Cannot make default cuts'
+
+
+    return x
 
 

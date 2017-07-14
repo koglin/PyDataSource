@@ -99,7 +99,7 @@ class Build_experiment(object):
         if auto:
             # assume first 2% are setup
             run_min = int(self._es.xruns.run.max()*.01)
-            self.add_defaults(run_min=run_min)
+            self.add_defaults(run_min=run_min, **kwargs)
             self.to_html()
  
     def _get_exp_summary(self, **kwargs):
@@ -122,8 +122,10 @@ class Build_experiment(object):
             for attr in self._es._machine_coords:
                 self.add_xy_ploterr(attr, 'run', title=attr.replace('_',' '), catagory='Summary')
             
-            for attr in self._es.get_scans().keys():
-                self.add_xy_ploterr(attr, 'run', title=attr.replace('_',' '), catagory='Scan Summary')
+            df = self._es.get_scans()
+            if df is not None:
+                for attr in df.keys():
+                    self.add_xy_ploterr(attr, 'run', title=attr.replace('_',' '), catagory='Scan Summary')
 
         except:
             traceback.print_exc()
@@ -230,6 +232,9 @@ class Build_experiment(object):
         """
         es = self._es
         df = es.get_scans(min_steps=min_steps)
+        if df is None:
+            return
+
         if dets:
             if not isinstance(dets, list):
                 dets = [dets]
@@ -626,65 +631,102 @@ class Build_html(object):
         
         x = self._xdat
         catagory = 'PhotonEnergy'
-        attrs = get_correlations(x, catagory, confidence=confidence).keys()
-        self.add_detector('EBeam', catagory=catagory, cut=cut,
-                make_scatter=attrs, make_timeplot=False, make_histplot=False)
-        attrs.append('PhotonEnergy')
-        attrs.append('Gasdet_post_atten')
-        df = x.reset_coords()[attrs].to_dataframe()
-        heatmap(df)
-        plt_type = 'correlation'
-        howto = []
-        self.add_plot(catagory, plt_type, howto=howto, tight=False)
+        if catagory in x:
+            attrs = get_correlations(x, catagory, confidence=confidence).keys()
+            self.add_detector('EBeam', catagory=catagory, cut=cut,
+                    make_scatter=attrs, make_timeplot=False, make_histplot=False)
+            attrs.append('PhotonEnergy')
+            if 'Gasdet_post_atten' in x:
+                attrs.append('Gasdet_post_atten')
+            df = x.reset_coords()[attrs].to_dataframe()
+            heatmap(df)
+            plt_type = 'correlation'
+            howto = []
+            self.add_plot(catagory, plt_type, howto=howto, tight=False)
 
 
         alias = 'Gasdet_post_atten'
         catagory = 'PulseEnergy'
-        attrs = get_correlations(x, 'Gasdet_post_atten', confidence=confidence).keys()
-        self.add_detector('FEEGasDetEnergy', catagory=catagory, cut=cut, 
-                make_scatter=attrs, make_timeplot=False, make_histplot=False)
-        attrs.append('PhotonEnergy')
-        attrs.append('Gasdet_post_atten')
-        df = x.reset_coords()[attrs].to_dataframe()
-        heatmap(df)
-        plt_type = 'correlation'
-        howto = []
-        self.add_plot(catagory, plt_type, howto=howto, tight=False)
+        if alias in x:
+            attrs = get_correlations(x, 'Gasdet_post_atten', confidence=confidence).keys()
+            self.add_detector('FEEGasDetEnergy', catagory=catagory, cut=cut, 
+                    make_scatter=attrs, make_timeplot=False, make_histplot=False)
+            attrs.append('Gasdet_post_atten')
+            if 'PhotonEnergy' in x:
+                attrs.append('PhotonEnergy')
+            df = x.reset_coords()[attrs].to_dataframe()
+            heatmap(df)
+            plt_type = 'correlation'
+            howto = []
+            self.add_plot(catagory, plt_type, howto=howto, tight=False)
 
 
-    def add_all(self, quiet=True, **kwargs):
+    def add_all(self, quiet=True, 
+                        min_step_data=5, 
+                        min_in_cut=4,
+                        **kwargs):
         """Add All detectors.
         """
-        self.make_default_cuts()
+        #self.make_default_cuts()
         
         if 'cuts' in self._xdat.attrs:
             cuts = self._xdat.attrs.get('cuts')
             if not isinstance(cuts, list):
-                cuts = [cuts]
+                try:
+                    cuts = list(cuts)
+                except:
+                    cuts = [cuts]
         else:
             cuts = []
         
         # Add RunStats
-        self.add_detstats()
-        self.add_config()
-        for cut in cuts:
-            self.add_correlations(cut=cut)
-        self.add_correlations()
-
+        try:
+            self.add_detstats()
+        except:
+            print 'cannot add detstats'
+        try:
+            self.add_config()
+        except:
+            print 'cannot add config'
+       
+        if cuts:
+            print cuts
+            for cut in cuts:
+                if cut in self._xdat and self._xdat[cut].sum() >= min_in_cut: 
+                    print 'adding', cut
+                    try:
+                        self.add_correlations(cut=cut)
+                    except:
+                        traceback.print_exc()
+                        print 'Cannot add correlelations for cut', cut
+        else:
+            try:
+                self.add_correlations()
+            except:
+                traceback.print_exc()
+                print 'Cannot add correlelations'
 
         nevents = len(self._xdat.time)
 
         groupby = [group for group in self._xdat.attrs.get('scan_variables') \
-                            if group in self._xdat and len(set(self._xdat[group].data)) > 1]
-        
+                            if group in self._xdat and len(set(self._xdat[group].data)) > min_step_data]
+        print ''
+        print '{:24} {:8}'.format('Group','points')
+        print '-'*40
+        for group in groupby:
+            print '{:24} {:>8}'.format(group, len(set(self._xdat[group].data)))
+        print ''
+
         for alias in self.aliases:
             if not quiet:
                 print 'adding detector', alias
+           
+            if cuts:
                 for cut in cuts:
-                    self.add_detector(alias, cut=cut, **kwargs)
-                
+                    if cut in self._xdat and self._xdat[cut].sum() >= min_in_cut: 
+                        self.add_detector(alias, cut=cut, groupby=groupby, **kwargs)
             else:
-                self.add_detector(alias, **kwargs)
+                self.add_detector(alias, groupby=groupby, **kwargs)
 
             attrs = [attr for attr,item in self._xdat.data_vars.items() \
                      if item.attrs.get('alias') == alias and 'time' in item.dims and len(item.dims) > 1]
@@ -705,21 +747,29 @@ class Build_html(object):
         x = self._xdat
         attrs = [a for a in x.keys() if (a.endswith('_count') or a.endswith('_sum')) 
                     and len(x[a].dims) == 1 and 'time' in x[a].dims]
-        attrs.append('PhotonEnergy')
-        attrs.append('Gasdet_post_atten')
+        if 'PhotonEnergy' in x:
+            attrs.append('PhotonEnergy')
+        if 'Gasdet_post_atten' in x:
+            attrs.append('Gasdet_post_atten')
         self.add_detector(attrs=attrs, catagory='Detector Count', confidence=0.1)
         
         attrs = [a for a in x.keys() if (a.endswith('_PosX') or a.endswith('_AngX') or a.endswith('xpos'))
                     and len(x[a].dims) == 1 and 'time' in x[a].dims]
-        attrs.append('PhotonEnergy')
-        attrs.append('Gasdet_post_atten')
-        self.add_detector(attrs=attrs, catagory='Xaxis', confidence=0.1)
-        
+        if attrs:
+            if 'PhotonEnergy' in x:
+                attrs.append('PhotonEnergy')
+            if 'Gasdet_post_atten' in x:
+                attrs.append('Gasdet_post_atten')
+            self.add_detector(attrs=attrs, catagory='Xaxis', confidence=0.1)
+            
         attrs = [a for a in x.keys() if (a.endswith('_PosY') or a.endswith('_AngY') or a.endswith('ypos'))
                     and len(x[a].dims) == 1 and 'time' in x[a].dims]
-        attrs.append('PhotonEnergy')
-        attrs.append('Gasdet_post_atten')
-        self.add_detector(attrs=attrs, catagory='Yaxis', confidence=0.1)
+        if attrs:
+            if 'PhotonEnergy' in x:
+                attrs.append('PhotonEnergy')
+            if 'Gasdet_post_atten' in x:
+                attrs.append('Gasdet_post_atten')
+            self.add_detector(attrs=attrs, catagory='Yaxis', confidence=0.1)
 
         xdat = self._xdat
         if 'codes' in xdat.coords and len(xdat['codes']) > 0:
@@ -735,92 +785,16 @@ class Build_html(object):
         plt.cla()
         plt.close('all')
 
-#    def add
-
     def make_default_cuts(self, gasdetcut_mJ=0.5):
         """
         Make default cuts.
         """
-        x = self._xdat
-        # FEEGasDetEnergy_f_12_ENRC is duplicate measurement -- can average if desired 
+        import h5write
         try:
-            attr = 'FEEGasDetEnergy_f_11_ENRC'
-            x['Gasdet_pre_atten'] = (['time'], x[attr].values)
-            x['Gasdet_pre_atten'].attrs['doc'] = "Energy measurement before attenuation ({:})".format(attr)
-            for a in ['unit', 'alias']: 
-                try:
-                    x['Gasdet_pre_atten'].attrs[a] = x[attr].attrs[a]  
-                except:
-                    pass
-
-            # FEEGasDetEnergy_f_22_ENRC is duplicate measurement -- can average if desired 
-            attr = 'FEEGasDetEnergy_f_21_ENRC'
-            x['Gasdet_post_atten'] = (['time'], x[attr].values)
-            x['Gasdet_post_atten'].attrs['doc'] = "Energy measurement afeter attenuation ({:})".format(attr)
-            for a in ['unit', 'alias']: 
-                try:
-                    x['Gasdet_post_atten'].attrs[a] = x[attr].attrs[a]  
-                except:
-                    pass
-        
-            x = x.drop(['FEEGasDetEnergy_f_11_ENRC', 'FEEGasDetEnergy_f_12_ENRC',
-                        'FEEGasDetEnergy_f_21_ENRC', 'FEEGasDetEnergy_f_22_ENRC'])
-
+            self._xdat = h5write.make_default_cuts(self._xdat)
         except:
-            pass
-
-#      Need to add in experiment specific PulseEnergy with attenuation
-#        try:
-#            x['PulseEnergy'] = (['time'], x['Gasdet_post_atten'].values*x['dia_trans1'].values)
-#        except:
-#            x['PulseEnergy'] = (['time'], x['Gasdet_post_atten'].values*x.attrs['dia_trans1'])
-#        
-#        x['PulseEnergy'].attrs = x['Gasdet_pre_atten'].attrs
-#        x['PulseEnergy'].attrs['doc'] = "Energy measurement normalized by attenuators"
-#
-        gasdetcut =  np.array(x.Gasdet_pre_atten.values > gasdetcut_mJ, dtype=byte)
-        x.coords['Gasdet_cut'] = (['time'], gasdetcut)
-        x.coords['Gasdet_cut'].attrs['doc'] = "Gas detector cut.  Gasdet_pre_atten > {:} mJ".format(gasdetcut_mJ)
-        
-    #    damagecut = np.array(phasecut & gasdetcut & (x.EBeam_damageMask.values == 0), dtype=byte)
-        damagecut = np.array(gasdetcut, dtype=byte)
-        x.coords['Damage_cut'] = (['time'], damagecut)
-        x.coords['Damage_cut'].attrs['doc'] = "Combined Gas detector, Phase cavity and EBeam damage cut"
-
-        try:
-            x = x.rename( {'EBeam_ebeamPhotonEnergy': 'PhotonEnergy'} )
-        except:
-            pass
-
-        if not x.attrs.get('correlation_variables'):
-            x.attrs['correlation_variables'] = ['PhotonEnergy','Gasdet_post_atten']
-
-        sattrs = list(set(x.attrs.get('scan_variables',[])))
-        try:
-            for pv in [a.replace('_steps','') for a in x.keys() if a.endswith('_steps')]:
-                if pv not in x:
-                    x.coords[pv] = (('time',), x[pv+'_steps'].data[list(x.step.data.astype(int))])
-                    x.coords[pv].attrs = x[pv+'_steps'].attrs
-                    sattrs.append(pv)
-        except:
-            print 'Cannot add _steps as events'
-
-        try:
-            for pv in x.attrs.get('pvControls', []):
-                if pv+'_control' in x:
-                    sattrs.append(pv+'_control')
-                elif pv in x:
-                    sattrs.append(pv)
-            sattrs = list(set([attr for attr in sattrs if attr in x and len(set(x[attr].data)) > 3]))
-            x.attrs['scan_variables'] = sattrs
-
-        except:
-            print 'Cannot add pvControls to scan_variables'
-
-
-        self._xdat = x
-
-        return x
+            traceback.print_exc()
+            print 'Cannot make default cuts'
 
     def make_summary(self):
         """Make summary
@@ -878,6 +852,7 @@ class Build_html(object):
                            make_timeplot=None,
                            make_histplot=None,
                            make_correlation=True,
+                           min_step_data=5,
                            confidence=0.5,
                            labelsize=20,
                            robust_attrs=None,
@@ -925,7 +900,7 @@ class Build_html(object):
         if groupby is None:
             groupby = []
             for gattr in x.attrs.get('scan_variables'):
-                if gattr in x.reset_coords().data_vars and len(set(x[gattr].data)) > 1:
+                if gattr in x.reset_coords().data_vars and len(set(x[gattr].data)) > min_step_data:
                     groupby.append(gattr)
 
             if groupby is None and self.nsteps > 4:
@@ -1009,7 +984,7 @@ class Build_html(object):
                 howto = ["plt.rcParams['axes.labelsize'] = {:}".format(labelsize)]
                 howto.append("attrs = {:}".format(attrs))
                 if cut:
-                    howto.append("itimes = x[attrs].groupby({:}).groups[1]".format(cut))
+                    howto.append("itimes = x[attrs].groupby('{:}').groups[1]".format(cut))
                     howto.append("xselect = x[attrs].isel_points(times=itimes)")
                 else:
                     howto.append("xselect = x[attrs]")
@@ -1193,7 +1168,9 @@ class Build_html(object):
                     if attr in dfcut.keys() and attr not in scat_attrs:
                         scat_attrs.append(attr)
 
-                if len(scat_attrs)-len(groupby) > 1:
+                if len(scat_attrs) > 8:
+                    print 'Too many parameters to make scatter plots:', scat_attrs
+                elif len(scat_attrs)-len(groupby) > 1:
                     try:
                         dfscat = dfcut[scat_attrs]
                     except:
@@ -1326,7 +1303,7 @@ class Build_html(object):
             g = sns.pairplot(df, hue=group,
                     x_vars=pltattrs,y_vars=pltattrs,
                     size=2.5) 
-            howto.append("g = sns.pairplot(df, hue={:}, x_vars=pltattrs,y_vars=pltattrs,size=2.5)")
+            howto.append("g = sns.pairplot(df, hue='{:}', x_vars=pltattrs,y_vars=pltattrs,size=2.5)".format(group))
         else:
             plt_type = 'correlation'
             g = sns.PairGrid(df, x_vars=pltattrs,y_vars=pltattrs, size=2.5) 
@@ -1334,7 +1311,7 @@ class Build_html(object):
             g = g.map_lower(sns.kdeplot, cmap="Blues_d")
             g = g.map_diag(sns.kdeplot, lw=3, legend=False)
 
-            howto.append("g = sns.pairplot(df, hue={:}, x_vars=pltattrs,y_vars=pltattrs,size=2.5)")
+            howto.append("g = sns.pairplot(df, x_vars=pltattrs,y_vars=pltattrs,size=2.5)")
 
         #plt.tight_layout()
         self.add_plot(catagory, plt_type, howto=howto)
@@ -1482,7 +1459,9 @@ class Build_html(object):
                         wrap=False,
                         labelsize=None, 
                         figsize=None,
+                        plot_axis_sums=None,
                         pltsize=8, 
+                        nlines=16,
                         layout=None):
         """Add summary for variables.
         """
@@ -1526,7 +1505,7 @@ class Build_html(object):
                     self.results[alias]['text'].update({'setup':{'howto': howto}})
  
                     if len(x_group.shape) == 2:
-                        if x_group.shape[1] > 8:
+                        if x_group.shape[1] > nlines:
                             x_group.plot()
                             plt_type = '{:} vs {:}'.format(attr.lstrip(alias), group) 
                             howto = []
@@ -1568,7 +1547,7 @@ class Build_html(object):
                             #g.map_diag(sns.kdeplot, lw=3)
 
                     elif len(x_group.shape) == 3:
-                        if x_group.shape[1] <= 8:
+                        if x_group.shape[1] <= nlines:
                             plt_dim = x_group.dims[1]
                             for ich, ch in enumerate(x_group[plt_dim]):
                                 plt.cla()
@@ -1589,13 +1568,13 @@ class Build_html(object):
     #                howto = ["x['{:}'].mean(axis=0).plot()".format(attr)]
     #                self.add_plot(alias, plt_type, howto=howto)
                    
-                    if self._xdat[attr].shape[1] <= 8:
+                    if self._xdat[attr].shape[1] <= nlines:
                         try:
                             df = self._xdat[attr].to_pandas().dropna()
                             df.plot(style=plt_style)
                             plt_type = '{:} with {:}'.format(attr.lstrip(alias), 'time') 
                             howto = ["df = x['{:}'].to_pandas().dropna()".format(attr)]
-                            howto.append("df.plot(style={:})".format(plt_style))
+                            howto.append("df.plot(style='{:}')".format(plt_style))
                             self.add_plot(alias, plt_type, howto=howto)
                             
                             df.plot.hist(bins=bins)
@@ -1627,13 +1606,22 @@ class Build_html(object):
 
 
                 if nax in [2,3]:
-                    if self._xdat[attr].shape[1] > 8:
-                        for iaxis in range(nax):
+                    if self._xdat[attr].shape[1] > nlines:
+                        if plot_axis_sums:
+                            for iaxis in range(nax):
+                                pltaxis = self._xdat[attr].dims[iaxis]
+                                self._xdat[attr].sum(axis=iaxis).plot()
+                                plt_type = '{:} sum over {:}'.format(attr.lstrip(alias), pltaxis) 
+                                howto = ["x['{:}'].mean(axis=0).plot()".format(attr)]
+                                self.add_plot(alias, plt_type, howto=howto)
+                        else:
+                            iaxis = 0
                             pltaxis = self._xdat[attr].dims[iaxis]
                             self._xdat[attr].sum(axis=iaxis).plot()
                             plt_type = '{:} sum over {:}'.format(attr.lstrip(alias), pltaxis) 
                             howto = ["x['{:}'].mean(axis=0).plot()".format(attr)]
                             self.add_plot(alias, plt_type, howto=howto)
+                    
                     elif nax == 3 and codes:
                         attr_codes = [code for code in codes if code in self._xdat.codes.values]
                         for code in attr_codes:
@@ -1832,6 +1820,7 @@ class Build_html(object):
                         labelsize=None, 
                         figsize=None,
                         pltsize=8, 
+                        nlines=16,
                         layout=None):
         """
         Add image stats
@@ -1879,12 +1868,12 @@ class Build_html(object):
         for stat in stats:
             if self.nsteps == 1:
                 xstat = xdat.sel(stat=stat).squeeze('steps')
-                howto0 = ["xstat = xdat.sel(stat={:}).squeeze('steps')".format(stat)]
+                howto0 = ["xstat = xdat.sel(stat='{:}').squeeze('steps')".format(stat)]
                 name = attr.replace(alias,'')+' '+stat
             else:
                 if stat == 'mean':
                     xstat = xdat.sel(stat=stat).mean(dim='steps')
-                    howto0 = ["xstat = xdat.sel(stat={:}).sum(dim='steps')".format(stat)]
+                    howto0 = ["xstat = xdat.sel(stat='{:}').sum(dim='steps')".format(stat)]
                     name = attr.replace(alias,'')+' sum_over_steps'
                 else:
                     continue
@@ -1892,10 +1881,14 @@ class Build_html(object):
             if len(xstat.shape) == 4:
                 # make images
                 from h5write import make_image
-                xcodes = xstat.codes
-                xstat = xr.concat([make_image(xstat.sel(codes=code)) for code in xstat.codes], dim='codes')
-                if 'codes' not in xstat.coords:
-                    xstat.coords['codes'] = xcodes
+                try:
+                    xcodes = xstat.codes
+                    xstat = xr.concat([make_image(xstat.sel(codes=code)) for code in xstat.codes], dim='codes')
+                    if 'codes' not in xstat.coords:
+                        xstat.coords['codes'] = xcodes
+                except:
+                    print 'Cannot make image', attr, stat
+                    continue
 
            #print 'det_summary', attr, attr_codes, stat
 
@@ -1930,7 +1923,7 @@ class Build_html(object):
                 self.add_plot(catagory, plt_type, howto=howto)
                 
             else:
-                if xstat.shape[1] > 8:
+                if xstat.shape[1] > nlines:
                     print 'doing image', stat
                     for code in attr_codes:
                         plt.cla()
@@ -1973,7 +1966,7 @@ class Build_html(object):
                             plt_type = '{:}_{:}_{:}_{:}'.format(name, stat, str(plt_dim), ich) 
                             self.add_plot(catagory, plt_type, howto=howto)
 
-        if self.nsteps > 1 and xdat.shape[3] <= 8:
+        if self.nsteps > 1 and xdat.shape[3] <= nlines:
             print 'Smart waveforms'
 
         elif self.nsteps > 1:
@@ -2023,7 +2016,7 @@ class Build_html(object):
                     da = xdat.sel(stat='mean').mean(axis=iaxis)
                     #plt.tight_layout()
                     howto = ["plt.rcParams['axes.labelsize'] = 24"]
-                    howto.append("da = xdat.sel(stat='mean').mean(axis={:})".format(iaxis))
+                    howto.append("da = xdat.sel(stat='mean').mean(axis='{:}')".format(iaxis))
                     if self.ncodes == 1:
                         da.squeeze('codes').plot(robust=True)
                         howto.append("da.squeeze('codes').plot(robust=True)")
@@ -2064,7 +2057,7 @@ class Build_html(object):
 
         elif len(xdat.shape) <= 5:
             xstat = xdat.sel(stat='mean').squeeze('steps')
-            if xstat.shape[1] <= 8: 
+            if xstat.shape[1] <= nlines: 
                 for code in attr_codes:
                     plt.cla()
                     plt.figure(figsize=(16,14))
@@ -2277,6 +2270,12 @@ class Build_html(object):
         idatasource = 'idatasource --exp {:} --run {:}'.format(self.exp, self.run) 
         #self.html.add_textblock('\n'.join([ana_env, idatasource]))
         self.html.add_textblock('\n'.join([conda_setup, idatasource]))
+        self.html.page.p('Where idatasource is a shortcut for starting ipython and loading the event data:')
+        self.html.add_textblock('\n'.join([conda_setup, 
+                                           'ipython --pylab',
+                                           '...',
+                                           'import PyDataSource', 
+                                           'ds = PyDataSource.DataSource(exp="{:}",run={:})'.format(self.exp, self.run)]))
         self.html.end_subblock()
 
         try:
@@ -2288,11 +2287,20 @@ class Build_html(object):
                 subblock='HowTo access event data with PyDataSource python package', hidden=True)
         
         self.html.page.p('Analyze run summary data on a psana node using pylab, pandas and xarray:')
-        ixarray = 'ixarray --exp {:} --run {:}'.format(self.exp, self.run)
-        self.html.add_textblock('\n'.join([conda_setup, ixarray]))
+#        ixarray = 'ixarray --exp {:} --run {:}'.format(self.exp, self.run)
+#        self.html.add_textblock('\n'.join([conda_setup, ixarray]))
+#        self.html.page.p('Where ixarray is a shortcut for starting ipython and loading the data summary:')
+        self.html.add_textblock('\n'.join([conda_setup, 
+                                           'ipython --pylab',
+                                           '...',
+                                           'import PyDataSource', 
+                                           'x = PyDataSource.open_h5netcdf(exp="{:}",run={:})'.format(self.exp, self.run)]))
         self.html.add_textblock(str(self._xdat), 
                 subblock='View of RunSummary data with xarray python package ', hidden=True)
-        self.html.page.p('See http://xarray.pydata.org for details on how to use data using xarray.')
+        weblink='http://pswww.slac.stanford.edu/swdoc/ana/PyDataSource'
+        self.html.page.p('See <a href="{:}">{:}</a> for details on how to use PyDataSource.'.format(weblink,weblink))
+        weblink='http://xarray.pydata.org'
+        self.html.page.p('See <a href="{:}">{:}</a> for details on how to use data using xarray.'.format(weblink,weblink))
         self.html.page.p('HDF5 summary file (using netCDF format) located at:')
         self.html.add_textblock('{:}'.format(self.nc_file))
         self.html.page.p('For questions and feedback contact koglin@slac.stanford.edu')
@@ -2419,6 +2427,108 @@ class Build_html(object):
         self.html._finish_page()
         self.html.myprint(tofile=True)
 
+#    def make_default_cuts(self, gasdetcut_mJ=0.5):
+#        """
+#        Make default cuts.
+#        """
+#        x = self._xdat
+#        # FEEGasDetEnergy_f_12_ENRC is duplicate measurement -- can average if desired 
+#        try:
+#            attr = 'FEEGasDetEnergy_f_11_ENRC'
+#            x['Gasdet_pre_atten'] = (['time'], x[attr].values)
+#            x['Gasdet_pre_atten'].attrs['doc'] = "Energy measurement before attenuation ({:})".format(attr)
+#            for a in ['unit', 'alias']: 
+#                try:
+#                    x['Gasdet_pre_atten'].attrs[a] = x[attr].attrs[a]  
+#                except:
+#                    pass
+#
+#            # FEEGasDetEnergy_f_22_ENRC is duplicate measurement -- can average if desired 
+#            attr = 'FEEGasDetEnergy_f_21_ENRC'
+#            x['Gasdet_post_atten'] = (['time'], x[attr].values)
+#            x['Gasdet_post_atten'].attrs['doc'] = "Energy measurement afeter attenuation ({:})".format(attr)
+#            for a in ['unit', 'alias']: 
+#                try:
+#                    x['Gasdet_post_atten'].attrs[a] = x[attr].attrs[a]  
+#                except:
+#                    pass
+#        
+#            x = x.drop(['FEEGasDetEnergy_f_11_ENRC', 'FEEGasDetEnergy_f_12_ENRC',
+#                        'FEEGasDetEnergy_f_21_ENRC', 'FEEGasDetEnergy_f_22_ENRC'])
+#
+#        except:
+#            pass
+#
+##      Need to add in experiment specific PulseEnergy with attenuation
+##        try:
+##            x['PulseEnergy'] = (['time'], x['Gasdet_post_atten'].values*x['dia_trans1'].values)
+##        except:
+##            x['PulseEnergy'] = (['time'], x['Gasdet_post_atten'].values*x.attrs['dia_trans1'])
+##        
+##        x['PulseEnergy'].attrs = x['Gasdet_pre_atten'].attrs
+##        x['PulseEnergy'].attrs['doc'] = "Energy measurement normalized by attenuators"
+##
+#        try:
+#            gasdetcut =  np.array(x.Gasdet_pre_atten.values > gasdetcut_mJ, dtype=byte)
+#            x.coords['Gasdet_cut'] = (['time'], gasdetcut)
+#            x.coords['Gasdet_cut'].attrs['doc'] = "Gas detector cut.  Gasdet_pre_atten > {:} mJ".format(gasdetcut_mJ)
+#        except:
+#            gasdetcut = np.ones(x.time.data.shape)
+#
+#    #    damagecut = np.array(phasecut & gasdetcut & (x.EBeam_damageMask.values == 0), dtype=byte)
+#        damagecut = np.array(gasdetcut, dtype=byte)
+#        x.coords['Damage_cut'] = (['time'], damagecut)
+#        x.coords['Damage_cut'].attrs['doc'] = "Combined Gas detector, Phase cavity and EBeam damage cut"
+#
+#        try:
+#            x = x.rename( {'EBeam_ebeamPhotonEnergy': 'PhotonEnergy'} )
+#        except:
+#            pass
+#
+#        if not x.attrs.get('correlation_variables'):
+#            cvars = []
+#            for cvar in ['PhotonEnergy','Gasdet_post_atten']:
+#                if cvar in x:
+#                    cvars.append(cvar)
+#            x.attrs['correlation_variables'] = cvars
+#
+#        try:
+#            sattrs = list(set(x.attrs.get('scan_variables',[])))
+#            for pv in [a.replace('_steps','') for a in x.keys() if a.endswith('_steps')]:
+#                if pv not in x:
+#                    x.coords[pv] = (('time',), x[pv+'_steps'].data[list(x.step.data.astype(int))])
+#                    x.coords[pv].attrs = x[pv+'_steps'].attrs
+#                    sattrs.append(pv)
+#        except:
+#            print 'Cannot add _steps as events'
+#
+#        try:
+#            for pv in x.attrs.get('pvControls', []):
+#                if pv+'_control' in x:
+#                    sattrs.append(pv+'_control')
+#                elif pv in x:
+#                    sattrs.append(pv)
+#            sattrs = list(set([attr for attr in sattrs if attr in x and len(set(x[attr].data)) > 3]))
+#            x.attrs['scan_variables'] = sattrs
+#
+#        except:
+#            print 'Cannot add pvControls to scan_variables'
+#
+#        try:
+#            if 'XrayOff' in x and x.XrayOff.data.sum() > 0 and not x.attrs.get('cuts'):
+#                x.attrs['cuts'] = ['XrayOn','XrayOff']
+#                print 'Setting cuts', x.attrs['cuts']
+#
+#        except:
+#            print 'Cannot make default cuts'
+#
+#
+#        self._xdat = x
+#
+#        return x
+
+
+
 
 #                Axes = pd.tools.plotting.scatter_matrix(dfscat, figsize=figsize)
 #                #y ticklabels
@@ -2429,6 +2539,5 @@ class Build_html(object):
 #                [plt.setp(item.yaxis.get_label(), 'size', 20) for item in Axes.ravel()]
 #                #x labels
 #                [plt.setp(item.xaxis.get_label(), 'size', 20) for item in Axes.ravel()]
-
 
 

@@ -53,8 +53,14 @@ if __name__ == "__main__":
     else:
         import PyDataSource
         ds = PyDataSource.DataSource(exp=exp,run=run)
+        if attr == 'epics':
+            ds.exp_summary.to_html()
         if attr == 'config':
             print ds._get_config_file()
+        if attr == 'run':
+            print ds.data_source.run
+        if attr == 'runstr':
+            print 'Run{:04}'.format(ds.data_source.run)
         if attr == 'configData':
             print ds.configData.show_info()
         if attr in ['steps','nsteps']:
@@ -83,12 +89,38 @@ if __name__ == "__main__":
     #       
     #        x = ds.to_hdf5(build_html='auto') 
     #        print x
-
+        if attr in ['test']:
+            from h5write import write_hdf5
+            print ds.configData.__repr__()
+            print '-'*80
+            print ds._device_sets
+            print '-'*80
+            if args.config:
+                if args.config in ['auto', 'default']:
+                    config = ds._get_config_file()
+                    print 'Loading default config: {:}'.format(config)
+                    ds.load_config()
+                else:
+                    print 'Loading config: {:}'.format(args.config)
+                    ds.load_config(file_name=args.config)
+            
+            print '-'*80
+            print ds._device_sets
+            print '-'*80
+            #write_hdf5(ds)
+            x = ds.to_hdf5(nevents=100) 
+            print x
+ 
         if attr in ['batch']:
             from h5write import write_hdf5
             if args.config:
-                print 'Loading config: {:}'.format(args.config)
-                ds.load_config(file_name=args.config)
+                if args.config in ['auto', 'default']:
+                    config = ds._get_config_file()
+                    print 'Loading default config: {:}'.format(config)
+                    ds.load_config()
+                else:
+                    print 'Loading config: {:}'.format(args.config)
+                    ds.load_config(file_name=args.config)
             
             #write_hdf5(ds)
             x = ds.to_hdf5(build_html='auto') 
@@ -97,8 +129,13 @@ if __name__ == "__main__":
         if attr in ['xarray']:
             print 'to_xarray'
             if args.config:
-                print 'Loading config: {:}'.format(args.config)
-                ds.load_config(file_name=args.config)
+                if args.config in ['auto', 'default']:
+                    config = ds._get_config_file()
+                    print 'Loading default config: {:}'.format(config)
+                    ds.load_config()
+                else:
+                    print 'Loading config: {:}'.format(args.config)
+                    ds.load_config(file_name=args.config)
             
             print 'to_xarray...'
             x = ds.to_xarray(save=True, 

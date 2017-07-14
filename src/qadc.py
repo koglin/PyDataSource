@@ -1,11 +1,8 @@
 import PyDataSource
-import os
+import numpy as np
 
-from pylab import *
-from scipy import signal
-
-class Impbox(PyDataSource.Detector):
-    """Imp waveform sampling module filters each of the four waveforms.
+class Qadc(PyDataSource.Detector):
+    """Qadc waveform sampling module filters each of the four waveforms.
     """
 
     def __init__(self,*args,**kwargs):
@@ -13,12 +10,13 @@ class Impbox(PyDataSource.Detector):
         PyDataSource.Detector.__init__(self,*args,**kwargs)
 
         self.add.parameter(nchannels=4)
-        self.add.parameter(signal_width=10)
-        hw = self.signal_width/2
+        
+        signal_width=10
+        hw = signal_width/2
         filter=np.array([-np.ones(hw),np.ones(hw)]).flatten()/(hw*2)
         self.add.parameter(filter=filter)
 
-        for ch in range(self.nchannels):
+        for ch in range(4):
             name = 'Ch'+str(ch+1) 
             setattr(self, name, Channel(self,ch,name))
 
@@ -29,7 +27,7 @@ class Impbox(PyDataSource.Detector):
     def _update_xarray_info(self):
 
         nchannels = self.nchannels
-        length = self.configData.numberOfSamples
+        length = self.configData.Length[0]
 
         xattrs = {'doc': 'IMP filtered amplitudes for 4 diode channel waveforms',
                   'unit': 'ADU'}
@@ -42,10 +40,10 @@ class Impbox(PyDataSource.Detector):
 
 
 class Channel(object):
-    """Channel class for Imp Detector.
+    """Channel class for Qacd Detector.
     """
-    def __init__(self, imp, channel, name):
-        self._imp = imp 
+    def __init__(self, qadc, channel, name):
+        self._qadc = qadc 
         self._channel = channel
         self._name = name
         self.baseline = 0.
@@ -54,7 +52,7 @@ class Channel(object):
     def waveform(self):
         """Waveform of channel.
         """
-        return self._imp.waveform[self._channel]
+        return np.array(self._qadc.evtData.data_u16[self._channel])
 
     @property
     def amplitude(self):
@@ -64,10 +62,11 @@ class Channel(object):
 
     @property
     def filter(self):
-        return self._imp.filter
+        return self._qadc.filter
     
     @property
     def filtered(self):
+        from scipy import signal
         hw = len(self.filter)/2
         f = -signal.convolve(self.waveform,self.filter)
         f[0:len(self.filter)+1] = 0
@@ -77,7 +76,7 @@ class Channel(object):
     @property
     def time(self):
         """Time of signal in waveform. (currently channel number needs to be converted)
-           Imp signals are step functions.
+           qadc signals are step functions.
            Additional noise needs to be subtracted.
         """
         hw = len(self.filter)/2
@@ -95,13 +94,6 @@ class Channel(object):
              -wf[t0-hw*2:t0-hw].mean()
         
         return amp
-
-    def show_info(self):
-        doc = 'Imp waveform [amplitude, time]'
-        name = self._name
-        attrs = ['amplitude', 'time']
-        value = map(int,[getattr(self.waveform,attr)() for attr in attrs])
-        print '{:8s} {:26} {:}'.format(name, value, doc)
 
 def amplitudes(self):
     """Amplitude of each filtered waveform.

@@ -17,6 +17,7 @@ done
 
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
+#ipython -i -c "%run $DIR/../lib/python2.7/site-packages/PyDataSource/ixarray.py $args" --pylab
 ipython -i -c "%run $DIR/../python/PyDataSource/ixarray.py $args" --pylab
 
 

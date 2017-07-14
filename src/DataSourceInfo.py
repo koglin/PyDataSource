@@ -46,6 +46,9 @@ class DataSourceInfo(object):
             data_source = DataSourceInfo(exp='cxic0115', run=10).data_source
             data_source = str(DataSourceInfo(exp='cxic0115', run=10))
 
+        You can also specify the run_id instead of the experiment run number 
+        (run numbers over 100000 are assumed to be a run_id as an aid in automatic run processing)
+
         You can also load a data source with keyword options:
 
             smd:  small data support -- has become standard for experiments after Oct 2015
@@ -85,7 +88,15 @@ class DataSourceInfo(object):
 
         if self.exp is not None:
             self.instrument = self.exp[0:3]
+        
+        run_id = kwargs.get('run_id')
+        if not run_id and self.run > 100000:
+            run_id = self.run
 
+        if run_id:
+            import psutils
+            self.run = psutils.get_run_from_id(run_id, self.exp) 
+            
 #        self.run = int(self.run)
 
 #        inst_id = '{:}:{:}'.format(self.instrument.upper(), self.station)

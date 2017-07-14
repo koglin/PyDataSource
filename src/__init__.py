@@ -5,8 +5,9 @@ __all__ = []
 #import matplotlib as mpl
 #mpl.use('Agg')
 from PyDataSource import *
-from psxarray import * 
+#from psxarray import * 
 import h5write
+from h5write import *
 from exp_summary import get_exp_summary 
 from epicsarchive import EpicsArchive
 __version__ = '00.00.01'

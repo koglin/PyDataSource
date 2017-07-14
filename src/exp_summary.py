@@ -156,7 +156,7 @@ class ExperimentSummary(object):
             }
 
     def __init__(self, exp=None, instrument=None, station=0, exper_id=None,
-                exp_dir=None, xtc_dir=None, h5_dir=None, save=True, **kwargs):
+                exp_dir=None, xtc_dir=None, h5_dir=None, save=True, init=True, **kwargs):
         if exp:
             self.exp = exp
             self.exper_id = experiment_info.name2id(exp)
@@ -194,6 +194,10 @@ class ExperimentSummary(object):
         
         self.scratch_dir = os.path.join(self.exp_dir,'scratch')
 
+        if init:
+            self._init(**kwargs)
+
+    def _init(self, **kwargs):
         self._load_run_info(self.exp)
         self._init_arch()
         try:
@@ -617,7 +621,7 @@ class ExperimentSummary(object):
 #
     def _load_epics(self, pvs=None, quiet=False, 
                     omit=['ABSE', 'SIOC', 'USEG', 'VGBA', 'GATT', 
-                          'MIRR:FEE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],
+                          'MIRR:EE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],
                     run=None,
                     set_only=True,
                     max_size=20000,
@@ -654,18 +658,28 @@ class ExperimentSummary(object):
                         pvalias = re.sub(':|\.','_',pv)
                     else:
                         pvalias = re.sub(':|\.|-| ','_',pvalias)
-                    
+                   
+                    # remove instrument from auto alias
+                    pvalias = pvalias.lstrip(self.instrument.upper()+'_')
                     pvnames[pv] = pvalias
 
-            for a in omit:
+            for a in omit or a.split(':')[0] in omit:
                 for pv in pvnames.copy():
                     if pv.startswith(a):
                         pvnames.pop(pv)
         else:
             pvnames = pvs
 
+        evr_pvs = {}
         for pv, alias in pvnames.copy().items():
-            if pv.endswith('RBV'):
+            if 'TRIG' in pv:
+                pvsplit = pv.split('.')[0].split(':')
+                pvbase = ':'.join(pvsplit[0:-1])
+                if pvbase not in evr_pvs:
+                    evr_pvs[pvbase] = {}
+                evr_pvs[pvbase].update({pv: alias})
+
+            elif pv.endswith('RBV'):
                 pvnames[pv.rstrip('.RBV')] = alias+'_set'
                 if set_only:
                     del pvnames[pv]
@@ -808,6 +822,7 @@ class ExperimentSummary(object):
         self._data_arrays = data_arrays
         self._data_points = data_points
         self._data_fields = data_fields
+        self._evr_pvs = evr_pvs
 
         time_last = time.time()
         xepics = xr.merge(data_arrays.values())
@@ -999,11 +1014,14 @@ class ExperimentSummary(object):
         self.xpvs = xpvs
 
         attrs = [a for a in self.xscan.data_vars.keys()]
-        self.dfscan = self.xscan.sel(stat='count').reset_coords()[attrs]
-        try:
-            self.dfscan = self.dfscan.dropna(dim='run', how='all').to_dataframe().astype(int)
-        except:
-            traceback.print_exc()
+        if xscan.data_vars.keys():
+            try:
+                self.dfscan = self.xscan.sel(stat='count').reset_coords()[attrs]
+                self.dfscan = self.dfscan.dropna(dim='run', how='all').to_dataframe().astype(int)
+            except:
+                traceback.print_exc()
+        else:
+            self.dfscan = None
 
         attrs = [a for a in self.xset.data_vars.keys()]
         self.dfset = self.xset.reset_coords()[attrs]
@@ -1062,6 +1080,9 @@ class ExperimentSummary(object):
         """
         if device:
             attrs = [a for a in self.dfscan.keys() if a.startswith(device)]
+
+        if self.dfscan is None:
+            return None
 
         dfscan = self.dfscan.copy()
         if attrs:

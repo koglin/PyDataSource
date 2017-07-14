@@ -67,7 +67,7 @@ def group_members(*args, **kwargs):
     else:
         groups = [get_groups()]
 
-    member_dict = group_member_dict()
+    member_dict = group_member_dict(groups)
     members = {}
     for group in groups:
         item = member_dict.get(group)
@@ -78,11 +78,23 @@ def group_members(*args, **kwargs):
 
     return members
 
-def group_member_dict():
+def group_member_dict(*args):
     """Dictionary of members in groups.
     """
+    import subprocess
+    popts = ["getent", "group"]
+    if len(args) == 1:
+        if type(args[0]) is list:
+            for arg in args[0]:
+                popts.append(arg)
+        else:
+            popts.append(args[0])
     
-    getent_group = subprocess.Popen(["getent", "group"],
+    elif len(args) > 1:
+        for arg in args:
+            popts.append(arg)
+
+    getent_group = subprocess.Popen(popts,
                     stdout=subprocess.PIPE).communicate()[0].split('\n')
 
     member_dict = {}
@@ -126,6 +138,19 @@ def get_groups(*args, **kwargs):
     except:
         print 'No groups found'
         return None
+
+def get_run_from_id(run_id, exp):
+    import pandas as pd
+    from RegDB import experiment_info
+    instrument = exp[0:3]
+    df = pd.DataFrame(experiment_info.experiment_runs(instrument.upper(),exp))
+    try:
+        run = df[df['id'] == run_id]['num'].values[0]
+    except:
+        run = None
+
+    return run
+    
 
 def get_experiments(*args, **kwargs):
     """Return dictionary of experiments for list of users.

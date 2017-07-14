@@ -90,6 +90,8 @@ OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
 : ${DIRNAME="$DIR/../python/PyDataSource/"}
 : ${PYFILE="__main__.py"}
 : ${MAX_SIZE="10001"}
+: ${QUEUEREQ="psanaq"}
+
 echo $DIR
 if [[ $RUN == *"-"* ]]; then
     echo "Starting Batch"
@@ -110,6 +112,7 @@ echo "outputdir: $OUTDIR"
 echo "config: $CONFIG"
 echo 'pyfile:' $PYFILE
 echo 'pydir:' $DIRNAME
+echo 'batchque:' $QUEUEREQ
 echo 'Runs:' $RUN
 echo '==============================='
 
@@ -133,8 +136,7 @@ fi
 #    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" base --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
 ##    bsub -q psanaq -J "$EXP_$RUN_Array[$CHUNKS]" -o "$OUTLOG/"batch_c%I.out python "$DIRNAME/$PYFILE" base --exp="$EXP" --run=$RUN --nchunks=$CHUNK --ichunk=\$LSB_JOBINDEX --config="$CONFIG" --max_size="$MAX_SIZE"
 #
-#PSQUE=psanaq
-PSQUE=psnehq
+#QUEUEREQ=psanaq
 
 if [ $USEMPI ]; then
 
@@ -154,8 +156,8 @@ elif [[ $RUN == *"-"* ]]; then
         PYOPT='batch'
     fi
 
-    echo bsub -q "$PSQUE" -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
-    bsub -q "$PSQUE" -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
+    echo bsub -q "$QUEUEREQ" -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
+    bsub -q "$QUEUEREQ" -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
 
 #    bsub -q psanaq -J "$EXP_RUN_[$RUN]" -o "$OUTLOG/"batch_Run_%I.out python "$DIRNAME/$PYFILE" test --exp="$EXP" --run=\$LSB_JOBINDEX --max_size="$MAX_SIZE" --config="$CONFIG" 
 

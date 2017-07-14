@@ -663,17 +663,16 @@ class DataSource(object):
     _default_modules = {
             'path': '',
             'devName': {
-##                'Evr': 'evr', 
 #                'Imp': 'impbox',
 #                'Acqiris': 'acqiris',
+#                'Tm6740': 'yag',
+#                'Cspad': 'cspad',
+#                'Opal1000': 'camera',
+#                'Opal2000': 'camera',
+#                'Opal4000': 'camera',
+#                'Opal8000': 'camera',
 ##                'Epix': 'epix100',
-##                'Cspad': 'cspad',
 ##                'Cspad2x2': 'cspad2x2',
-##                'Tm6740': 'pim',
-##                'Opal1000': 'camera',
-##                'Opal2000': 'camera',
-##                'Opal4000': 'camera',
-##                'Opal8000': 'camera',
                 },
              'srcname': {
 #                'XrayTransportDiagnostic.0:Opal1000.0': 'xtcav_det',
@@ -718,12 +717,14 @@ class DataSource(object):
 #            self.configData.Sources._aliases[anew] = self.configData.Sources._aliases.pop(aold)
 #            self._detectors[anew]._alias = anew
 #
-    def _get_exp_summary(self, reload=False, **kwargs):
+    def _get_exp_summary(self, reload=False, build_html=None, **kwargs):
         """
         Load experiment summary
         """
         from exp_summary import get_exp_summary 
-        self._exp_summary = get_exp_summary(self.data_source.exp, reload=reload, **kwargs)
+        if reload and build_html is None:
+            build_html = True
+        self._exp_summary = get_exp_summary(self.data_source.exp, reload=reload, build_html=build_html, **kwargs)
         return self._exp_summary
 
     @property
@@ -749,7 +750,10 @@ class DataSource(object):
             xpvscan = ds.exp_summary.get_scan_data(run_number)
         """
         df = self.exp_summary.dfscan.T[self.data_source.run]
-        return df[df>0].to_dict()
+        df = df[df>0].to_dict()
+        if df is None:
+            df = []
+        return df
 
     @property
     def moved_pvs(self):
@@ -762,7 +766,7 @@ class DataSource(object):
         else:
             return None
 
-    def load_run(self, data_source=None, reload=False, **kwargs):
+    def load_run(self, data_source=None, reload=False, try_idx=None, **kwargs):
         """Load a run with psana.
         """
         self._evtData = None
@@ -791,14 +795,15 @@ class DataSource(object):
                         print 'PyDataSource requires Partition data.'
                         print 'Returning psana.DataSource({:})'.format(str(self.data_source))
                         return self._ds
-                    else:
+                    elif try_idx is None:
                         try_idx = True
                         print 'Exp {:}, run {:} smd data has no Partition data -- loading idx data instead.'.format( \
                             self.data_source.exp, self.data_source.run)
             else:
-                try_idx = True
-                print 'Exp {:}, run {:} smd data file not available -- loading idx data instead.'.format( \
-                            self.data_source.exp, self.data_source.run)
+                if try_idx is None:
+                    try_idx = True
+                    print 'Exp {:}, run {:} smd data file not available -- loading idx data instead.'.format( \
+                                self.data_source.exp, self.data_source.run)
 
         if try_idx:
             if self.data_source.smd:
@@ -894,14 +899,33 @@ class DataSource(object):
 
         for attr in attrs:
             det = self._detectors[attr]
-            if not det._det_config['stats']:
-                if det._det_class == WaveformData:
-                    det.add.stats('waveform', **kwargs)
-                elif det._det_class == ImageData:
-                    det.add.stats('calib', **kwargs)
-                elif 'data' in det._attrs:
-                    # currently just zyla
-                    det.add.stats('data', **kwargs)
+            try:
+                if not det._det_config['stats']:
+                    if det._det_class == WaveformData:
+                        OKadd = det.add.stats('waveform', **kwargs)
+                    elif det._det_class == ImageData:
+                        try:
+                            OKadd = det.add.stats('corr', **kwargs)
+                        except:
+                            OKadd = False
+                        print attr, OKadd
+                        if not OKadd:
+                            det.next()
+                            print det
+                            OKadd = det.add.stats('corr', **kwargs)
+                    else:
+                        OKadd = False
+
+                    #elif 'data' in det._attrs:
+                    #    # currently just zyla
+                    #    det.add.stats('data', **kwargs)
+                    if OKadd:
+                        print 'Added default stats for ', attr, str(det)
+                        print det._det_config['stats']
+
+            except:
+                traceback.print_exc()
+                print 'Cannot add stats for', attr
 
     @property
     def stats(self):
@@ -928,8 +952,12 @@ class DataSource(object):
             if 'stats' in det_config:
                 for attr, item in det_config['stats'].items():
                     if not attrs or '.'.join([alias,attr]) in attrs:
-                        datasets.append(self._detectors[alias]._get_stats(attr, alias=aliases.get(alias)))
-        
+                        try:
+                            datasets.append(self._detectors[alias]._get_stats(attr, alias=aliases.get(alias)))
+                        except:
+                            traceback.print_exc()
+                            print 'Cannot add stats for', alias, attr
+
         try:
             x = xr.merge(datasets)
         except:
@@ -1370,12 +1398,19 @@ class DataSource(object):
                 print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
                 traceback.print_exc()
 
-    def _get_config_file(self, run=None, exp=None, instrument=None, user=None, path=None):
+    def _get_config_file(self, run=None, exp=None, instrument=None, user=None, 
+            path=None):
         if user:
-            path = self.data_source._get_user_dir(user)
+            if user is True:
+                path = self.data_source.user_dir
+            else:
+                path = self.data_source._get_user_dir(user)
 
         elif not path:
-            path = self.data_source.user_dir
+            base_path = '/reg/d/psdm/{:}/{:}/results'.format(self.instrument,self.experiment)
+            if not os.path.isdir(base_path):
+                base_path = '/reg/d/psdm/{:}/{:}/res'.format(self.instrument,self.experiment)
+            path = base_path+'/summary_config'
 
         if not os.path.isdir(path):
             os.mkdir(path)
@@ -2341,7 +2376,7 @@ class ConfigData(object):
 
         # Determine data sources and update aliases
         for srcstr, item in self._partition.items():
-            if not item.get('alias'):
+            if not item.get('alias') and 'Evr' not in srcstr:
                 if srcstr in self._alias_defaults:
                     alias = self._alias_defaults.get(srcstr)
                 else:
@@ -3143,6 +3178,8 @@ class Detector(object):
             self._calib_class = item.get('calib_class')
             self._tabclass = 'detector'
 
+        self._on_init(**kwargs)
+
         self._init = True
 
 #    # Does not quite work.  Need to invesigate how to rename robustly
@@ -3151,6 +3188,12 @@ class Detector(object):
 #        Rename detector.
 #        """
 #        self._ds.rename(**{self._alias: alias})
+
+    def _on_init(self, **kwargs):
+        """
+        Method for Detector instances.
+        """
+        pass
 
     @property
     def _source_info(self):
@@ -3213,9 +3256,6 @@ class Detector(object):
             dims_dict = {attr: ([], ()) for attr in ['integral', 'npeaks']}
             dims_dict['hproj'] = (['X'], self.hproj.shape)
 
-        elif self.src == 'DetInfo(XrayTransportDiagnostic.0:Opal1000.0)':
-            dims_dict = {'data16': (['X', 'Y'], self.evtData.data16.shape)}
-
         elif self._det_class == WaveformData:
             if self._pydet.dettype == 17:
                 dims_dict = {'waveform': (['ch', 't'], (4, self.configData.numberOfSamples))} 
@@ -3248,10 +3288,6 @@ class Detector(object):
                 except:
                     pass
 
-           # # temporary fix for Opal2000, Opal4000 and Opa8000
-           # elif self._pydet.dettype in [7,8,9]:
-           #     dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
-
             else:
                 if self.calibData.image_xaxis is not None and self.calibData.image_xaxis.size > 0:
                     raw_dims = (['xaxis', 'yaxis'], self.calibData.shape)
@@ -3264,8 +3300,38 @@ class Detector(object):
                         'corr':      raw_dims,
                         'calib':     raw_dims,
                         }
+                elif hasattr(self, 'raw') and self.raw is not None:
+                    dshape = self.raw.shape
+                    raw_dims = (['xaxis', 'yaxis'], dshape)
+                    image_dims = (['X', 'Y'], dshape)
+                    dims_dict = {
+                        'image':     image_dims,
+                        'raw':       raw_dims,
+                        'corr':      raw_dims,
+                        'calib':     raw_dims,
+                        }
+                elif hasattr(self.calibData, 'shape') and self.calibData.shape is not None:
+                    # Shape is not alwasy correct as of ana-1.3.4 for roi, e.g., Timetool
+                    raw_dims = (['xaxis', 'yaxis'], self.calibData.shape)
+                    image_dims = (['X', 'Y'], self.calibData.shape)
+                    dims_dict = {
+                        'image':     image_dims,
+                        'raw':       raw_dims,
+                        'corr':      raw_dims,
+                        'calib':     raw_dims,
+                        }
                 else:
-                    dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
+                    try:
+                        dims_dict = {'raw': (['X', 'Y'], self.evtData.data16.shape)}
+                    except:
+                        if hasattr(self.calibData, 'data8'):
+                            dims_dict = {'raw': (['X', 'Y'], self.evtData.data8.shape)}
+                        else:
+                            try:
+                                self.next()
+                                dims_dict = {'raw': (['X', 'Y'], self.raw.shape)}
+                            except:
+                                print 'Error adding dims for ', str(self)
 
         # temporary fix for Quartz camera not in PyDetector class
         elif self._pydet is not None and hasattr(self._pydet, 'dettype') \
@@ -3318,7 +3384,7 @@ class Detector(object):
                         'Y': self.calibData.image_yaxis
                         }
 
-            elif self.calibData.ndim == 2 and self.calibData.shape[0] > 0 and self.calib is None:
+            elif self.calibData.ndim == 2 and self.calibData.shape[0] > 0 and (self.calib is None or self.calibData.image_xaxis is None):
                 attrs = []
                 coords_shape = self.raw.shape
                 coords_dict = {'X': np.arange(coords_shape[0]), 
@@ -3695,7 +3761,13 @@ class Detector(object):
             img = getattr_complete(self, item['attr'])
             if img is not None:
                 roi = item['roi']
-                if roi and len(img.shape) == 1:
+                if not roi:
+                    sensor = item.get('sensor')
+                    if sensor is not None:
+                        return img[sensor]
+                    else:
+                        return img
+                elif roi and len(img.shape) == 1:
                     img = img[roi[0]:roi[1]]
                     if img.size == 1:
                         try:
@@ -3860,6 +3932,7 @@ class Detector(object):
         aevents = np.zeros(shape=(nsteps,neventCodes))
         if not alias:
             alias = self._alias
+        
         dim_names = ['_'.join([alias,a]) for a in dims[0]]
         dim_shape = list(dims[1])
         dim_names.insert(0,'codes')
@@ -3868,6 +3941,7 @@ class Detector(object):
         dim_shape.insert(0,nsteps)
         dim_names.insert(0,'stat')
         dim_shape.insert(0,nstats)
+
         ddims = (dim_names, tuple(dim_shape))
         coords.update({'codes': eventCodes, 'stat': stats, 'steps': steps})
         asums = np.zeros(shape=dim_shape)
@@ -3985,6 +4059,7 @@ class Detector(object):
                          self._det_config['peak'].keys() + 
                          self._det_config['projection'].keys() + 
                          self._det_config['stats'].keys() + 
+                         self._det_config['module'].get('dict', []) +
                          self._ds.events.current._event_attrs +
                          self.__dict__.keys() + dir(Detector))
         
@@ -4103,6 +4178,7 @@ class AddOn(object):
     def projection(self, attr=None, axis='x', 
             roi=None, sensor=None, name=None, 
             axis_name=None, method=None,  
+            coords_x=None,coords_y=None,
             mask=None, bins=None, bin_size=None, rmin=None, rmax=None, 
             unit='ADU', doc='', publish=False,
             **kwargs):
@@ -4129,6 +4205,10 @@ class AddOn(object):
             to input attr name.
         axis_name : str
             name of axis [default = axis+name]
+        coords_x : array
+            Array of X coordinates for input data object defined by attr
+        coords_y : array
+            Array of X coordinates for input data object defined by attr
         method : str
             by default the method is 'sum' but other numpy methods are
             also possible (e.g., 'mean', 'std', 'min', 'max', 'var').
@@ -4241,9 +4321,28 @@ class AddOn(object):
             axis_name = axis+roi_name
  
         calibData = self._det.calibData
-        if axis in _polar_axes and calibData.coords_x is not None:
-            coords_x = calibData.coords_x
-            coords_y = calibData.coords_y
+        if axis in _polar_axes:
+            animg = img.shape
+            nx = animg[1]
+            ny = animg[0]
+            if coords_x is not None:
+                if len(coords_x.shape) == 1:
+                    coords_x = np.ones((ny,nx)) * coords_x
+
+            elif calibData.coords_x is not None:
+                coords_x = calibData.coords_x
+            else:
+                coords_x = np.ones((ny,nx)) * np.arange(nx)-(nx-1)/2.
+                
+            if coords_y is not None:
+                if len(coords_y.shape) == 1:
+                    coords_y = (np.ones((nx,ny)) * coords_y).T
+            
+            elif calibData.coords_y is not None:
+                coords_y = calibData.coords_y
+            else:
+                coords_y = (np.ones((nx,ny)) * np.arange(ny)-(ny-1)/2.).T
+
             if not mask:
                 mask = -calibData.mask() 
 
@@ -4257,7 +4356,9 @@ class AddOn(object):
                 if not bins:
                     if not bin_size:
                         bin_size = calibData.pixel_size
-                    
+                    if not bin_size:
+                        bin_size = 1
+
                     bins = np.arange(coord_hist.compressed().min()+bin_size*10, 
                                      coord_hist.compressed().max()-bin_size*10., 
                                      bin_size)
@@ -4422,7 +4523,7 @@ class AddOn(object):
                 else:
                     name = 'roi'+str(nroi+1)
 
-        if sensor and not roi:
+        if sensor is not None and not roi:
             if doc == '':
                 doc = "{:} ROI of {:} data".format(name, attr)
 
@@ -4544,11 +4645,16 @@ class AddOn(object):
         try:
             img = self._getattr(attr)
         except:
-            print 'Not valid {:}'.format(attr)
-            return
+            print 'Stats add Not valid for {:}'.format(attr)
+            return False
 
         if not eventCodes:
             code0 = self._det.configData.eventCode
+            if not code0:
+                # some devices like Timetool with roi do not give eventCode in configData
+                srcstr = self._det._srcstr
+                code0 = self._det._ds.configData._sources.get(srcstr,{}).get('eventCode')
+                print attr, srcstr, code0
             if not code0:
                 code0 = 40
                 if code0 not in self._ds.configData._eventcodes:
@@ -4565,6 +4671,13 @@ class AddOn(object):
         dims = self._det_config['xarray'].get('dims', {}).get(attr, {})
         if not dims:
             dims = self._det_config['xarray'].get('dims', {}).get('raw', {})
+        try:
+            if dims[1] != img.shape:
+                print 'Fixing stat dims for ', attr, img.shape, dims
+                dims[1] = img.shape
+        except:
+            print 'Cannot update stat dims for ', attr, dims
+
         all_coords = self._det_config['xarray'].get('coords', {})
         #coords = {dim: coord for dim, coord in all_coords.items() if dim in dims[0]}
         #coords = {dim: coord for dim, coord in all_coords.items() if not isinstance(coord[0], list) or len(set(coord[0]) & set(dims[0])) > 0}
@@ -4594,6 +4707,9 @@ class AddOn(object):
                 'attrs': stat_attrs,
                 'stats': ['mean', 'std', 'min', 'max'],
                 }})
+
+        return True
+
 
     def count(self, attr=None, gain=None, unit=None, doc=None, 
             roi=None, name=None, limits=None, **kwargs):
@@ -5598,7 +5714,7 @@ class ImageData(object):
         Pedestal corrected raw data.
         """
         ped = self._det.pedestals(self._evt)
-        if ped is not None:
+        if self.raw is not None and ped is not None:
             return self.raw-ped
         else:
             return self.raw
@@ -6026,8 +6142,11 @@ class EpicsData(object):
                     components = re.split('_',pv,1)
 
                 for i,item in enumerate(components):
-                    if item[0].isdigit():
-                         components[i] = 'n'+components[i]
+                    try:
+                        if item[0].isdigit():
+                            components[i] = 'n'+components[i]
+                    except:
+                        pass
 
                 pv_dict[name] =  { 'pv': pvname,
                                    'alias': pvalias,
@@ -6244,7 +6363,8 @@ def _update_stats(evt):
             eventCodes = item['eventCodes']
             if vals is not None:
                 for ec in eventCodes:
-                    if det.Evr.present(ec):
+                    # Note that no Evr for Controls cameras
+                    if hasattr(det.Evr, 'present') and det.Evr.present(ec):
                         if ec not in item['funcs']:
                             item['funcs'].update({ec: {}})
                         funcs = item['funcs'].get(ec) 

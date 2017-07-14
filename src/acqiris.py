@@ -16,18 +16,27 @@ class Acqiris(PyDataSource.Detector):
         else: 
             self.add.parameter(nchannels=4)
 
-        self.add.property(peaks)
-
-    def _update_xarray_info(self):
+    def _on_init(self):
 
         nchannels = self.nchannels
-        xattrs = {'doc': 'Acqiris for 4 diode channel waveforms',
+        xattrs = {'doc': 'Acqiris max value for 4 diode channel waveforms',
                   'unit': 'ADU'}
-        self._xarray_info['dims'].update({'peaks': (['ch'], nchannels, xattrs)}) 
+        self.add.property(peak_height, **xattrs)
+        self._xarray_info['dims'].update({'peak_height': (['ch'], nchannels, xattrs)}) 
         
-def peaks(self):
+        xattrs = {'doc': 'Acqiris time of max value for 4 diode channel waveforms',
+                  'unit': 's'}
+        self.add.property(peak_time, **xattrs)
+        self._xarray_info['dims'].update({'peak_time': (['ch'], nchannels, xattrs)}) 
+        
+def peak_height(self):
     """Max value of each waveform.
     """
     return np.array([max(self.waveform[ch]) for ch in range(self.nchannels)])
+
+def peak_time(self):
+    """Time of max of each waveform.
+    """
+    return np.array([self.wftime[ch][self.waveform[ch].argmax()] for ch in range(self.nchannels)])
 
 
