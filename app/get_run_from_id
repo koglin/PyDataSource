@@ -1,0 +1,29 @@
+#!/bin/bash
+
+export PYTHONPATH=
+
+source /reg/g/psdm/bin/conda_setup "" > /dev/null
+
+args="$@"
+
+EXP=$1
+shift
+RUN=$1
+INSTRUMENT=${EXP:0:3}
+
+SOURCE="${BASH_SOURCE[0]}"
+# resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do 
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" 
+  # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+: ${DIRNAME="$DIR/../python/PyDataSource/"}
+
+python "$DIRNAME/get_run_from_runid.py" $EXP $RUN
+
+

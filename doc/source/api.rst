@@ -93,7 +93,7 @@ Data Structures
 .. autosummary::
     :toctree: generated/
     
-    to_xarray
+    DataSource.to_hdf5
     to_summary
     to_h5netcdf 
     open_h5netcdf 

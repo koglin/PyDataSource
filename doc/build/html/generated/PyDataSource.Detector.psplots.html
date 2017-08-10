@@ -89,6 +89,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
@@ -164,6 +167,11 @@ and close the plot window.</p>
 <p>If you only close the plot window it will automatically reopen on the next event.
 If the plot is not updating as expected, simply close the window and it will refresh
 on the next event.</p>
+<p class="rubric">Example</p>
+<p>evt.DscCsPad.add.projection(‘calib’,’r’,publish=True)
+del evt.DscCsPad.psplots[‘DscCsPad_calib_r’]</p>
+<p>evt.DscCsPad.add.psplot(‘image’)
+del evt.DscCsPad.psplots[‘DscCsPad_image’]</p>
 </dd></dl>
 
 </div>
@@ -213,7 +221,7 @@ on the next event.</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

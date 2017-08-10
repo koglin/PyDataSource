@@ -1,0 +1,456 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Run Summary Reports &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+        <link rel="next" title="PyDataSource.Build_html" href="generated/PyDataSource.Build_html.html"/>
+        <link rel="prev" title="PyDataSource.ConfigData.ScanData" href="generated/PyDataSource.ConfigData.ScanData.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Run Summary Reports</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-report-structure">Basic Report Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#auto-add-default-report">Auto add default report</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.html">PyDataSource.Build_html</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_all.html">PyDataSource.Build_html.add_all</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#customizing-reports">Customizing reports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#add-detector">Add Detector</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_detector.html">PyDataSource.Build_html.add_detector</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#add-summary">Add Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_summary.html">PyDataSource.Build_html.add_summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#add-statistics">Add Statistics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_stats.html">PyDataSource.Build_html.add_stats</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#other-common-plots">Other common plots</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_setup.html">PyDataSource.Build_html.add_setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_config.html">PyDataSource.Build_html.add_config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_detstats.html">PyDataSource.Build_html.add_detstats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_correlations.html">PyDataSource.Build_html.add_correlations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_counts.html">PyDataSource.Build_html.add_counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_axis_plots.html">PyDataSource.Build_html.add_axis_plots</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#write-html-report">write html report</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.to_html.html">PyDataSource.Build_html.to_html</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#base-level-report-methods">Base level report methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_plot.html">PyDataSource.Build_html.add_plot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_table.html">PyDataSource.Build_html.add_table</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.Build_html.add_xy_ploterr.html">PyDataSource.Build_html.add_xy_ploterr</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Run Summary Reports</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/build_html.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="run-summary-reports">
+<h1>Run Summary Reports<a class="headerlink" href="#run-summary-reports" title="Permalink to this headline">¶</a></h1>
+<p>HTML web page reports can be built from the xarray data summaries using the Build_html class in the build_html module.  An auto summary option is available to summarize the data in the xarray DataSet, grouping data according to Detector aliases.  To create a summary in the the RunSummary folder of your home directory organized in subfolders by experiment and run use the path=’home’ keyword (in this example ~/RunSummary/cxitut13/run0020/).  By default, the path is the ‘stats/summary’ subfolder in the experiment directory (in this example /reg/d/psdm/cxi/cxitut13/stats/summary/run0020/).  If setting a custom path, use the full path (i.e., /reg/neh/home/user_name/RunSummary, do not use ~user_name/RunSummary)</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+
+<span class="gp">In [2]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+
+<span class="gp">In [3]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This run is an example of 8keV t-field data on DsaCsPad as noted in the <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Publicly+Available+Practice+Data">practice</a> data confluence page.</p>
+<p>See link for the html report generated in this example for <a class="reference external" href="_static/reports/cxitut13/run0020/report.html">cxitut13/run0020</a></p>
+<div class="section" id="basic-report-structure">
+<h2>Basic Report Structure<a class="headerlink" href="#basic-report-structure" title="Permalink to this headline">¶</a></h2>
+<p>The reports are organized into data catagories that can be contracted and revealed
+(through basic use of javascript).
+Each catagory contains one or more plot, table or text object, most of which will start off as
+contraceted boxes with title text by default.</p>
+<p>Several layers of helper methods are used to build the html report.</p>
+<p>Some or all of the plots and tables generated with auto=True can be added as desired.</p>
+</div>
+<div class="section" id="auto-add-default-report">
+<h2>Auto add default report<a class="headerlink" href="#auto-add-default-report" title="Permalink to this headline">¶</a></h2>
+<p>The auto=True keyword is a shortcut for the following:</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [3]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
+
+<span class="gp">In [4]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_all</span><span class="p">()</span>
+
+<span class="gp">In [5]: </span><span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Where the add_all calls the following methods for each detector base alias in the xarray DataSet.</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.html#PyDataSource.Build_html" title="PyDataSource.Build_html"><code class="xref py py-obj docutils literal"><span class="pre">Build_html</span></code></a>([xdat,&nbsp;ds,&nbsp;auto])</td>
+<td>Class to build an html RunSummary report.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_all.html#PyDataSource.Build_html.add_all" title="PyDataSource.Build_html.add_all"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_all</span></code></a>([quiet,&nbsp;min_step_data,&nbsp;…])</td>
+<td>Add All detector and run summary plots with limited intelligence in selecting plots.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="customizing-reports">
+<h2>Customizing reports<a class="headerlink" href="#customizing-reports" title="Permalink to this headline">¶</a></h2>
+<p>Custom reports can be generated using the following high level methods
+for makine sets of plots based on detector alias and data attribute names.
+Later the lower level methods for adding plots and tables will be described.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="add-detector">
+<h2>Add Detector<a class="headerlink" href="#add-detector" title="Permalink to this headline">¶</a></h2>
+<p>By convention the psana detector alias is passed to each data element in the xarray object.
+If no keywords are provided, the add_detector method will attempt to add all relevant plots for
+data elements with the detector alias, i.e., ‘DsaCsPad’ in this example.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_detector</span><span class="p">(</span><span class="s1">&#39;DsaCsPad&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_detector.html#PyDataSource.Build_html.add_detector" title="PyDataSource.Build_html.add_detector"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_detector</span></code></a>([alias,&nbsp;…])</td>
+<td>Add a detector based on alias</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="add-summary">
+<h2>Add Summary<a class="headerlink" href="#add-summary" title="Permalink to this headline">¶</a></h2>
+<p>Add summary plots for data variables</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DsaCsPad_photon_hist&#39;</span><span class="p">]</span>
+<span class="gp">In [9]: </span> <span class="n">b</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+</pre></div>
+</div>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_summary.html#PyDataSource.Build_html.add_summary" title="PyDataSource.Build_html.add_summary"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_summary</span></code></a>([variables,&nbsp;…])</td>
+<td>Add summary for variables.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="add-statistics">
+<h2>Add Statistics<a class="headerlink" href="#add-statistics" title="Permalink to this headline">¶</a></h2>
+<p>Add detector statistics plots for data variables that have ‘stats’ dims.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_stats</span><span class="p">(</span><span class="s1">&#39;DsaCsPad_corr_stats&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_stats.html#PyDataSource.Build_html.add_stats" title="PyDataSource.Build_html.add_stats"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_stats</span></code></a>(attr[,&nbsp;codes,&nbsp;stats,&nbsp;…])</td>
+<td>Add detector stats plots</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="other-common-plots">
+<h2>Other common plots<a class="headerlink" href="#other-common-plots" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_setup.html#PyDataSource.Build_html.add_setup" title="PyDataSource.Build_html.add_setup"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_setup</span></code></a>(catagory,&nbsp;howto)</td>
+<td>Add text to beginning of HowTo.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_config.html#PyDataSource.Build_html.add_config" title="PyDataSource.Build_html.add_config"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_config</span></code></a>([attrs])</td>
+<td>Add detector configurations based on information provided in attrs of {alias}_preset data objects.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_detstats.html#PyDataSource.Build_html.add_detstats" title="PyDataSource.Build_html.add_detstats"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_detstats</span></code></a>([catagory])</td>
+<td>Add detector statistics.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_correlations.html#PyDataSource.Build_html.add_correlations" title="PyDataSource.Build_html.add_correlations"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_correlations</span></code></a>([cut,&nbsp;confidence])</td>
+<td>Add correlations for Photon Energy and Pulse Energy</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_counts.html#PyDataSource.Build_html.add_counts" title="PyDataSource.Build_html.add_counts"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_counts</span></code></a>([catagory,&nbsp;confidence])</td>
+<td>Add correlation plots of detector count and sum values</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_axis_plots.html#PyDataSource.Build_html.add_axis_plots" title="PyDataSource.Build_html.add_axis_plots"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_axis_plots</span></code></a>()</td>
+<td>Add correlation plots of X and Y axis data.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="write-html-report">
+<h2>write html report<a class="headerlink" href="#write-html-report" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+</pre></div>
+</div>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.to_html.html#PyDataSource.Build_html.to_html" title="PyDataSource.Build_html.to_html"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.to_html</span></code></a>([path,&nbsp;quiet])</td>
+<td>Write out html file</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="base-level-report-methods">
+<h2>Base level report methods<a class="headerlink" href="#base-level-report-methods" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_plot.html#PyDataSource.Build_html.add_plot" title="PyDataSource.Build_html.add_plot"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_plot</span></code></a>(catagory,&nbsp;plt_type[,&nbsp;…])</td>
+<td>Add a plot to the report.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_table.html#PyDataSource.Build_html.add_table" title="PyDataSource.Build_html.add_table"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_table</span></code></a>(df[,&nbsp;catagory,&nbsp;…])</td>
+<td>Add a table to the report from the input pandas.DataFrame</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_xy_ploterr.html#PyDataSource.Build_html.add_xy_ploterr" title="PyDataSource.Build_html.add_xy_ploterr"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_xy_ploterr</span></code></a>(attr[,&nbsp;xaxis,&nbsp;…])</td>
+<td>Add error bar plot</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/PyDataSource.Build_html.html" class="btn btn-neutral float-right" title="PyDataSource.Build_html" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="generated/PyDataSource.ConfigData.ScanData.html" class="btn btn-neutral" title="PyDataSource.ConfigData.ScanData" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -7,10 +7,13 @@ __all__ = []
 from PyDataSource import *
 #from psxarray import * 
 import h5write
+#import examples
 from h5write import *
 from exp_summary import get_exp_summary 
 from epicsarchive import EpicsArchive
-__version__ = '00.00.01'
+from build_html import Build_html, Build_experiment
+
+__version__ = '00.01.01'
 
 import logging
 

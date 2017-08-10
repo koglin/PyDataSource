@@ -34,15 +34,20 @@ if [[ $1 ]]; then
   shift
   if [[ $1 ]]; then
     PYOPT=$1
+    shift
+    if [[ $1 ]]; then
+      RUNFILE=$1
+      shift
+    fi
   fi
 fi
 
 #PYOPT='test'
-: ${PYOPT='batch'}
-: ${DIRNAME="$DIR/../python/PyDataSource/"}
-: ${PYFILE="__main__.py"}
-: ${MAX_SIZE="10001"}
-: ${QUEUEREQ="psfehq"}
+
+: ${DIRNAME:="$DIR/../python/PyDataSource/"}
+: ${PYFILE:="__main__.py"}
+: ${MAX_SIZE:="10001"}
+: ${QUEUEREQ:="psfehq"}
 #: ${QUEUEREQ="psdebugq"}
 OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
 RUNSTR=Run`python "$DIRNAME/get_run_from_runid.py" $EXP $RUN`
@@ -54,12 +59,31 @@ if [[ ! -a $OUTLOG ]];  then
     mkdir -p $OUTLOG
 fi
 
+if [[ $PYOPT == '' ]]; then 
+    JOBNAME="$EXPRUN"
+    PYOPT='batch'
+    : ${RUNFILE:="$DIRNAME/$PYFILE"}
+elif [[ $PYOPT == 'epics' ]]; then 
+    JOBNAME="$EXP"epics
+    : ${RUNFILE:="$DIRNAME/$PYFILE"}
+else
+    JOBNAME="$EXPRUN"
+    EXPFILE="$PYOPT"
+    RUNFILE="/reg/d/psdm/$INSTRUMENT/$EXP/results/src/$EXPFILE.py"
+    PYOPT='batch'
+fi
+
 # Directories not available on psanasvc01 -- need to ssh to 
 #: ${CONFIG:=`ssh psana python "$DIRNAME/get_config_file.py" $EXP $RUN`}
 #echo 'Config: '$CONFIG 
 CONFIG='auto'
 
-LOGSUM=/reg/neh/home/koglin/logs/"$EXPRUN".log
+echo Processing $EXP Run $RUN
+echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG"
+
+LOGSUM=/reg/neh/home/koglin/logs/"$EXP"/batch_jobs.log
+echo '--------------------------------' >> $LOGSUM
+date >> $LOGSUM
 echo Processing $EXP Run $RUN >> $LOGSUM
 echo `uname -a` >> $LOGSUM
 echo 'User: '$BATCHUSER >> $LOGSUM
@@ -67,8 +91,10 @@ echo 'Run:    '$RUNSTR >> $LOGSUM
 echo $EXPRUN >> $LOGSUM
 echo 'Log Path: '$OUTLOG >> $LOGSUM
 echo 'Config: '$CONFIG >> $LOGSUM
-echo bsub -q "$QUEUEREQ" -J "$EXPRUN" -o $OUTLOG/%J.log python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" >> $LOGSUM
+echo 'Run File: '$RUNFILE >> $LOGSUM
 
-bsub -q "$QUEUEREQ" -J "$EXPRUN" -o $OUTLOG/%J.log python "$DIRNAME/$PYFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" 
+echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" >> $LOGSUM
+
+bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" 
 
 

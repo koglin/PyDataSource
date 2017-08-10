@@ -8,8 +8,11 @@ class Cspad(PyDataSource.Detector):
 
         PyDataSource.Detector.__init__(self,*args,**kwargs)
 
-        self.add.count('corr', name='corr_count')
-        self.add.projection('corr', 'r', name='corr_r')
+        try:
+            self.add.count('corr', name='corr_count')
+        except:
+            pass
+#        self.add.projection('corr', 'r', name='corr_r')
 
     def add_max_plot(self):
         """

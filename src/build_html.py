@@ -74,7 +74,7 @@ class Build_experiment(object):
         
         self.logger = logging.getLogger(__name__+'.build_html')
         self.logger.info(__name__)
-        if exp.__class__.__module__ == 'PyDataSource.exp_summary': 
+        if exp.__class__.__module__.endswith('exp_summary'): 
             self._es = exp
             self.exp = self._es.exp
         else:
@@ -301,7 +301,15 @@ class Build_experiment(object):
             self.logger.info('Could not add Plot {:} {:}'.format(catagory, plt_type))
 
     def _init_output(self, path=default_path, filename='experiment', **kwargs):
-        """Set output path and build appropriate directories for html
+        """
+        Set output path and build appropriate directories for html
+        
+        Parameters
+        ----------
+
+        path : str
+            Output path of report
+       
         """
         if not path or path == 'stats':
             path = os.path.join(self.stats_dir, 'summary')
@@ -326,7 +334,15 @@ class Build_experiment(object):
             os.mkdir(self.output_dir)
  
     def to_html(self, path=None, quiet=False, **kwargs):
-        """Write out html file
+        """
+        Write out html file
+        
+        Parameters
+        ----------
+
+        path : str
+            Output path of report
+       
         """
         self._init_html(path=path)
         self._add_html()
@@ -335,7 +351,15 @@ class Build_experiment(object):
             print 'Writing html to: ', os.path.join(self.html.output_dir, self.html.output_file)
 
     def _init_html(self, path=None, **kwargs):
-        """Initialize html page.
+        """
+        Initialize html page.
+        
+        Parameters
+        ----------
+
+        path : str
+            Output path of report
+       
         """
         if path:
             self._init_output(path=path, **kwargs)
@@ -488,7 +512,7 @@ class Build_experiment(object):
         self.html.myprint(tofile=True)
 
     def add_xy_ploterr(self, attr, xaxis=None, howto=None, catagory=None, text=None, table=None, **kwargs):
-        from plotting import xy_ploterr
+        from xarray_utils import xy_ploterr
         x = self._es.xscan
         if not howto:
             howto = []
@@ -509,7 +533,7 @@ class Build_experiment(object):
             plt_type+=' lin-log'
 
         print catagory, plt_type
-        self.add_plot(catagory, plt_type, howto=howto)
+        self.add_plot(catagory, plt_type, howto=howto, tight=False)
         if table is not None:
             self.results[catagory]['table'].update({attr:{'DataFrame': table, 
                                                         'name': 'df_tbl',
@@ -518,7 +542,8 @@ class Build_experiment(object):
 
 
 class Build_html(object):
-    """Class to build an html RunSummary report.
+    """
+    Class to build an html RunSummary report.
     """
 
     def __init__(self, xdat=None, ds=None, auto=False, **kwargs):
@@ -598,7 +623,15 @@ class Build_html(object):
             self.to_html()
 
     def _init_output(self, path=default_path, filename=None, **kwargs):
-        """Set output path and build appropriate directories for html
+        """
+        Set output path and build appropriate directories for html
+        
+        Parameters
+        ----------
+
+        path : str
+            Output path of report
+       
         """
         if not path or path == 'stats':
             path = os.path.join(self.stats_dir, 'summary')
@@ -626,6 +659,20 @@ class Build_html(object):
             os.mkdir(self.output_dir)
  
     def add_correlations(self, cut=None, confidence=0.4, **kwargs):
+        """
+        Add correlations for Photon Energy and Pulse Energy 
+
+        Parameters
+        ----------
+
+        cut : str
+            Attribute on which to make cut when making plots
+
+        confidence : float
+            Minimum confidence level for correlation plot.
+        
+        """
+        
         from xarray_utils import get_correlations
         from xarray_utils import heatmap
         
@@ -665,7 +712,20 @@ class Build_html(object):
                         min_step_data=5, 
                         min_in_cut=4,
                         **kwargs):
-        """Add All detectors.
+        """
+        Add All detector and run summary plots with limited intelligence in selecting plots.
+        
+        Parameters
+        ----------
+
+        min_step_data : int
+            Only groupby attributes in x.attrs['scan_variables'] if having this min
+            number of steps.
+
+        min_in_cut : int
+            Only make add_correlations plots for attributes in x.attrs['cuts']
+            if ther are min number of events after cut
+
         """
         #self.make_default_cuts()
         
@@ -742,8 +802,35 @@ class Build_html(object):
                     except:
                         traceback.print_exc()
                         print 'Could not add summary', attrs
+        
+        self.add_counts()
+        self.add_axis_plots()
 
-        # Add sum/count info
+        xdat = self._xdat
+        if 'codes' in xdat.coords and len(xdat['codes']) > 0:
+            attrs = [a for a in self._xdat.data_vars.keys() if 'stat' in self._xdat[a].dims and len(self._xdat[a].dims) in [5,6]]
+            for attr in attrs:
+                print 'adding stats for ', attr
+                if nevents > 4:
+                    self.add_stats(attr, **kwargs)
+
+        attrs = [a for a in self._xdat.data_vars.keys() if 'time' in self._xdat[a].dims and len(self._xdat[a].dims) == 3]
+        if nevents <= 100:
+            self.add_event(attrs)
+        plt.cla()
+        plt.close('all')
+
+    def add_counts(self, catagory='Detector Count', confidence=0.1):
+        """
+        Add correlation plots of detector count and sum values
+        
+        catagory : str
+            Cataroy name.  Default = 'Detector Count' 
+
+        confidence : float
+            Minimum confidence level for correlation plot.
+        
+        """
         x = self._xdat
         attrs = [a for a in x.keys() if (a.endswith('_count') or a.endswith('_sum')) 
                     and len(x[a].dims) == 1 and 'time' in x[a].dims]
@@ -751,8 +838,12 @@ class Build_html(object):
             attrs.append('PhotonEnergy')
         if 'Gasdet_post_atten' in x:
             attrs.append('Gasdet_post_atten')
-        self.add_detector(attrs=attrs, catagory='Detector Count', confidence=0.1)
-        
+        self.add_detector(attrs=attrs, catagory=catagory, confidence=confidence)
+       
+    def add_axis_plots(self):
+        """
+        Add correlation plots of X and Y axis data.
+        """
         attrs = [a for a in x.keys() if (a.endswith('_PosX') or a.endswith('_AngX') or a.endswith('xpos'))
                     and len(x[a].dims) == 1 and 'time' in x[a].dims]
         if attrs:
@@ -771,23 +862,21 @@ class Build_html(object):
                 attrs.append('Gasdet_post_atten')
             self.add_detector(attrs=attrs, catagory='Yaxis', confidence=0.1)
 
-        xdat = self._xdat
-        if 'codes' in xdat.coords and len(xdat['codes']) > 0:
-            attrs = [a for a in self._xdat.data_vars.keys() if 'stat' in self._xdat[a].dims and len(self._xdat[a].dims) in [5,6]]
-            for attr in attrs:
-                print 'adding stats for ', attr
-                if nevents > 4:
-                    self.add_stats(attr, **kwargs)
-
-        attrs = [a for a in self._xdat.data_vars.keys() if 'time' in self._xdat[a].dims and len(self._xdat[a].dims) == 3]
-        if nevents <= 100:
-            self.add_event(attrs)
-        plt.cla()
-        plt.close('all')
-
     def make_default_cuts(self, gasdetcut_mJ=0.5):
         """
         Make default cuts.
+
+        Parameters
+        ----------
+
+        gasdetcut_mJ : float
+            Minimum gasdetector value to pass cut
+
+        See Also
+        --------
+
+        h5write.make_default_cuts
+
         """
         import h5write
         try:
@@ -802,9 +891,18 @@ class Build_html(object):
         import PyDataSource
         self._xsummary = PyDataSource.to_summary(self._xdat)
 
-    def add_config(self, attrs=[]):
+    def add_config(self, attrs=[], **kwargs):
         """
-        Add detector configurations
+        Add detector configurations based on 
+        information provided in attrs of {alias}_preset data objects. 
+        
+        Parameters
+        ----------
+
+        attrs : list
+            List of detector aliases to describe configuration.
+
+        
         """
         howto = []
         doc = ''
@@ -821,12 +919,20 @@ class Build_html(object):
                                                         'howto': howto, 
                                                         'doc': doc}})
 
-    def add_detstats(self, alias='RunStats'):
-        """Add detector statistics. 
+    def add_detstats(self, catagory='RunStats', **kwargs):
+        """
+        Add detector statistics. 
+
+        Parameters
+        ----------
+        
+        catagory : str
+            Cataroy name.  Default = 'RunStats' 
+
         """
         attrs = [a for a in self._xdat.variables.keys() if a.endswith('events')]
         if attrs and self.nsteps == 1:
-            self._add_catagory(alias)
+            self._add_catagory(catagory)
             df_tbl = self._xdat.reset_coords()[attrs].sel(steps=0).to_array().to_pandas()
             self.eventStats = df_tbl
             doc = []
@@ -835,7 +941,7 @@ class Build_html(object):
             howto = []
             howto.append("attrs={:})".format(attrs))
             howto.append("df_tbl = x[attrs].sel(steps=0).to_array().to_pandas()")
-            self.results[alias]['table'].update({alias:{'DataFrame': df_tbl, 
+            self.results[catagory]['table'].update({catagory:{'DataFrame': df_tbl, 
                                                         'name': 'df_tbl',
                                                         'howto': howto, 
                                                         'doc': doc}})
@@ -858,10 +964,77 @@ class Build_html(object):
                            robust_attrs=None,
                            plot_errors=False,
                            bins=50, 
+                           max_steps=20,
                            plt_style='.',
                            cut=None, 
-                           show=False):
-        """Add a single detector based on alias
+                           show=False, 
+                           **kwargs):
+        """
+        Add a detector based on alias
+
+        Parameters
+        ----------
+        
+        alias : str
+            Detector alias
+
+        attrs : list
+            List of attributes to be operated on.
+            By default attrs will be the list of all data elements with the given alias and dim = ('time',) 
+
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+
+        make_table : bool
+            Make a table with statistical description of attributes
+            (uses pandas DataFrame.describe method)
+
+        make_histplot : bool
+            Make histotram plots for each attr
+
+        bins : int
+            Number of bins used in histograms [Default = 50]
+
+        make_timeplot : bool
+            Make plots vs time for each attr
+
+        make_correlation : bool
+            Make a correlation plot of attributes that have a correlation
+            confidence greater than the specified confidence value
+
+        confidence : float
+            Minimum confidence level for correlation plot.
+
+        make_scatter : bool, list, or dict
+            Make scatter correlation plot of detector attributes.
+            Optionally provide list specifying attrs for scatter plots.
+            If dict of lists of attributes is provided, than make multiple 
+            loop through dict to make scatter plots with the keys used 
+            as names of the plots and values used as attributes in plot.
+
+        max_steps : int
+            Max steps in scatter plot to be color coded
+
+        robust_attrs : list
+            List of attibutes to cut on outliers in making scatter plots. 
+
+        scat_name : str
+            Optional name of scatter plot
+
+        groupby : list
+            Optionally group data by each attribute in groupby list
+            Default is to use attibutes in scan_variables DataSet attrs.
+
+        min_step_data : int
+            Minimum number of steps in groupby attributes to make groupby plots
+            Default = 20
+
+        plot_errors : bool
+            Optionally plot error bars in groupby plots
+
+        cut : str
+            Attribute on which to make cut when making plots
+
         """
         import seaborn as sns
         x = self._xdat
@@ -873,7 +1046,7 @@ class Build_html(object):
                 make_timeplot = False
             if make_histplot is None:
                 make_histplot = False
-        elif nevents > 100000:
+        elif nevents > 40000:
             if make_scatter is None:
                 make_scatter = False
         else:
@@ -1152,113 +1325,169 @@ class Build_html(object):
                     
                 robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in robust_attrs] if a in df.keys()]
                 dfr = df[robust_attrs]
+                df_tbl = df.describe(percentiles=percentiles).T.round({'count':0})
                 df_tblr = df_tbl.T[robust_attrs].T
                 dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
                 if dfcut.shape[0] == 0:
                     dfcut = df
 
-                if isinstance(make_scatter, list):
+                if isinstance(make_scatter, dict):
+                    scat_dict = {}
+                    for scat_group, sattrs in make_scatter.items():
+                        slist = [a for a in [attr.replace(alias+'_','') for attr in sattrs] if a in dfcut.keys()]
+                        scat_dict[scat_group] = slist 
+
+                elif isinstance(make_scatter, list):
                     #scat_attrs = [attr.replace(alias+'_','') for attr in make_scatter if attr in dfcut.keys()]
                     scat_attrs = [a for a in [attr.replace(alias+'_','') for attr in make_scatter] if a in dfcut.keys()]
+                    scat_dict = {'default': scat_attrs}
 
                 else:
                     scat_attrs = default_scatter_attrs.get(alias, attr_names.values())
-                
-                for attr in x.attrs.get('correlation_variables', []):
-                    if attr in dfcut.keys() and attr not in scat_attrs:
-                        scat_attrs.append(attr)
+                    scat_dict = {'default': scat_attrs}
+               
+                for scat_group, scat_attrs in scat_dict.items():
+                    for attr in x.attrs.get('correlation_variables', []):
+                        if attr in dfcut.keys() and attr not in scat_attrs:
+                            scat_attrs.append(attr)
 
-                if len(scat_attrs) > 8:
-                    print 'Too many parameters to make scatter plots:', scat_attrs
-                elif len(scat_attrs)-len(groupby) > 1:
-                    try:
-                        dfscat = dfcut[scat_attrs]
-                    except:
-                        plt.cla()
-                        plt.close()
-                        print 'make_scatter failed'
-                        return dfcut
+                    if len(scat_attrs) > 8:
+                        print 'Too many parameters to make scatter plots:', scat_attrs
+                    elif len(scat_attrs)-len(groupby) > 1:
+                        try:
+                            dfscat = dfcut[scat_attrs]
+                        except:
+                            plt.cla()
+                            plt.close()
+                            print scat_group, 'make_scatter failed'
+                            return dfcut
 
-                    try:
-                        howto = ["scat_attrs = {:}".format(scat_attrs)]
-                        howto.append("robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]")
-                        howto.append("dfr = df[robust_attrs]")
-                        howto.append("df_tblr = df_tbl.T[robust_attrs].T")
-                        howto.append("dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]")
-                        howto.append("dfscat = dfcut[scat_attrs]")
-                        if groupby and self.nsteps < 20:
-                            if scat_name:
-                                plt_type = scat_name
-                            else:
-                                plt_type = 'correlation with {:}'.format(group)
-                            
-                            pltattrs = scat_attrs
-                            for group in groupby:
-                                if group in pltattrs:
-                                    pltattrs.remove(group)
+                        try:
+                            howto = ["scat_attrs = {:}".format(scat_attrs)]
+                            howto.append("robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]")
+                            howto.append("dfr = df[robust_attrs]")
+                            howto.append("df_tblr = df_tbl.T[robust_attrs].T")
+                            howto.append("dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]")
+                            howto.append("dfscat = dfcut[scat_attrs]")
+                            if groupby and self.nsteps < max_steps:
+                                if scat_name:
+                                    plt_type = scat_name
+                                else:
+                                    plt_type = 'correlation with {:}'.format(group)
                                 
-                            sns.set()
-                            plt.rcParams['axes.labelsize'] = 10 
-                            g = sns.pairplot(dfcut, hue=group,
-                                    x_vars=pltattrs,y_vars=pltattrs,
-                                    #palette="Set1", 
-                                    size=2.5) 
-                                    #palette="Set1", diag_kind="kde", size=2.5) 
-                                    #x_vars=pltattrs,y_vars=pltattrs)
-                            #g = sns.PairGrid(dfscat, hue=group, 
-                            #        palette="Set1", 
-                            #        x_vars=pltattrs,y_vars=pltattrs)
-                            #g = g.map_offdiag(plt.scatter)
-                            #g = g.add_legend()
-                            #plt.tight_layout()
-                            self.add_plot(catagory, plt_type, howto=howto)
-    #df = x[attrs].to_dataframe()
-    #sns.pairplot(df, hue="LaserOn", vars=attrs0)
-                        else:
+                                if scat_group is not 'default':
+                                    plt_type = scat_group+' '+plt_type
+                                
+                                pltattrs = scat_attrs
+                                for group in groupby:
+                                    if group in pltattrs:
+                                        pltattrs.remove(group)
+                                    
+                                sns.set()
+                                plt.rcParams['axes.labelsize'] = 10 
+                                g = sns.pairplot(dfcut, hue=group,
+                                        x_vars=pltattrs,y_vars=pltattrs,
+                                        #palette="Set1", 
+                                        size=2.5) 
+                                        #palette="Set1", diag_kind="kde", size=2.5) 
+                                        #x_vars=pltattrs,y_vars=pltattrs)
+                                #g = sns.PairGrid(dfscat, hue=group, 
+                                #        palette="Set1", 
+                                #        x_vars=pltattrs,y_vars=pltattrs)
+                                #g = g.map_offdiag(plt.scatter)
+                                #g = g.add_legend()
+                                #plt.tight_layout()
+                                self.add_plot(catagory, plt_type, howto=howto)
+        #df = x[attrs].to_dataframe()
+        #sns.pairplot(df, hue="LaserOn", vars=attrs0)
+                            else:
 
-                            plt_type = 'scatter_matrix'
-                            #Axes = pd.tools.plotting.scatter_matrix(dfscat, alpha=0.2, figsize=(20, 20), diagonal='kde')
-                            #plt.tight_layout()
-                            #howto.append("Axes = pd.tools.plotting.scatter_matrix(dfscat, alpha=0.2, figsize=(20, 20), diagonal='kde')")
-                            plt.rcParams['axes.labelsize'] = 10 
-                            g = sns.PairGrid(dfscat, diag_sharey=False)
-                            g.map_lower(sns.kdeplot, cmap="Blues_d")
-                            g.map_upper(plt.scatter)
-                            g.map_diag(sns.kdeplot, lw=3)
-                            howto.append('g = sns.PairGrid(dfscat, diag_sharey=False)')
-                            howto.append('g.map_lower(sns.kdeplot, cmap="Blues_d")')
-                            howto.append('g.map_upper(plt.scatter)')
-                            howto.append('g.map_diag(sns.kdeplot, lw=3)')
-                            
-                            self.add_plot(catagory, plt_type, howto=howto)
-        
-        #                    #y ticklabels
-        #                    [plt.setp(item.yaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]
-        #                    howto.append("[plt.setp(item.yaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]")
-        #                    #x ticklabels
-        #                    [plt.setp(item.xaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]
-        #                    howto.append("[plt.setp(item.xaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]")
-        #                    #y labels
-        #                    [plt.setp(item.yaxis.get_label(), 'size', 20) for item in Axes.ravel()]
-        #                    howto.append("[plt.setp(item.yaxis.get_label(), 'size', 20) for item in Axes.ravel()]")
-        #                    #x labels
-        #                    [plt.setp(item.xaxis.get_label(), 'size', 20) for item in Axes.ravel()]
-        #                    howto.append("[plt.setp(item.xaxis.get_label(), 'size', 20) for item in Axes.ravel()]")
+                                plt_type = scat_group+' scatter_matrix'
+                                #Axes = pd.tools.plotting.scatter_matrix(dfscat, alpha=0.2, figsize=(20, 20), diagonal='kde')
+                                #plt.tight_layout()
+                                #howto.append("Axes = pd.tools.plotting.scatter_matrix(dfscat, alpha=0.2, figsize=(20, 20), diagonal='kde')")
+                                plt.rcParams['axes.labelsize'] = 10 
+                                g = sns.PairGrid(dfscat, diag_sharey=False)
+                                g.map_lower(sns.kdeplot, cmap="Blues_d")
+                                g.map_upper(plt.scatter)
+                                g.map_diag(sns.kdeplot, lw=3)
+                                howto.append('g = sns.PairGrid(dfscat, diag_sharey=False)')
+                                howto.append('g.map_lower(sns.kdeplot, cmap="Blues_d")')
+                                howto.append('g.map_upper(plt.scatter)')
+                                howto.append('g.map_diag(sns.kdeplot, lw=3)')
+                                
+                                self.add_plot(catagory, plt_type, howto=howto)
+            
+            #                    #y ticklabels
+            #                    [plt.setp(item.yaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]
+            #                    howto.append("[plt.setp(item.yaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]")
+            #                    #x ticklabels
+            #                    [plt.setp(item.xaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]
+            #                    howto.append("[plt.setp(item.xaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]")
+            #                    #y labels
+            #                    [plt.setp(item.yaxis.get_label(), 'size', 20) for item in Axes.ravel()]
+            #                    howto.append("[plt.setp(item.yaxis.get_label(), 'size', 20) for item in Axes.ravel()]")
+            #                    #x labels
+            #                    [plt.setp(item.xaxis.get_label(), 'size', 20) for item in Axes.ravel()]
+            #                    howto.append("[plt.setp(item.xaxis.get_label(), 'size', 20) for item in Axes.ravel()]")
 
-                    except:
-                        plt.cla()
-                        plt.close()
-                        print dfscat
-                        traceback.print_exc()
-                        return dfscat
+                        except:
+                            plt.cla()
+                            plt.close()
+                            print dfscat
+                            traceback.print_exc()
+                            return dfscat
 
         plt.close('all')
     
-    def add_xy_ploterr(self, attr, xaxis=None, howto=None, catagory=None, text=None, table=None, **kwargs):
-        from plotting import xy_ploterr
-        x = self._xdat
+    def add_xy_ploterr(self, attr, xaxis=None, xds=None, cut=None, 
+            howto=None, catagory=None, text=None, table=None, **kwargs):
+        """
+        Add error bar plot
+
+        Parameters
+        ----------
+ 
+        attr : str 
+            Attribute to plot    
+
+        xaxis : str 
+            Optional attribute of X axis.    
+
+        cut : str
+            Attribute on which to make cut when making plots
+
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+
+        table : pandas.DataFrame
+            Optional pandas.DataFrame object to represent as a table 
+            in order to describe plot.
+
+        text : str
+            Text describing table
+
+        """
+        from xarray_utils import xy_ploterr
+        if xds:
+            x = xds.copy() 
+        else:
+            x = self._xdat
+            if 'stat' not in x[attr].dims:
+                import xarray_utils
+                sattrs = [attr]
+                if xaxis:
+                    sattrs.append(xaxis)
+                if 'groupby' in kwargs:
+                    sattrs.append(kwargs.get('groupby'))
+                x = x[sattrs]    
+                if cut:
+                    x = x.where(x[cut], drop=True)
+                x = xarray_utils.to_summary(x)
+
         if not howto:
             howto = []
+        
         if not catagory:
             catagory = x[attr].attrs.get('alias', 'Summary')
         
@@ -1276,7 +1505,7 @@ class Build_html(object):
             plt_type+=' lin-log'
 
         print catagory, plt_type
-        self.add_plot(catagory, plt_type, howto=howto)
+        self.add_plot(catagory, plt_type, howto=howto, tight=False)
         if table is not None:
             self.results[catagory]['table'].update({attr:{'DataFrame': table, 
                                                         'name': 'df_tbl',
@@ -1419,7 +1648,18 @@ class Build_html(object):
 #        #g = g.add_legend()
 
     def add_setup(self, catagory, howto):
-        """Add text to beginning of HowTo.
+        """
+        Add text to beginning of HowTo.
+        
+        Parameters
+        ----------
+        
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+
+        howto : list
+            List of strings to describe howto setup the environment for making plots and tables.
+
         """
         self._add_catagory(catagory)
         self.results[catagory]['text'].update({'setup':{'howto': howto}})
@@ -1429,7 +1669,27 @@ class Build_html(object):
             self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}, 'textblock': {}}
     
     def add_plot(self, catagory, plt_type, howto=[], tight=True, show=False):
-        """Add a plot to RunSummary.
+        """
+        Add a plot to the report. 
+        After making using matplotlib or higher level methods for making matplotlib plots 
+        (e.g., pandas, xarray or seaborn), use this method to save the figure to a file
+        for later use in building report with plot organized by catagory and plt_type.
+        
+        Parameters
+        ----------
+        
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+
+        plt_type : str
+            Name describing plot type
+
+        howto : list
+            List of strings to describe howto make the plot
+
+        tight : bool
+            Tighten up plot to remove dead space [Default = True] 
+
         """
         if tight:
             try:
@@ -1448,6 +1708,49 @@ class Build_html(object):
         else:
             plt.close()
 
+    def add_table(self, df, catagory=None, tbl_type=None, name=None, howto=[], doc=[], hidden=False): 
+        """
+        Add a table to the report from the input pandas.DataFrame
+        
+        Parameters
+        ----------
+       
+        df : pandas.DataFrame
+            input Dataframe
+
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+
+        tbl_type : str
+            Name describing table type
+
+        howto : list
+            List of strings to describe howto make the table 
+
+        doc : str
+            String to describe the table
+
+        hidden : bool
+            Optionally hide the table, only displaying the name given by tbl_type
+
+        """
+        
+        if not catagory:
+            catagory = 'Tables'
+        if not tbl_type:
+            tbl_type = ', '.join(a.columns)
+        if not name:
+            name = '__'.join(a.columns)
+        
+        self._add_catagory(catagory)
+        self.results[catagory]['table'].update({tbl_type: 
+                                                   {'DataFrame': df, 
+                                                    'name': name,
+                                                    'howto': howto, 
+                                                    'hidden': hidden, 
+                                                    'doc': doc}})
+
+
     def add_summary(self, 
                         variables=None, 
                         max_columns=10,
@@ -1462,8 +1765,41 @@ class Build_html(object):
                         plot_axis_sums=None,
                         pltsize=8, 
                         nlines=16,
-                        layout=None):
-        """Add summary for variables.
+                        layout=None,
+                        **kwargs):
+        """
+        Add summary for variables.
+
+        Parameters
+        ----------
+        
+        variables : list
+            List of attributes to be operated on.
+
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+        
+        bins : int
+            Number of bins used in histograms [Default = 50]
+
+        groupby : list
+            Optionally group data by each attribute in groupby list
+            Default is to use attibutes in scan_variables DataSet attrs.
+
+        plot_axis_sums : bool
+            Optionally make plots summing over each axis 
+
+        nlines : int
+            For 2D data objects (plus time for three total dims),
+            make line graphs instead of image plots if number of elements is
+            less than nlines [Default = 16]
+
+        codes : list
+            List of event codes to cut on when making plots
+
+        show : bool
+            Optionally show plot instead of default of it being minimized
+
         """
         import seaborn as sns
         if not variables:
@@ -1821,9 +2157,37 @@ class Build_html(object):
                         figsize=None,
                         pltsize=8, 
                         nlines=16,
-                        layout=None):
+                        layout=None,
+                        **kwargs):
         """
-        Add image stats
+        Add detector stats plots
+
+        Parameters
+        ----------
+        
+        attr : str
+            Attribute to make stats summary plots.
+
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+       
+        stats : list
+            List of stats for making plots.  Default = ['mean', 'std', 'max']  
+
+        nlines : int
+            For 2D data objects (plus time for three total dims),
+            make line graphs instead of image plots if number of elements is
+            less than nlines [Default = 16]
+
+        codes : list
+            List of event codes to cut on when making plots
+
+        make_images : bool
+            Make 2D plots of waveforms vs step
+
+        show : bool
+            Optionally show plot instead of default of it being minimized
+
         """
         plt.close('all')
         xdat = self._xdat[attr]
@@ -2031,14 +2395,18 @@ class Build_html(object):
                     self.add_plot(catagory, plt_type, howto=howto)
                     plt.close()
 
-                    da.sum(dim='steps').squeeze('codes').to_pandas().plot()
-                    #plt.tight_layout()
-                    howto.append("da.sum(dim='steps').squeeze('codes').plot()")
-                    howto.append("plt.show()")
+                    try:
+                        da.sum(dim='steps').squeeze('codes').to_pandas().plot()
+                        #plt.tight_layout()
+                        howto.append("da.sum(dim='steps').squeeze('codes').plot()")
+                        howto.append("plt.show()")
 
-                    plt_type = '{:} sum over steps vs {:}'.format(name, da.dims[2]) 
-                    self.add_plot(catagory, plt_type, howto=howto)
-                    plt.close()
+                        plt_type = '{:} sum over steps vs {:}'.format(name, da.dims[2]) 
+                        self.add_plot(catagory, plt_type, howto=howto)
+                        plt.close()
+                    except:
+                        traceback.print_exc()
+                        print 'Cannot squeeze codes for plot over steps' 
 
             if make_images and len(xdat.shape) <= 5:
                 plt.rcParams['axes.labelsize'] = labelsize
@@ -2135,7 +2503,15 @@ class Build_html(object):
                         labelsize=None, 
                         figsize=None,
                         layout=None):
-        """Add every event of variables.
+        """
+        Add every event of variables.
+        
+        variables : list
+            List of attributes to be operated on.
+
+        show : bool
+            Optionally show plot instead of default of it being minimized
+        
         """
 
         if not variables:
@@ -2214,7 +2590,18 @@ class Build_html(object):
 # Methods to build html file
 
     def to_html(self, path=None, quiet=False, **kwargs):
-        """Write out html file
+        """
+        Write out html file
+       
+        Parameters
+        ----------
+
+        path : str
+            Output path of report
+
+        quiet : bool
+            Suppress stdout comments
+
         """
         self._init_html(path=path)
         self._add_html()
@@ -2224,7 +2611,15 @@ class Build_html(object):
 
 
     def _init_html(self, path=None, **kwargs):
-        """Initialize html page.
+        """
+        Initialize html page.
+        
+        Parameters
+        ----------
+
+        path : str
+            Output path of report
+       
         """
         if path:
             self._init_output(path=path, **kwargs)

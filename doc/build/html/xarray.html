@@ -34,7 +34,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
-        <link rel="next" title="PyDataSource.to_xarray" href="generated/PyDataSource.to_xarray.html"/>
+        <link rel="next" title="PyDataSource.to_hdf5" href="generated/PyDataSource.to_hdf5.html"/>
         <link rel="prev" title="PyDataSource.AddOn.psplot" href="generated/PyDataSource.AddOn.psplot.html"/> 
 
   
@@ -93,7 +93,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#using-xarray">Using xarray</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-pandas">Using pandas</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_xarray.html">PyDataSource.to_xarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_hdf5.html">PyDataSource.to_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.DataSource.xarray_kwargs.html">PyDataSource.DataSource.xarray_kwargs</a></li>
 </ul>
 </li>
@@ -106,6 +106,9 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
 </ul>
@@ -173,8 +176,8 @@
             
   <div class="section" id="data-structures">
 <span id="id1"></span><h1>Data Structures<a class="headerlink" href="#data-structures" title="Permalink to this headline">¶</a></h1>
-<p>While accessing data on the event level is typically necessary at some level, it is often more desirable to deal with time series data or statistical summaries of groups of events (e.g., statistical mean for each &#8216;step&#8217; in a scan).  To this end, we convert the native xtc binary LCLS data to hdf5 data structured to be compatible with the xarray package.</p>
-<p><a class="reference external" href="http://xarray.pydata.org">xarray</a> &#8220;is an open source project and Python package that aims to bring the labeled data power of <a class="reference external" href="http://pandas.pydata.org">pandas</a> to the physical sciences, by providing N-dimensional variants of the core pandas data structures.&#8221;  At its most basic level, xarray simply makes numpy ndarrays convenient to use by adding dimension names and coordinate indexes.  It does so by extending the power of <a class="reference external" href="http://pandas.pydata.org">pandas</a> to the multi-dimensional nature of scientific data like we have at LCLS event data consisting of:</p>
+<p>While accessing data on the event level is typically necessary at some level, it is often more desirable to deal with time series data or statistical summaries of groups of events (e.g., statistical mean for each ‘step’ in a scan).  To this end, we convert the native xtc binary LCLS data to hdf5 data structured to be compatible with the xarray package.</p>
+<p><a class="reference external" href="http://xarray.pydata.org">xarray</a> “is an open source project and Python package that aims to bring the labeled data power of <a class="reference external" href="http://pandas.pydata.org">pandas</a> to the physical sciences, by providing N-dimensional variants of the core pandas data structures.”  At its most basic level, xarray simply makes numpy ndarrays convenient to use by adding dimension names and coordinate indexes.  It does so by extending the power of <a class="reference external" href="http://pandas.pydata.org">pandas</a> to the multi-dimensional nature of scientific data like we have at LCLS event data consisting of:</p>
 <blockquote>
 <div><ul class="simple">
 <li>scalar data (e.g., Photon Energy, Pulse Energy, position)</li>
@@ -207,8 +210,8 @@
 <span class="gp">In [9]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Now load the first 10 events into an xarray Dataset.  The max_size keyword sets the maximum array size to be saved.  By default max_size=10001, which is about the size of data in the &#8216;smd&#8217; Daq small data files that is most quickly retrieved from file.  By setting this to a large number (1e9), even large CSpad images are loaded.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_xarray</span><span class="p">(</span><span class="n">nevents</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mf">1e9</span><span class="p">)</span>
+<p>Now load the first 10 events into an xarray Dataset.  The max_size keyword sets the maximum array size to be saved.  By default max_size=10001, which is about the size of data in the ‘smd’ Daq small data files that is most quickly retrieved from file.  By setting this to a large number (1e9), even large CSpad images are loaded.</p>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">nevents</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mf">1e9</span><span class="p">)</span>
 <span class="go">updating DetInfo(CxiDs1.0:Cspad.0) DscCsPad</span>
 <span class="go">updating BldInfo(FEEGasDetEnergy) FEEGasDetEnergy</span>
 <span class="go">updating BldInfo(PhaseCavity) PhaseCavity</span>
@@ -314,7 +317,7 @@
 <div class="figure align-center">
 <img alt="_images/cxitut13_run10_x_DscCsPad_image_mean.jpg" src="_images/cxitut13_run10_x_DscCsPad_image_mean.jpg" />
 </div>
-<p>Note that if instead of using the ipython magic method %pylab or start ipython with &#8211;pylab you prefer you will need to execute plt.show() after making plots (first &#8220;import matplotlib.pyplot as plt&#8221;).</p>
+<p>Note that if instead of using the ipython magic method %pylab or start ipython with –pylab you prefer you will need to execute plt.show() after making plots (first “import matplotlib.pyplot as plt”).</p>
 <p>Now plot the mean of the CSpad photon histogram.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">x</span><span class="o">.</span><span class="n">DscCsPad_photon_hist</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 <span class="gh">Out[13]: </span><span class="go">[&lt;matplotlib.lines.Line2D at 0x7f8e5b9982d0&gt;]</span>
@@ -375,7 +378,7 @@
 </div>
 <div class="section" id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
-<p>The DataSource object has save and load config methods, which are can be used to save the Data Processing AddOn methods for later use and/or other runs.  For example, save the config for the current run and then open run 11 for the &#8216;cxitut13&#8217; experiment.</p>
+<p>The DataSource object has save and load config methods, which are can be used to save the Data Processing AddOn methods for later use and/or other runs.  For example, save the config for the current run and then open run 11 for the ‘cxitut13’ experiment.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span>
 
 <span class="gp">In [21]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
@@ -425,15 +428,15 @@
 <span class="n">gain</span>               <span class="mf">0.0434782609</span>
 </pre></div>
 </div>
-<p>Keyword defaults for the to_xarray method can be set in the xarray_kwargs dictionary.  This dictionary is part of the configuration saved and loaded with the save_config/load_config methods.</p>
+<p>Keyword defaults for the to_hdf5 method can be set in the xarray_kwargs dictionary.  This dictionary is part of the configuration saved and loaded with the save_config/load_config methods.</p>
 <table border="1" class="longtable docutils">
 <colgroup>
 <col width="10%" />
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_xarray.html#PyDataSource.to_xarray" title="PyDataSource.to_xarray"><code class="xref py py-obj docutils literal"><span class="pre">to_xarray</span></code></a>([ds,&nbsp;nevents,&nbsp;max_size,&nbsp;xbase,&nbsp;...])</td>
-<td>Build xarray object from PyDataSource.DataSource object.</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_hdf5.html#PyDataSource.to_hdf5" title="PyDataSource.to_hdf5"><code class="xref py py-obj docutils literal"><span class="pre">to_hdf5</span></code></a>(self[,&nbsp;save,&nbsp;cleanup])</td>
+<td>Write PyDataSource.DataSource to hdf5 file.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.DataSource.xarray_kwargs.html#PyDataSource.DataSource.xarray_kwargs" title="PyDataSource.DataSource.xarray_kwargs"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.xarray_kwargs</span></code></a></td>
 <td>Dictionary of keywords passed to to_xarray.</td>
@@ -443,7 +446,7 @@
 </div>
 <div class="section" id="reading-and-writing-xarray-datasets">
 <h2>Reading and writing xarray DataSets<a class="headerlink" href="#reading-and-writing-xarray-datasets" title="Permalink to this headline">¶</a></h2>
-<p>While various file formats are supported by xarray, PyDataSource uses the HDF5 by default in the netCDF format in the to_h5netcdf method.  This save method is automatically executed with the save=True in the to_xarray method.</p>
+<p>While various file formats are supported by xarray, PyDataSource uses the HDF5 by default in the netCDF format in the to_h5netcdf method.  This save method is automatically executed with the save=True in the to_hdf5 method.</p>
 <p>Reading DataSets saved in this way is done with the open_h5netcdf method.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [48]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 
@@ -476,7 +479,7 @@
 <span class="go">    correlation_variables: []</span>
 </pre></div>
 </div>
-<p>In this example there may be data that is not of interest including many of the event codes that were automatically built with to to_xarray method.  One may want to reduce the data and save it to another location.</p>
+<p>In this example there may be data that is not of interest including many of the event codes that were automatically built with to to_hdf5 method.  One may want to reduce the data and save it to another location.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">ec_keep</span> <span class="o">=</span> <span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">162</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">92</span><span class="p">,</span> <span class="mi">191</span><span class="p">,</span> <span class="mi">192</span><span class="p">,</span> <span class="mi">215</span><span class="p">]</span>
 
 <span class="gp">In [22]: </span><span class="n">ec_drop</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ec&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ec_keep</span><span class="p">]</span>
@@ -497,10 +500,10 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html#PyDataSource.to_h5netcdf" title="PyDataSource.to_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">to_h5netcdf</span></code></a>([xdat,&nbsp;ds,&nbsp;file_name,&nbsp;path,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html#PyDataSource.to_h5netcdf" title="PyDataSource.to_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">to_h5netcdf</span></code></a>([xdat,&nbsp;ds,&nbsp;file_name,&nbsp;path,&nbsp;…])</td>
 <td>Write hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html#PyDataSource.open_h5netcdf" title="PyDataSource.open_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">open_h5netcdf</span></code></a>([file_name,&nbsp;path,&nbsp;file_base,&nbsp;...])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html#PyDataSource.open_h5netcdf" title="PyDataSource.open_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">open_h5netcdf</span></code></a>([file_name,&nbsp;path,&nbsp;file_base,&nbsp;…])</td>
 <td>Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
 </tr>
 </tbody>
@@ -518,7 +521,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/PyDataSource.to_xarray.html" class="btn btn-neutral float-right" title="PyDataSource.to_xarray" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="generated/PyDataSource.to_hdf5.html" class="btn btn-neutral float-right" title="PyDataSource.to_hdf5" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="generated/PyDataSource.AddOn.psplot.html" class="btn btn-neutral" title="PyDataSource.AddOn.psplot" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -562,7 +565,7 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

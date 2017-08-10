@@ -35,7 +35,7 @@
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
         <link rel="next" title="PyDatSource API" href="api.html"/>
-        <link rel="prev" title="PyDataSource.ConfigData.ScanData" href="generated/PyDataSource.ConfigData.ScanData.html"/> 
+        <link rel="prev" title="Submitting Batch Jobs" href="batch.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -91,6 +91,9 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Conda Release System</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#analysis-environment">Analysis Environment</a></li>
 </ul>
@@ -160,17 +163,19 @@
            <div itemprop="articleBody">
             
   <div class="section" id="conda-release-system">
-<span id="conda"></span><h1>Conda Release System<a class="headerlink" href="#conda-release-system" title="Permalink to this headline">¶</a></h1>
-<p>For more details on the LCLS conda release system for psana, see:
-<a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System">https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System</a></p>
+<h1>Conda Release System<a class="headerlink" href="#conda-release-system" title="Permalink to this headline">¶</a></h1>
+<p>For more details on the LCLS <a href="#id2"><span class="problematic" id="id3">conda_</span></a> release system for psana, see:</p>
+<p><a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System">https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System</a></p>
 <div class="section" id="analysis-environment">
 <h2>Analysis Environment<a class="headerlink" href="#analysis-environment" title="Permalink to this headline">¶</a></h2>
 <p>Below is an example of setting of a psana conda release where sepcific versions of packages can be chosen.  In this case below, you can work with the latest PyDataSource version, which may not yet be in the current conda ana release.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span><span class="nb">source</span> /reg/g/psdm/bin/conda_setup
+<div class="highlight-bash"><div class="highlight"><pre><span></span>ssh psbuild-rhel7
+
+<span class="nb">source</span> /reg/g/psdm/bin/conda_setup
 
 kinit
 
-<span class="nb">cd</span> reg/d/psdm/xpp/xpptut15/results/
+<span class="nb">cd</span> /reg/d/psdm/cxi/cxitut13/res/
 
 condarel --newrel --name conda
 
@@ -197,7 +202,7 @@ scons
         <a href="api.html" class="btn btn-neutral float-right" title="PyDatSource API" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="generated/PyDataSource.ConfigData.ScanData.html" class="btn btn-neutral" title="PyDataSource.ConfigData.ScanData" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="batch.html" class="btn btn-neutral" title="Submitting Batch Jobs" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -238,7 +243,7 @@ scons
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

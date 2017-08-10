@@ -92,6 +92,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../api.html#data-source">Data Source</a></li>
@@ -200,7 +203,7 @@ with roi, projection, histogram methods.</p>
 <tr class="row-even"><td><a class="reference internal" href="PyDataSource.AddOn.count.html#PyDataSource.AddOn.count" title="PyDataSource.AddOn.count"><code class="xref py py-obj docutils literal"><span class="pre">count</span></code></a>([attr,&nbsp;gain,&nbsp;unit,&nbsp;doc,&nbsp;roi,&nbsp;name,&nbsp;limits])</td>
 <td>Count (i.e., sum) of detector within optional roi.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.AddOn.histogram.html#PyDataSource.AddOn.histogram" title="PyDataSource.AddOn.histogram"><code class="xref py py-obj docutils literal"><span class="pre">histogram</span></code></a>([attr,&nbsp;bins,&nbsp;gain,&nbsp;unit,&nbsp;doc,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.AddOn.histogram.html#PyDataSource.AddOn.histogram" title="PyDataSource.AddOn.histogram"><code class="xref py py-obj docutils literal"><span class="pre">histogram</span></code></a>([attr,&nbsp;bins,&nbsp;gain,&nbsp;unit,&nbsp;doc,&nbsp;…])</td>
 <td>Make a histogram.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="PyDataSource.AddOn.module.html#PyDataSource.AddOn.module" title="PyDataSource.AddOn.module"><code class="xref py py-obj docutils literal"><span class="pre">module</span></code></a>([module])</td>
@@ -209,19 +212,19 @@ with roi, projection, histogram methods.</p>
 <tr class="row-odd"><td><a class="reference internal" href="PyDataSource.AddOn.parameter.html#PyDataSource.AddOn.parameter" title="PyDataSource.AddOn.parameter"><code class="xref py py-obj docutils literal"><span class="pre">parameter</span></code></a>(**kwargs)</td>
 <td>Add parameters as keword arguments.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="PyDataSource.AddOn.peak.html#PyDataSource.AddOn.peak" title="PyDataSource.AddOn.peak"><code class="xref py py-obj docutils literal"><span class="pre">peak</span></code></a>([attr,&nbsp;ichannel,&nbsp;name,&nbsp;xaxis,&nbsp;roi,&nbsp;...])</td>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.AddOn.peak.html#PyDataSource.AddOn.peak" title="PyDataSource.AddOn.peak"><code class="xref py py-obj docutils literal"><span class="pre">peak</span></code></a>([attr,&nbsp;ichannel,&nbsp;name,&nbsp;xaxis,&nbsp;roi,&nbsp;…])</td>
 <td>Simple 1D peak locator.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection" title="PyDataSource.AddOn.projection"><code class="xref py py-obj docutils literal"><span class="pre">projection</span></code></a>([attr,&nbsp;axis,&nbsp;roi,&nbsp;sensor,&nbsp;name,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection" title="PyDataSource.AddOn.projection"><code class="xref py py-obj docutils literal"><span class="pre">projection</span></code></a>([attr,&nbsp;axis,&nbsp;roi,&nbsp;sensor,&nbsp;name,&nbsp;…])</td>
 <td>Make a projection along an axis.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="PyDataSource.AddOn.property.html#PyDataSource.AddOn.property" title="PyDataSource.AddOn.property"><code class="xref py py-obj docutils literal"><span class="pre">property</span></code></a>(func_name,&nbsp;*args,&nbsp;**kwargs)</td>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.AddOn.property.html#PyDataSource.AddOn.property" title="PyDataSource.AddOn.property"><code class="xref py py-obj docutils literal"><span class="pre">property</span></code></a>(func_name[,&nbsp;attr])</td>
 <td>Add a property that operates on this detector object.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="PyDataSource.AddOn.psplot.html#PyDataSource.AddOn.psplot" title="PyDataSource.AddOn.psplot"><code class="xref py py-obj docutils literal"><span class="pre">psplot</span></code></a>(*attrs,&nbsp;**kwargs)</td>
 <td>Add psplot.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">roi</span></code>([attr,&nbsp;sensor,&nbsp;roi,&nbsp;name,&nbsp;xaxis,&nbsp;yaxis,&nbsp;...])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">roi</span></code>([attr,&nbsp;sensor,&nbsp;roi,&nbsp;name,&nbsp;xaxis,&nbsp;yaxis,&nbsp;…])</td>
 <td>Make roi for given attribute, by default this is given the name img.</td>
 </tr>
 </tbody>
@@ -284,7 +287,7 @@ with roi, projection, histogram methods.</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

@@ -92,6 +92,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#data-source">Data Source</a><ul class="current">
@@ -191,38 +194,40 @@ directly as data_source string.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>data_source</strong> : str</p>
-<blockquote>
-<div><p>name of data source using psana convention (e.g., &#8216;exp=xpptut15:run=54:smd&#8217;)</p>
-</div></blockquote>
-<p><strong>exp</strong> : str</p>
-<blockquote>
-<div><p>experiment name (e.g., exp=&#8217;xpptut15&#8217;)</p>
-</div></blockquote>
-<p><strong>run</strong> : int</p>
-<blockquote>
-<div><p>run number (e.g., run=54)</p>
-</div></blockquote>
-<p><strong>smd</strong> : bool , optional</p>
-<blockquote>
-<div><p>small data support &#8211; default for experiments after Oct 2015 when this feature became standard</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><p class="first"><strong>data_source</strong> :  object</p>
-<blockquote>
-<div><p>DataSourceInfo object</p>
-</div></blockquote>
-<p><strong>steps</strong> : object</p>
-<blockquote>
-<div><p>Steps object</p>
-</div></blockquote>
-<p><strong>epicsData</strong> : object</p>
-<p class="last"><strong>configData</strong> : object</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data_source</strong> (<em>str</em>) – name of data source using psana convention (e.g., ‘exp=xpptut15:run=54:smd’)</li>
+<li><strong>exp</strong> (<em>str</em>) – experiment name (e.g., exp=’xpptut15’)</li>
+<li><strong>run</strong> (<em>int</em>) – run number (e.g., run=54)</li>
+<li><strong>smd</strong> (<em>bool</em><em> , </em><em>optional</em>) – small data support – default for experiments after Oct 2015 when this feature became standard</li>
+</ul>
 </td>
 </tr>
 </tbody>
 </table>
+<dl class="attribute">
+<dt id="PyDataSource.DataSource.data_source">
+<code class="descname">data_source</code><a class="headerlink" href="#PyDataSource.DataSource.data_source" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>object</em> – DataSourceInfo object</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.DataSource.steps">
+<code class="descname">steps</code><a class="headerlink" href="#PyDataSource.DataSource.steps" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>object</em> – Steps object</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.DataSource.epicsData">
+<code class="descname">epicsData</code><a class="headerlink" href="#PyDataSource.DataSource.epicsData" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>object</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.DataSource.configData">
+<code class="descname">configData</code><a class="headerlink" href="#PyDataSource.DataSource.configData" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>object</em></p>
+</dd></dl>
+
 <dl class="method">
 <dt id="PyDataSource.DataSource.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>data_source=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#DataSource.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.DataSource.__init__" title="Permalink to this definition">¶</a></dt>
@@ -238,13 +243,13 @@ directly as data_source string.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#PyDataSource.DataSource.__init__" title="PyDataSource.DataSource.__init__"><code class="xref py py-obj docutils literal"><span class="pre">__init__</span></code></a>([data_source])</td>
 <td></td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">add_detector</span></code>([srcstr,&nbsp;alias,&nbsp;module,&nbsp;path,&nbsp;...])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">add_detector</span></code>([srcstr,&nbsp;alias,&nbsp;module,&nbsp;path,&nbsp;…])</td>
 <td>Add a detector</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config" title="PyDataSource.DataSource.load_config"><code class="xref py py-obj docutils literal"><span class="pre">load_config</span></code></a>([run,&nbsp;exp,&nbsp;user,&nbsp;file_name,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config" title="PyDataSource.DataSource.load_config"><code class="xref py py-obj docutils literal"><span class="pre">load_config</span></code></a>([run,&nbsp;exp,&nbsp;user,&nbsp;file_name,&nbsp;…])</td>
 <td>Load DataSource configuration.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">load_run</span></code>([data_source,&nbsp;reload])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">load_run</span></code>([data_source,&nbsp;reload,&nbsp;try_idx])</td>
 <td>Load a run with psana.</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">reload</span></code>([reset_stats])</td>
@@ -334,7 +339,7 @@ directly as data_source string.</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

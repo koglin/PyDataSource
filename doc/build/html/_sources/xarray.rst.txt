@@ -53,7 +53,7 @@ Now load the first 10 events into an xarray Dataset.  The max_size keyword sets 
 
 .. sourcecode:: ipython
     
-    In [10]: x = ds.to_xarray(nevents=10, max_size=1e9)
+    In [10]: x = ds.to_hdf5(nevents=10, max_size=1e9)
     updating DetInfo(CxiDs1.0:Cspad.0) DscCsPad
     updating BldInfo(FEEGasDetEnergy) FEEGasDetEnergy
     updating BldInfo(PhaseCavity) PhaseCavity
@@ -287,18 +287,18 @@ The load_config method will automatically load the config saved for the run spec
     ------------------
     gain               0.0434782609         
 
-Keyword defaults for the to_xarray method can be set in the xarray_kwargs dictionary.  This dictionary is part of the configuration saved and loaded with the save_config/load_config methods.  
+Keyword defaults for the to_hdf5 method can be set in the xarray_kwargs dictionary.  This dictionary is part of the configuration saved and loaded with the save_config/load_config methods.  
 
 .. autosummary::
     :toctree: generated/
 
-    to_xarray
+    to_hdf5
     DataSource.xarray_kwargs
 
 Reading and writing xarray DataSets
 -----------------------------------
 
-While various file formats are supported by xarray, PyDataSource uses the HDF5 by default in the netCDF format in the to_h5netcdf method.  This save method is automatically executed with the save=True in the to_xarray method.
+While various file formats are supported by xarray, PyDataSource uses the HDF5 by default in the netCDF format in the to_h5netcdf method.  This save method is automatically executed with the save=True in the to_hdf5 method.
 
 Reading DataSets saved in this way is done with the open_h5netcdf method.
 
@@ -334,7 +334,7 @@ Reading DataSets saved in this way is done with the open_h5netcdf method.
         scan_variables: ['lxt_vitara_ttc']
         correlation_variables: []
 
-In this example there may be data that is not of interest including many of the event codes that were automatically built with to to_xarray method.  One may want to reduce the data and save it to another location.
+In this example there may be data that is not of interest including many of the event codes that were automatically built with to to_hdf5 method.  One may want to reduce the data and save it to another location.
 
 .. sourcecode:: ipython
 

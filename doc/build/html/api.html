@@ -91,6 +91,9 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">PyDatSource API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#data-source">Data Source</a><ul>
@@ -148,7 +151,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#data-structures">Data Structures</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_xarray.html">PyDataSource.to_xarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.DataSource.to_hdf5.html">PyDataSource.DataSource.to_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_summary.html">PyDataSource.to_summary</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html">PyDataSource.to_h5netcdf</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html">PyDataSource.open_h5netcdf</a></li>
@@ -397,7 +400,7 @@
 <tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.PsanaTypeData.html#PyDataSource.PsanaTypeData" title="PyDataSource.PsanaTypeData"><code class="xref py py-obj docutils literal"><span class="pre">PsanaTypeData</span></code></a>(typ_func[,&nbsp;nolist])</td>
 <td>Python representation of a psana data object (event or configStore data).</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.PsanaSrcData.html#PyDataSource.PsanaSrcData" title="PyDataSource.PsanaSrcData"><code class="xref py py-obj docutils literal"><span class="pre">PsanaSrcData</span></code></a>(objclass,&nbsp;srcstr[,&nbsp;key_info,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.PsanaSrcData.html#PyDataSource.PsanaSrcData" title="PyDataSource.PsanaSrcData"><code class="xref py py-obj docutils literal"><span class="pre">PsanaSrcData</span></code></a>(objclass,&nbsp;srcstr[,&nbsp;key_info,&nbsp;…])</td>
 <td>Python represenation of psana data for a given detector source.</td>
 </tr>
 </tbody>
@@ -411,16 +414,16 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_xarray.html#PyDataSource.to_xarray" title="PyDataSource.to_xarray"><code class="xref py py-obj docutils literal"><span class="pre">to_xarray</span></code></a>([ds,&nbsp;nevents,&nbsp;max_size,&nbsp;xbase,&nbsp;...])</td>
-<td>Build xarray object from PyDataSource.DataSource object.</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.to_hdf5.html#PyDataSource.DataSource.to_hdf5" title="PyDataSource.DataSource.to_hdf5"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.to_hdf5</span></code></a>([build_html])</td>
+<td>Write directly to hdf5 in xarray comatable netcdf4 format.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.to_summary.html#PyDataSource.to_summary" title="PyDataSource.to_summary"><code class="xref py py-obj docutils literal"><span class="pre">to_summary</span></code></a>(x[,&nbsp;dim,&nbsp;groupby,&nbsp;save_summary,&nbsp;...])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.to_summary.html#PyDataSource.to_summary" title="PyDataSource.to_summary"><code class="xref py py-obj docutils literal"><span class="pre">to_summary</span></code></a>(x[,&nbsp;dim,&nbsp;groupby,&nbsp;save_summary,&nbsp;…])</td>
 <td>Summarize a run.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html#PyDataSource.to_h5netcdf" title="PyDataSource.to_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">to_h5netcdf</span></code></a>([xdat,&nbsp;ds,&nbsp;file_name,&nbsp;path,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html#PyDataSource.to_h5netcdf" title="PyDataSource.to_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">to_h5netcdf</span></code></a>([xdat,&nbsp;ds,&nbsp;file_name,&nbsp;path,&nbsp;…])</td>
 <td>Write hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html#PyDataSource.open_h5netcdf" title="PyDataSource.open_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">open_h5netcdf</span></code></a>([file_name,&nbsp;path,&nbsp;file_base,&nbsp;...])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html#PyDataSource.open_h5netcdf" title="PyDataSource.open_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">open_h5netcdf</span></code></a>([file_name,&nbsp;path,&nbsp;file_base,&nbsp;…])</td>
 <td>Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
 </tr>
 </tbody>
@@ -440,7 +443,7 @@
 <tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.DataSource.save_config.html#PyDataSource.DataSource.save_config" title="PyDataSource.DataSource.save_config"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.save_config</span></code></a>([file_name,&nbsp;path])</td>
 <td>Save DataSource configuration.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config" title="PyDataSource.DataSource.load_config"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.load_config</span></code></a>([run,&nbsp;exp,&nbsp;user,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config" title="PyDataSource.DataSource.load_config"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.load_config</span></code></a>([run,&nbsp;exp,&nbsp;user,&nbsp;…])</td>
 <td>Load DataSource configuration.</td>
 </tr>
 </tbody>
@@ -502,7 +505,7 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

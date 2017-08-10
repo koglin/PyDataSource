@@ -167,7 +167,11 @@ def open_h5netcdf(file_name=None, path='', file_base=None, exp=None, run=None,
     
     if not file_name and not path:
         path = '/reg/d/psdm/{:}/{:}/{:}/{:}'.format(instrument, exp, h5folder, subfolder)
-   
+  
+    if exp and run and run > 100000:
+        import psutils
+        run = psutils.get_run_from_id(run, exp) 
+
     if not combine and not (chunk and run):
         if not file_name:
             if not file_base:
@@ -568,6 +572,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
         default_stats=True,
         min_all_save=10,
         auto_update=True,
+        auto_pvs=True,
         **kwargs):
     """
     DEVELOPMENT:  Write directly to hdf5 with h5netcdf package.  
@@ -596,6 +601,13 @@ def write_hdf5(self, nevents=None, max_size=10001,
         If true include stats for waveforms and calib image data.
     min_all_save : int
         Min number of events where all 'calib' data saved.  Sets max_size = 1e10
+    default_stats : bool
+        If true automatically add default stats for all detectors that do not already
+        have stats added
+    auto_update : bool
+        If true automatically update xarray info for all detectors
+    auto_pvs : bool
+        If true automatically add pvs that were moved during run.
 
     Example
     -------
@@ -616,6 +628,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
         raise Exception('xarray package not available. Use for example conda environment with "source conda_setup"')
 
     rank = MPI.COMM_WORLD.rank  # The process ID (integer 0-3 for 4-process run)
+
+    exp = self.data_source.exp
 
     if not no_events:
         ichunk=rank
@@ -728,6 +742,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
     for code in eventCodes:
         attr = 'ec{:}'.format(code)
         xbase.create_variable(attr, ('time',), bool)
+        xbase[attr].attrs['doc'] = 'Event Code present for {:}'.format(attr)
         coordinates += ' {:}'.format(attr)
 
     for attr, ec in code_flags.items():
@@ -738,42 +753,58 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
     xbase.attrs['event_flags'] = code_flags.keys()
    
+    # eventCode Timestamp information
+    xbase.dimensions['eventCodes'] = len(eventCodes)
+    xbase.create_variable('eventCodes', ('eventCodes',), int)
+    xbase['eventCodes'][:] = eventCodes
+    xbase['eventCodes'].attrs['doc'] = 'Event Codes'
+    attr = 'timestampHigh'
+    xbase.create_variable(attr, ('time','eventCodes',), int)
+    xbase[attr].attrs['doc'] = 'Timestamp High Value for eventCodes'
+    coordinates += ' {:}'.format(attr)
+    attr = 'timestampLow'
+    xbase.create_variable(attr, ('time','eventCodes',), int)
+    xbase[attr].attrs['doc'] = 'Timestamp Low Value for eventCodes'
+    coordinates += ' {:}'.format(attr)
+   
     # add epics pvs expected to change during run
    
-
     #xbase.create_variable('steps', ('isteps'), data=range(nsteps))
     #xbase.create_variable('codes', ('icodes'), data=eventCodes)
  
     # Scan Attributes -- cxbase.create_variable('codes', data=eventCodes)annot put None or dicts as attrs in netcdf4
     # e.g., pvAliases is a dict
-    
 
     # build epics_pvs from input list of aliases and from exp_summary epicsArchive scan detection 
     epics_pvs = {}
     scan_variables = []
-    try:
-        xpvs = self.exp_summary.xpvs
-        attr_lookup = {item.attrs.get('pv'): dict(item.attrs) for a, item in xpvs.data_vars.items()}
-        for attr in pvs:
-            if attr in self.epicsData.aliases():
-                pv = self.epicsData.pvName(attr)
-                epics_pvs[attr] =  {'pv': pv, 'attrs': attr_lookup.get(pv, {})}
+    attr_lookup = {}
+    if auto_pvs:
+        try:
+            import exp_summary
+            pv_attrs = exp_summary.get_pv_attrs(exp)
+            pv_lookup = {item.get('pv'): a for a, item in pv_attrs.items()}
+            for attr in pvs:
+                if attr in self.epicsData.aliases():
+                    pv = self.epicsData.pvName(attr)
+                    epics_pvs[attr] =  {'pv': pv, 'attrs': pv_attrs.get(pv_lookup.get(pv, None), {})}
 
-        if self.scan_pvs is not None:
-            for attr in self.scan_pvs:
-                pvattrs = dict(xpvs.get(attr).attrs)
-                pvbase = pvattrs.get('pv')
-                if pvbase:
-                    scan_variables.append(attr)
-                    pvdict = {self.epicsData.alias(pv): {'pv': pv, 'attrs': pvattrs} \
-                                for pv in self.epicsData.pvNames() if pv.startswith(pvbase)}
-                    epics_pvs.update(**pvdict)
+            scan_pvs = exp_summary.get_scan_pvs(exp, run)
+            print 'scan_pvs', scan_pvs
+            if scan_pvs is not None:
+                for attr in scan_pvs:
+                    pvattrs = pv_attrs.get(attr)
+                    pvbase = pvattrs.get('pv')
+                    if pvbase:
+                        scan_variables.append(attr)
+                        pvdict = {self.epicsData.alias(pv): {'pv': pv, 'attrs': pvattrs} \
+                                    for pv in self.epicsData.pvNames() if pv.startswith(pvbase)}
+                        epics_pvs.update(**pvdict)
 
-    except:
-        attr_lookup = {}
-        print 'Could not auto load epics pvs moved during run' 
-        traceback.print_exc()
- 
+        except:
+            print 'Could not auto load epics pvs moved during run' 
+            traceback.print_exc()
+     
     if hasattr(self.configData, 'ScanData') and self.configData.ScanData:
         pvMonitors = self.configData.ScanData.pvMonitors
         if not pvMonitors:
@@ -912,9 +943,18 @@ def write_hdf5(self, nevents=None, max_size=10001,
                     
                     # Make sure no None attrs
                     for a, aitm in attr_info.items():
-                        if aitm is None:
-                            attr_info.update({a, ''})
-                        if hasattr(aitm, 'dtype') and aitm.dtype is np.dtype('O'):
+                        try:
+                            if aitm is None:
+                                if a is not None:
+                                    attr_info.update({a, ''})
+                                else:
+                                    attr_info.pop(a)
+                            if hasattr(aitm, 'dtype') and aitm.dtype is np.dtype('O'):
+                                attr_info.pop(a)
+                        except:
+                            traceback.print_exc()
+                            print 'Error fixing up attr_info', a, aitm
+                            print 'Setting to empty'
                             attr_info.pop(a)
 
                     #det_funcs[det][attr] = {'alias': alias, 'det': det, 'attr': attr, 'attr_info': attr_info}
@@ -991,6 +1031,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
 # Need to fix handling of detector image axis
 
     if default_stats:
+        print 'Add default stats'
         self._add_default_stats()
     
     if ichunk == 0:
@@ -1090,10 +1131,19 @@ def write_hdf5(self, nevents=None, max_size=10001,
             for attr in ['sec', 'nsec', 'fiducials', 'ticks']:
                 xbase[attr][iwrite] = getattr(dtime, attr)
             
-            for ec in evt.Evr.eventCodes:
+            #for ec in evt.Evr.eventCodes:
+            for iec, ec in enumerate(evt.Evr.fifoEvents.eventCode):
                 if ec in eventCodes:
-                    xbase['ec{:}'.format(ec)][iwrite] = True
+                    xbase['ec{:}'.format(ec)][iwrite] = True 
 
+            fevr = evt.Evr.fifoEvents
+            thigh = dict(zip(fevr.eventCode, fevr.timestampHigh))
+            tshigh = [thigh.get(ec,0) for ec in eventCodes]
+            tlow = dict(zip(fevr.eventCode, fevr.timestampLow))
+            tslow = [tlow.get(ec,0) for ec in eventCodes]
+            xbase['timestampLow'][iwrite] = tslow
+            xbase['timestampHigh'][iwrite] = tshigh
+            
             for attr, codes in code_flags.items():
                 if evt.Evr.present(codes):
                     xbase[attr][iwrite] = True

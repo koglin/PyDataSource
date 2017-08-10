@@ -113,6 +113,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
@@ -190,16 +193,17 @@
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>local: bool</strong> :</p>
-<blockquote>
-<div><p>open psplot locally (default)</p>
-</div></blockquote>
-<p><strong>eventCode: int</strong> :</p>
-<blockquote class="last">
-<div><p>check if event code(s) are in data
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>local</strong> (<em>bool</em>) – open psplot locally (default)</li>
+<li><strong>eventCode</strong> (<em>list</em>) – check if event code(s) are in data
 (or alternatively not in date with - sign)
-see is_eventCodePresent</p>
-</div></blockquote>
+see is_eventCodePresent</li>
+<li><strong>nskip</strong> (<em>int</em>) – number of events to skip between plot updates</li>
+<li><strong>Keywords</strong> – </li>
+<li><strong>--------</strong> – </li>
+<li><strong>title</strong> (<em>str</em>) – Plot title</li>
+<li><strong>eventCode</strong> – Plot if eventCode is present</li>
+</ul>
 </td>
 </tr>
 </tbody>
@@ -262,7 +266,7 @@ see is_eventCodePresent</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

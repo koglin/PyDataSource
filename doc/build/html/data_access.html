@@ -104,6 +104,9 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
 </ul>
@@ -171,10 +174,10 @@
             
   <div class="section" id="data-access-overview">
 <span id="data-access"></span><h1>Data Access Overview<a class="headerlink" href="#data-access-overview" title="Permalink to this headline">¶</a></h1>
-<p>The <strong>PyDataSource</strong> package provides access to LCLS event data by wrapping the psana &#8220;Detector&#8221; interface.  This page provides a quick introduction to basic event data access.  See other pages and the API section for futher details and options.</p>
+<p>The <strong>PyDataSource</strong> package provides access to LCLS event data by wrapping the psana “Detector” interface.  This page provides a quick introduction to basic event data access.  See other pages and the API section for futher details and options.</p>
 <div class="section" id="analysis-environment">
 <h2>Analysis Environment<a class="headerlink" href="#analysis-environment" title="Permalink to this headline">¶</a></h2>
-<p>Use the following environment Setup from psana machine.  Start ipython with the &#8211;pylab option (or if youy prefer import numpy and matplotlib as needed).</p>
+<p>Use the following environment Setup from psana machine.  Start ipython with the –pylab option (or if youy prefer import numpy and matplotlib as needed).</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/ana_env.sh
 <span class="nb">source</span> conda_setup
 ipython --pylab
@@ -221,8 +224,8 @@ ipython --pylab
 <dt>For complex detectors such as the cspad, the detector object gives access to the raw, calibrated and reconstructed images.</dt>
 <dd><ul class="first last simple">
 <li>raw:    raw uncorrected data (3D array)</li>
-<li>calib:  calibrated &#8220;unassembled data&#8221; (3D array, pedestal and common mode corrected, no geometry applied)</li>
-<li>image:  &#8220;assembled images&#8221; (2D array, geometry applied).</li>
+<li>calib:  calibrated “unassembled data” (3D array, pedestal and common mode corrected, no geometry applied)</li>
+<li>image:  “assembled images” (2D array, geometry applied).</li>
 </ul>
 </dd>
 </dl>
@@ -374,11 +377,11 @@ ipython --pylab
 <div class="section" id="waveform-detectors">
 <h2>Waveform Detectors<a class="headerlink" href="#waveform-detectors" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
-<dt>There are several types of voltage-versus-time (&#8220;waveform&#8221;) detectors supported:</dt>
+<dt>There are several types of voltage-versus-time (“waveform”) detectors supported:</dt>
 <dd><ul class="first last simple">
-<li>Acqiris (now &#8220;Agilent U1065A&#8221;)</li>
-<li>&#8216;Imp&#8217; detectors (SLAC).</li>
-<li>&#8216;Wave8&#8217; detectors (SLAC).</li>
+<li>Acqiris (now “Agilent U1065A”)</li>
+<li>‘Imp’ detectors (SLAC).</li>
+<li>‘Wave8’ detectors (SLAC).</li>
 </ul>
 </dd>
 </dl>
@@ -399,13 +402,13 @@ ipython --pylab
 <div class="figure">
 <img alt="_images/acqiris.png" src="_images/acqiris.png" />
 </div>
-<p>NOTE: For Acqiris detectors the user can often find between 0-7 &#8220;zeros&#8221; at the end of the arrays.  This is because the acqiris will read out 40,000 samples, for example, but the trigger is not necessarily on sample 0: from shot-to-shot it can vary between 0 and 7.</p>
+<p>NOTE: For Acqiris detectors the user can often find between 0-7 “zeros” at the end of the arrays.  This is because the acqiris will read out 40,000 samples, for example, but the trigger is not necessarily on sample 0: from shot-to-shot it can vary between 0 and 7.</p>
 <p>In the above user interface we move the data arrays so the trigger happens on sample 0 (so users can more easily add results from different events, for example). But after we do this, to keep the array sizes constant, we pad the end with zeros. This is not ideal, but it makes the user-interface simpler, which is important for LCLS users.</p>
-<p>In this example we use older data that does not have aliases, so the detectors names are generated from their &#8216;daq&#8217; identifiers.</p>
+<p>In this example we use older data that does not have aliases, so the detectors names are generated from their ‘daq’ identifiers.</p>
 </div>
 <div class="section" id="anlyzing-scans">
 <h2>Anlyzing Scans<a class="headerlink" href="#anlyzing-scans" title="Permalink to this headline">¶</a></h2>
-<p>Information about daq scans (where things like motor positions are changed during a run in &#8220;steps&#8221; or &#8220;calibcycles&#8221;) is accessible from the ds.configData.  The ScanData object may take dozens of seconds to load the first time depending on the length of the scan.  Once loaded you have access to the scan information as lists the length of the number of steps in the scan.</p>
+<p>Information about daq scans (where things like motor positions are changed during a run in “steps” or “calibcycles”) is accessible from the ds.configData.  The ScanData object may take dozens of seconds to load the first time depending on the length of the scan.  Once loaded you have access to the scan information as lists the length of the number of steps in the scan.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="gp">In [22]: </span><span class="n">ds</span>  <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
@@ -583,7 +586,7 @@ ipython --pylab
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

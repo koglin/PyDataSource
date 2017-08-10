@@ -113,6 +113,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
@@ -190,55 +193,24 @@
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>attr</strong> : str</p>
-<blockquote>
-<div><p>Name of data object on which to find peaks</p>
-</div></blockquote>
-<p><strong>ichannel</strong> : int</p>
-<blockquote>
-<div><p>acqiris waveform channels start with 1.
-If not present, peak locators will be created for alll chanels</p>
-</div></blockquote>
-<p><strong>name</strong> : str</p>
-<blockquote>
-<div><p>Name of peak object [Default is to append &#8216;_peak&#8217; and sequential number
-to input attr name.</p>
-</div></blockquote>
-<p><strong>xaxis: array_like</strong> :</p>
-<blockquote>
-<div><p>X-axis coordinate of data object
-Default is to use wftime for attr=&#8217;waveform&#8217;</p>
-</div></blockquote>
-<p><strong>threshold</strong> : float</p>
-<blockquote>
-<div><p>Peak threshold.  default threshold is 1.5% of full range for Acqiris</p>
-</div></blockquote>
-<p><strong>baseline</strong> : float</p>
-<blockquote>
-<div><p>Baseline level to subtract</p>
-</div></blockquote>
-<p><strong>scale</strong> : float</p>
-<blockquote>
-<div><p>Peak scale factor</p>
-</div></blockquote>
-<p><strong>method</strong> : str</p>
-<blockquote>
-<div><p>Peak finding method options include:
-&#8216;index&#8217;: index at max channel.
-&#8216;max&#8217;: maximum value.</p>
-</div></blockquote>
-<p><strong>roi</strong> : tuple, optional</p>
-<blockquote>
-<div><p>Region of interest</p>
-</div></blockquote>
-<p><strong>docs</strong> : dict</p>
-<blockquote>
-<div><p>Doc strings for resulting peaks</p>
-</div></blockquote>
-<p><strong>units</strong> : dict</p>
-<blockquote class="last">
-<div><p>Units of peaks data [Default assumes same as attr data]</p>
-</div></blockquote>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>attr</strong> (<em>str</em>) – Name of data object on which to find peaks</li>
+<li><strong>ichannel</strong> (<em>int</em>) – If not present, peak locators will be created for all chanels
+[Note: acqiris waveform default names start with ch1 following AMI convention]</li>
+<li><strong>name</strong> (<em>str</em>) – Name of peak object [Default is to append ‘_peak’ and sequential number
+to input attr name.</li>
+<li><strong>xaxis</strong> (<em>array_like</em>) – X-axis coordinate of data object
+Default is to use wftime for attr=’waveform’</li>
+<li><strong>threshold</strong> (<em>float</em>) – Peak threshold.  default threshold is 1.5% of full range for Acqiris</li>
+<li><strong>baseline</strong> (<em>float</em>) – Baseline level to subtract</li>
+<li><strong>scale</strong> (<em>float</em>) – Peak scale factor</li>
+<li><strong>method</strong> (<em>str</em>) – Peak finding method options include:
+‘index’: index at max channel.
+‘max’: maximum value.</li>
+<li><strong>roi</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Region of interest</li>
+<li><strong>docs</strong> (<em>dict</em>) – Doc strings for resulting peaks</li>
+<li><strong>units</strong> (<em>dict</em>) – Units of peaks data [Default assumes same as attr data]</li>
+</ul>
 </td>
 </tr>
 </tbody>
@@ -301,7 +273,7 @@ Default is to use wftime for attr=&#8217;waveform&#8217;</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

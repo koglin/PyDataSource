@@ -49,12 +49,17 @@ if __name__ == "__main__":
         x = h5write.open_h5netcdf(exp=exp,run=run)
         print x
         b = build_html.Build_html(x, auto=True)
-    
+   
     else:
         import PyDataSource
         ds = PyDataSource.DataSource(exp=exp,run=run)
         if attr == 'epics':
-            ds.exp_summary.to_html()
+            print ds.configData
+            es = ds.exp_summary
+            if es:
+                es.to_html()
+            else:
+                print 'Failed to load or generate exp_summary'
         if attr == 'config':
             print ds._get_config_file()
         if attr == 'run':

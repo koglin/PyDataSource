@@ -113,6 +113,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
@@ -190,31 +193,15 @@
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>attr</strong> : str</p>
-<blockquote>
-<div><p>Name of data object in detector object on which to act</p>
-</div></blockquote>
-<p><strong>gain: float</strong> :</p>
-<blockquote>
-<div><p>optional converion from ADU to for example X-rays.</p>
-</div></blockquote>
-<p><strong>limits: tuple</strong> :</p>
-<blockquote>
-<div><p>(low, high) values to be counted.</p>
-</div></blockquote>
-<p><strong>doc</strong> : str</p>
-<blockquote>
-<div><p>Doc string for resulting roi data</p>
-</div></blockquote>
-<p><strong>unit</strong> : str</p>
-<blockquote>
-<div><p>Units of histogramed data.  Default ADU (times gain factor if supplied)</p>
-</div></blockquote>
-<p><strong>roi</strong> : tuple, optional</p>
-<blockquote class="last">
-<div><p>Region of interest (roi) parameters passed to roi method.
-roi method then acts on this reduced data</p>
-</div></blockquote>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>attr</strong> (<em>str</em>) – Name of data object in detector object on which to act</li>
+<li><strong>gain</strong> (<em>float</em>) – optional converion from ADU to for example X-rays.</li>
+<li><strong>limits</strong> (<em>tuple</em>) – (low, high) values to be counted.</li>
+<li><strong>doc</strong> (<em>str</em>) – Doc string for resulting roi data</li>
+<li><strong>unit</strong> (<em>str</em>) – Units of histogramed data.  Default ADU (times gain factor if supplied)</li>
+<li><strong>roi</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Region of interest (roi) parameters passed to roi method.
+roi method then acts on this reduced data</li>
+</ul>
 </td>
 </tr>
 </tbody>
@@ -277,7 +264,7 @@ roi method then acts on this reduced data</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

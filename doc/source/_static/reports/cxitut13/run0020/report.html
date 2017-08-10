@@ -1,0 +1,1187 @@
+<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.01 Transitional//EN'>
+<html lang="en">
+<head>
+<link media="all" href="css/bootstrap.min.css" type="text/css" rel="stylesheet" />
+<link media="all" href="jumbotron-narrow.css" type="text/css" rel="stylesheet" />
+<link media="all" href="css/mine.css" type="text/css" rel="stylesheet" />
+<title>cxitut13 Run 20</title>
+<script src="js/ie-emulation-modes-warning.js" type="text/javascript"></script>
+<script src="js/jquery.min.js" type="text/javascript"></script>
+<script src="js/toggler.js" type="text/javascript"></script>
+<script src="js/sticky.js" type="text/javascript"></script>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<nav class="navigation">
+<ul class="nav nav-pills pull-right">
+<li class="active"><a href="#top">Top</a></li>
+</ul>
+</nav>
+<h3 class="text-muted" style="color: gray;">cxitut13 Data Summary <small style="font-family:monospace;">cxitut13, Run 20</small></h3>
+</div>
+<a class="anchor" id="top"></a>
+<div class="jumbotron">
+<h1 style="font-family:monospace;">cxitut13</h1>
+<p class="lead">Run 20</p>
+</div>
+<div class="row marketing">
+<div class="col-md-9">
+<a class="anchor" id="metadata"></a>
+<h3 class="text-center bg-primary " onclick="toggler('metadatagroup');">Data Summary</h3>
+<div id="metadatagroup">
+<a class="anchor" id="datatime"></a>
+<div>
+<h4>Data Information</h4>
+<p>Total events: 100</p>
+<p>Start Time: 2016-04-13 08:17:49.472805120<br/>End Time: 2016-04-13 08:17:50.297381120<br/>Duration: 0 seconds (00:00)</p>
+<p>Report time: Tue Aug  8 20:17:35 2017</p>
+</div>
+<a class="anchor" id="Access_the_Data"></a>
+<div>
+<h4>Access the Data</h4>
+<p>Access event data with PyDataSource python module on a psana node:</p>
+<p><pre>source /reg/g/psdm/bin/conda_setup
+idatasource --exp cxitut13 --run 20</pre></p>
+<p>Where idatasource is a shortcut for starting ipython and loading the event data:</p>
+<p><pre>source /reg/g/psdm/bin/conda_setup
+ipython --pylab
+...
+import PyDataSource
+ds = PyDataSource.DataSource(exp="cxitut13",run=20)</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('HowTo_access_event_data_with_PyDataSource_python_packageextra');">HowTo access event data with PyDataSource python package</a></p>
+<div class="myhidden" id="HowTo_access_event_data_with_PyDataSource_python_packageextra">
+<div>
+<p><pre>
+Python implementation of psana DataSource object.
+
+Example:
+
+    # Import the PyDataSource module
+    In [1]: import PyDataSource
+
+    # Load example run
+    In [2]: ds = PyDataSource.DataSource('exp=xpptut15:run=54')
+
+    # Access the first event
+    In [3]: evt = ds.events.next()
+
+    # Tab to see Data objects in current event
+    In [4]: evt.
+    evt.EBeam            evt.FEEGasDetEnergy  evt.XppEnds_Ipm0     evt.cspad            evt.next
+    evt.EventId          evt.L3T              evt.XppSb2_Ipm       evt.get              evt.yag2
+    evt.Evr              evt.PhaseCavity      evt.XppSb3_Ipm       evt.keys             evt.yag_lom
+
+    # Tab to see EBeam attributes
+    In [4]: evt.EBeam.
+    evt.EBeam.EventId            evt.EBeam.ebeamEnergyBC1     evt.EBeam.ebeamPhotonEnergy  evt.EBeam.epicsData
+    ...
+    evt.EBeam.ebeamDumpCharge    evt.EBeam.ebeamLTUPosY       evt.EBeam.ebeamXTCAVPhase    
+
+    # Print a table of the EBeam data for the current event
+    In [4]: evt.EBeam.show_info()
+    --------------------------------------------------------------------------------
+    EBeam xpptut15, Run 54, Step -1, Event 0, 11:37:12.4517, [140, 141, 41, 40]
+    --------------------------------------------------------------------------------
+    damageMask                 1.0486e+06         Damage mask.
+    ebeamCharge                0.00080421 nC      Beam charge in nC.
+    ...
+    ebeamPhotonEnergy                   0 eV      computed photon energy, in eV
+    ...
+
+    # Print summary of the cspad detector (uses PyDetector methods for creatining calib and image data)
+    In [5]: evt.cspad.show_info()
+    --------------------------------------------------------------------------------
+    cspad xpptut15, Run 54, Step -1, Event 0, 11:37:12.4517, [140, 141, 41, 40]
+    --------------------------------------------------------------------------------
+    calib                <0.010653> ADU     Calibrated data
+    image               <0.0081394> ADU     Reconstruced 2D image from calibStore geometry
+    raw                    <1570.2> ADU     Raw data
+    shape              (32, 185, 388)         Shape of raw data array
+    size                  2.297e+06         Total size of raw data
+
+    # Print summary of cspad detector calibration data (using PyDetector access methods) 
+    In [6]: evt.cspad.calibData.show_info()
+    areas                  <1.0077>         Pixel area correction factor
+    bkgd                      <0.0>         
+    ...
+    shape              (32, 185, 388)         Shape of raw data array
+    size                  2.297e+06         Total size of raw data
+    status             <0.00069396>         
+
+    # Print summary of cspad detector calibration data (using PyDetector access methods) 
+    In [7]: evt.cspad.configData.show_info()
+    activeRunMode                       3         
+    asicMask                           15         
+    ...
+    roiMasks                   0xffffffff         
+    runDelay                        58100         
+    tdi                                 4         
+
+This software was developed for the LCLS project.
+If you use all or part of it, please give an appropriate acknowledgment.
+
+@version $Id$
+
+@author Koglin, Jason
+</pre></p>
+</div>
+</div>
+<p>Analyze run summary data on a psana node using pylab, pandas and xarray:</p>
+<p><pre>source /reg/g/psdm/bin/conda_setup
+ipython --pylab
+...
+import PyDataSource
+x = PyDataSource.open_h5netcdf(exp="cxitut13",run=20)</pre></p>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('View_of_RunSummary_data_with_xarray_python_package_extra');">View of RunSummary data with xarray python package </a></p>
+<div class="myhidden" id="View_of_RunSummary_data_with_xarray_python_package_extra">
+<div>
+<p><pre><xarray.Dataset>
+Dimensions:                     (DsaCsPad_column: 388, DsaCsPad_photon_hist_xaxis: 169, DsaCsPad_row: 185, DsaCsPad_sensor: 32, Sc2Questar_xaxis: 1752, Sc2Questar_yaxis: 2336, codes: 2, stat: 5, steps: 1, time: 100)
+Coordinates:
+    CXI_KB2_MMS_08_VAL          (time) float64 2.507 2.507 2.507 2.507 2.507 ...
+    CXI_KB2_MMS_08_VAL_steps    (steps) float64 2.507
+    Damage_cut                  (time) int8 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ...
+    DsaCsPad_areas              (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float64 1.0 ...
+    DsaCsPad_coords_x           (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float64 -4.816e+04 ...
+    DsaCsPad_coords_y           (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float64 -5.62e+03 ...
+    DsaCsPad_coords_z           (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float64 1e+06 ...
+    DsaCsPad_events             (steps, codes) float64 100.0 nan
+    DsaCsPad_gain               (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float32 0.973814 ...
+    DsaCsPad_indexes_x          (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) uint64 426 ...
+    DsaCsPad_indexes_y          (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) uint64 844 ...
+    DsaCsPad_pedestals          (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float32 1438.75 ...
+  * DsaCsPad_photon_hist_xaxis  (DsaCsPad_photon_hist_xaxis) float64 -0.704 ...
+    DsaCsPad_present            (time) bool True True True True True True ...
+    DsaCsPad_rms                (DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float32 3.17 ...
+    EBeam_present               (time) bool True True True True True True ...
+    FEEGasDetEnergy_present     (time) bool True True True True True True ...
+    Gasdet_cut                  (time) int8 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ...
+    PhaseCavity_present         (time) bool True True True True True True ...
+    Sc2Questar_events           (steps, codes) float64 nan 25.0
+    Sc2Questar_present          (time) bool False False False True False ...
+    XrayOff                     (time) bool False False False False False ...
+    XrayOn                      (time) bool True True True True True True ...
+  * codes                       (codes) int64 40 42
+    ec40                        (time) bool True True True True True True ...
+    ec42                        (time) bool False False False True False ...
+    fiducials                   (time) float64 3.036e+04 3.037e+04 3.037e+04 ...
+    kb2_vp                      (time) float64 2.636 2.636 2.636 2.636 2.636 ...
+    nsec                        (time) float64 4.728e+08 4.811e+08 4.894e+08 ...
+    run                         (time) float64 20.0 20.0 20.0 20.0 20.0 20.0 ...
+    sec                         (time) float64 1.461e+09 1.461e+09 1.461e+09 ...
+  * stat                        (stat) |S4 'mean' 'std' 'var' 'min' 'max'
+    step                        (time) float64 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ...
+  * steps                       (steps) int64 0
+    ticks                       (time) float64 3.293e+05 3.291e+05 3.293e+05 ...
+  * time                        (time) datetime64[ns] 2016-04-13T08:17:49.472805120 ...
+Dimensions without coordinates: DsaCsPad_column, DsaCsPad_row, DsaCsPad_sensor, Sc2Questar_xaxis, Sc2Questar_yaxis
+Data variables:
+    DsaCsPad_corr_stats         (stat, steps, codes, DsaCsPad_sensor, DsaCsPad_row, DsaCsPad_column) float64 1.714 ...
+    DsaCsPad_photon_count       (time) float64 8.735e+04 1.095e+05 9.816e+04 ...
+    DsaCsPad_photon_hist        (time, DsaCsPad_photon_hist_xaxis) float64 72.0 ...
+    EBeam_damageMask            (time) float64 0.0 0.0 0.0 0.0 0.0 0.0 0.0 ...
+    EBeam_ebeamCharge           (time) float64 0.2541 0.2492 0.2486 0.2517 ...
+    EBeam_ebeamDumpCharge       (time) float64 1.2e+09 1.176e+09 1.177e+09 ...
+    EBeam_ebeamEnergyBC1        (time) float64 -0.02472 -0.002885 0.02818 ...
+    EBeam_ebeamEnergyBC2        (time) float64 -0.2159 -0.2243 -0.03414 ...
+    EBeam_ebeamL3Energy         (time) float64 1.411e+04 1.411e+04 1.411e+04 ...
+    EBeam_ebeamLTU250           (time) float64 0.01003 0.01558 0.04 0.02644 ...
+    EBeam_ebeamLTU450           (time) float64 0.04226 0.03216 0.01712 ...
+    EBeam_ebeamLTUAngX          (time) float64 -0.0554 -0.05313 -0.05517 ...
+    EBeam_ebeamLTUAngY          (time) float64 0.01771 0.01533 0.01686 ...
+    EBeam_ebeamLTUPosX          (time) float64 -0.2808 -0.2775 -0.2846 ...
+    EBeam_ebeamLTUPosY          (time) float64 0.06112 0.0613 0.06121 ...
+    EBeam_ebeamPkCurrBC1        (time) float64 207.8 216.4 209.5 214.6 214.3 ...
+    EBeam_ebeamPkCurrBC2        (time) float64 4.678e+03 4.205e+03 4.504e+03 ...
+    EBeam_ebeamUndAngX          (time) float64 7.72e-05 0.0003109 0.0001442 ...
+    EBeam_ebeamUndAngY          (time) float64 -5.157e-07 0.0002193 ...
+    EBeam_ebeamUndPosX          (time) float64 0.005397 0.003205 -0.0004976 ...
+    EBeam_ebeamUndPosY          (time) float64 0.001103 -0.00167 -0.00796 ...
+    EBeam_ebeamXTCAVAmpl        (time) float64 5.106 5.049 4.83 5.072 5.064 ...
+    EBeam_ebeamXTCAVPhase       (time) float64 88.75 91.67 93.85 92.79 94.97 ...
+    FEEGasDetEnergy_f_63_ENRC   (time) float64 3.0 3.574 3.308 3.117 3.02 ...
+    FEEGasDetEnergy_f_64_ENRC   (time) float64 2.466 2.631 2.606 2.533 2.408 ...
+    Gasdet_post_atten           (time) float64 3.141 3.649 3.417 3.384 2.962 ...
+    Gasdet_pre_atten            (time) float64 3.309 3.662 3.509 3.66 3.302 ...
+    PhaseCavity_charge1         (time) float64 196.0 192.1 192.3 194.3 190.1 ...
+    PhaseCavity_charge2         (time) float64 209.6 205.5 205.6 207.8 203.4 ...
+    PhaseCavity_fitTime1        (time) float64 0.7257 0.6744 0.6496 0.7376 ...
+    PhaseCavity_fitTime2        (time) float64 -0.06581 -0.1792 -0.07295 ...
+    PhotonEnergy                (time) float64 8.983e+03 8.984e+03 8.987e+03 ...
+    Sc2Questar_corr_stats       (stat, steps, codes, Sc2Questar_xaxis, Sc2Questar_yaxis) float64 nan ...
+Attributes:
+    data_source:            exp=cxitut13:run=20:smd
+    run:                    20
+    instrument:             CXI
+    experiment:             cxitut13
+    expNum:                 304
+    calibDir:               /reg/d/psdm/CXI/cxitut13/calib
+    event_flags:            ['XrayOn' 'XrayOff']
+    scan_variables:         []
+    nsteps:                 1
+    correlation_variables:  ['PhotonEnergy' 'Gasdet_post_atten']</pre></p>
+</div>
+</div>
+<p>See <a href="http://pswww.slac.stanford.edu/swdoc/ana/PyDataSource">http://pswww.slac.stanford.edu/swdoc/ana/PyDataSource</a> for details on how to use PyDataSource.</p>
+<p>See <a href="http://xarray.pydata.org">http://xarray.pydata.org</a> for details on how to use data using xarray.</p>
+<p>HDF5 summary file (using netCDF format) located at:</p>
+<p><pre>/reg/d/psdm/CXI/cxitut13/scratch/nc/run0020.nc</pre></p>
+<p>For questions and feedback contact koglin@slac.stanford.edu</p>
+</div>
+<a class="anchor" id="Detector Count_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('Detector Count_datagroup');">Detector Count Data</h3>
+<div id="Detector Count_datagroup">
+<a class="anchor" id="Detector_Count_attrs_table"></a>
+<div>
+<h4>Detector Count attrs table</h4>
+<p><pre>                      unit        doc                                                               
+DsaCsPad_photon_count  photons     CsPad Photon Count                                            ...
+Gasdet_post_atten      mJ          Energy measurement afeter attenuation (FEEGasDetEnergy_f_21_EN...
+PhotonEnergy           eV          computed photon energy, in eV                                 ...</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Detector_Count_stats_tableextra');">Detector Count stats table</a></p>
+<div class="myhidden" id="Detector_Count_stats_tableextra">
+<div>
+<p><pre>                       count      mean       std       min        5%       50%        95%        max
+variable                                                                                            
+DsaCsPad_photon_count  100.0  88033.60  15328.18  57616.66  63956.53  88248.53  115819.88  129506.26
+PhotonEnergy           100.0   8984.28      4.91   8970.50   8976.37   8983.98    8992.43    8997.49
+Gasdet_post_atten      100.0      3.19      0.22      2.76      2.82      3.18       3.56       3.79</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Detector_Count_correlation_figureextra');">Detector Count correlation figure</a></p>
+<div class="myhidden" id="Detector_Count_correlation_figureextra">
+<div>
+<a href="Detector_Count_correlation.png"><img src="Detector_Count_correlation.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Detector_Count_default_scatter_matrix_figureextra');">Detector Count default scatter_matrix figure</a></p>
+<div class="myhidden" id="Detector_Count_default_scatter_matrix_figureextra">
+<div>
+<a href="Detector_Count_default_scatter_matrix.png"><img src="Detector_Count_default_scatter_matrix.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Detector_Count_hist_figureextra');">Detector Count hist figure</a></p>
+<div class="myhidden" id="Detector_Count_hist_figureextra">
+<div>
+<a href="Detector_Count_hist.png"><img src="Detector_Count_hist.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Detector_Count_time_figureextra');">Detector Count time figure</a></p>
+<div class="myhidden" id="Detector_Count_time_figureextra">
+<div>
+<a href="Detector_Count_time.png"><img src="Detector_Count_time.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_Detector_Countextra');">HowTo make Detector Count tables and figures.</a></p>
+<div class="myhidden" id="howto_Detector_Countextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup Detector Count:
+plt.rcParams['axes.labelsize'] = 20
+attrs = [u'DsaCsPad_photon_count', 'PhotonEnergy', 'Gasdet_post_atten']
+xselect = x[attrs]
+df = xselect.to_array().to_pandas().T
+attr_names={'Gasdet_post_atten': 'Gasdet_post_atten', 'PhotonEnergy': 'PhotonEnergy', u'DsaCsPad_photon_count': u'DsaCsPad_photon_count'}
+df.rename(inplace=True, columns=attr_names)</p>
+<p># Howto make the Detector Count stats table:
+df_tbl = df.describe(percentiles=[0.05, 0.5, 0.95]).T.round({'count': 0})
+print df_tbl</p>
+<p># Howto make the Detector Count correlation figure:
+from PyDataSource.xarray_utils import heatmap
+heatmap(df, confidence=0.1)</p>
+<p># Howto make the Detector Count default scatter_matrix figure:
+scat_attrs = ['Gasdet_post_atten', 'PhotonEnergy', u'DsaCsPad_photon_count']
+robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]
+dfr = df[robust_attrs]
+df_tblr = df_tbl.T[robust_attrs].T
+dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
+dfscat = dfcut[scat_attrs]
+g = sns.PairGrid(dfscat, diag_sharey=False)
+g.map_lower(sns.kdeplot, cmap="Blues_d")
+g.map_upper(plt.scatter)
+g.map_diag(sns.kdeplot, lw=3)</p>
+<p># Howto make the Detector Count hist figure:
+df.hist(alpha=0.2, layout=(1, 3), figsize=(12, 6))</p>
+<p># Howto make the Detector Count time figure:
+df.plot(subplots=True, sharex=True, style='.', layout=(1, 3), figsize=(12, 6))</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="DsaCsPad_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('DsaCsPad_datagroup');">DsaCsPad Data</h3>
+<div id="DsaCsPad_datagroup">
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_configextra');">DsaCsPad config</a></p>
+<div class="myhidden" id="DsaCsPad_configextra">
+<div>
+<p><pre>quads_shiftSelect    [[4 4 4 4]
+ [4 4 4 4]
+ [4 4 4 4]
+ [4 4 4 4]]      
+concentratorVersion  0xcafc2001                                        
+quads_digCount       ['0x3fff' '0x3fff' '0x3fff' '0x3fff']             
+quads_edgeSelect     [[1 1 1 1]
+ [1 1 1 1]
+ [1 1 1 1]
+ [1 1 1 1]]      
+quads_biasTuning     ['0x3132' '0x3132' '0x3132' '0x3132']             
+quads_digDelay       [1000 1000 1000 1000]                             
+quads_ro_shiftTest   [0 0 0 0]                                         
+activeRunMode        3                                                 
+quads_ampIdle        ['0xe0e' '0xe0e' '0xe0e' '0xe0e']                 
+quads_shape          [4]                                               
+inactiveRunMode      1                                                 
+quads_acqDelay       [350 350 350 350]                                 
+protectionThresholds_pixelCountThreshold [1000 1000 1000 1000]                             
+runDelay             58000                                             
+roiMask              ['0xff' '0xff' '0xff' '0xff']                     
+quads_ampReset       [0 0 0 0]                                         
+quads_ro_version     ['0xc15d1003' '0xc15d1003' '0xc15d1003' '0xc15d1003']
+protectionThresholds_adcThreshold [12000 12000 12000 12000]                         
+quads_readClkSet     [2 2 2 2]                                         
+numAsicsStored       [16 16 16 16]                                     
+tdi                  4                                                 
+numAsicsRead         16                                                
+quads_rowColShiftPer [3 3 3 3]                                         
+quads_dataMode       [0 0 0 0]                                         
+quads_digPeriod      [21 21 21 21]                                     
+quads_intTime        [5000 5000 5000 5000]                             
+quads_pdpmndnmBalance [0 0 0 0]                                         
+quadMask             0b1111                                            
+badAsicMask1         0x0                                               
+badAsicMask0         0x0                                               
+numQuads             4                                                 
+quads_injTotal       [0 0 0 0]                                         
+quads_prstSel        [0 0 0 0]                                         
+internalTriggerDelay 0                                                 
+numSect              32                                                
+roiMasks             0xffffffff                                        
+payloadSize          1148516                                           
+asicMask             0xf                                               
+quads_readClkHold    [1 1 1 1]                                         
+protectionEnable     1                                                 
+evr_width            4e-05                                             
+group                1                                                 
+eventCode            40                                                
+src                  DetInfo(CxiDs2.0:Cspad.0)                         
+evr_delay            0.000790722689076                                 
+map_key              [ 2 11]                                           
+alias                DsaCsPad                                          
+evr_polarity         1                                                 </pre></p>
+</div>
+</div>
+<a class="anchor" id="DsaCsPad_attrs_table"></a>
+<div>
+<h4>DsaCsPad attrs table</h4>
+<p><pre>                  unit        doc                                                               
+Gasdet_post_atten  mJ          Energy measurement afeter attenuation (FEEGasDetEnergy_f_21_EN...
+PhotonEnergy       eV          computed photon energy, in eV                                 ...
+photon_count       photons     CsPad Photon Count                                            ...</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_stats_tableextra');">DsaCsPad stats table</a></p>
+<div class="myhidden" id="DsaCsPad_stats_tableextra">
+<div>
+<p><pre>                   count      mean       std       min        5%       50%        95%        max
+variable                                                                                        
+photon_count       100.0  88033.60  15328.18  57616.66  63956.53  88248.53  115819.88  129506.26
+PhotonEnergy       100.0   8984.28      4.91   8970.50   8976.37   8983.98    8992.43    8997.49
+Gasdet_post_atten  100.0      3.19      0.22      2.76      2.82      3.18       3.56       3.79</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad__photon_hist_sum_over_time_figureextra');">DsaCsPad _photon_hist sum over time figure</a></p>
+<div class="myhidden" id="DsaCsPad__photon_hist_sum_over_time_figureextra">
+<div>
+<a href="DsaCsPad__photon_hist_sum_over_time.png"><img src="DsaCsPad__photon_hist_sum_over_time.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad__photon_hist_with_time_figureextra');">DsaCsPad _photon_hist with time figure</a></p>
+<div class="myhidden" id="DsaCsPad__photon_hist_with_time_figureextra">
+<div>
+<a href="DsaCsPad__photon_hist_with_time.png"><img src="DsaCsPad__photon_hist_with_time.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_default_scatter_matrix_figureextra');">DsaCsPad default scatter_matrix figure</a></p>
+<div class="myhidden" id="DsaCsPad_default_scatter_matrix_figureextra">
+<div>
+<a href="DsaCsPad_default_scatter_matrix.png"><img src="DsaCsPad_default_scatter_matrix.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_hist_figureextra');">DsaCsPad hist figure</a></p>
+<div class="myhidden" id="DsaCsPad_hist_figureextra">
+<div>
+<a href="DsaCsPad_hist.png"><img src="DsaCsPad_hist.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_time_figureextra');">DsaCsPad time figure</a></p>
+<div class="myhidden" id="DsaCsPad_time_figureextra">
+<div>
+<a href="DsaCsPad_time.png"><img src="DsaCsPad_time.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_DsaCsPadextra');">HowTo make DsaCsPad tables and figures.</a></p>
+<div class="myhidden" id="howto_DsaCsPadextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup DsaCsPad:
+plt.rcParams['axes.labelsize'] = 20
+attrs = [u'DsaCsPad_photon_count', 'PhotonEnergy', 'Gasdet_post_atten']
+xselect = x[attrs]
+df = xselect.to_array().to_pandas().T
+attr_names={'Gasdet_post_atten': u'Gasdet_post_atten', 'PhotonEnergy': u'PhotonEnergy', u'DsaCsPad_photon_count': u'photon_count'}
+df.rename(inplace=True, columns=attr_names)</p>
+<p># Howto make the DsaCsPad stats table:
+df_tbl = df.describe(percentiles=[0.05, 0.5, 0.95]).T.round({'count': 0})
+print df_tbl</p>
+<p># Howto make the DsaCsPad _photon_hist sum over time figure:
+x['DsaCsPad_photon_hist'].mean(axis=0).plot()</p>
+<p># Howto make the DsaCsPad _photon_hist with time figure:
+x['DsaCsPad_photon_hist'].plot()</p>
+<p># Howto make the DsaCsPad default scatter_matrix figure:
+scat_attrs = [u'Gasdet_post_atten', u'PhotonEnergy', u'photon_count']
+robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]
+dfr = df[robust_attrs]
+df_tblr = df_tbl.T[robust_attrs].T
+dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
+dfscat = dfcut[scat_attrs]
+g = sns.PairGrid(dfscat, diag_sharey=False)
+g.map_lower(sns.kdeplot, cmap="Blues_d")
+g.map_upper(plt.scatter)
+g.map_diag(sns.kdeplot, lw=3)</p>
+<p># Howto make the DsaCsPad hist figure:
+df.hist(alpha=0.2, layout=(1, 3), figsize=(12, 6))</p>
+<p># Howto make the DsaCsPad time figure:
+df.plot(subplots=True, sharex=True, style='.', layout=(1, 3), figsize=(12, 6))</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="DsaCsPad Stats_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('DsaCsPad Stats_datagroup');">DsaCsPad Stats Data</h3>
+<div id="DsaCsPad Stats_datagroup">
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_Stats__corr_stats_max_ec40_figureextra');">DsaCsPad Stats _corr_stats max_ec40 figure</a></p>
+<div class="myhidden" id="DsaCsPad_Stats__corr_stats_max_ec40_figureextra">
+<div>
+<a href="DsaCsPad_Stats__corr_stats_max_ec40.png"><img src="DsaCsPad_Stats__corr_stats_max_ec40.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_Stats__corr_stats_mean_ec40_figureextra');">DsaCsPad Stats _corr_stats mean_ec40 figure</a></p>
+<div class="myhidden" id="DsaCsPad_Stats__corr_stats_mean_ec40_figureextra">
+<div>
+<a href="DsaCsPad_Stats__corr_stats_mean_ec40.png"><img src="DsaCsPad_Stats__corr_stats_mean_ec40.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('DsaCsPad_Stats__corr_stats_std_ec40_figureextra');">DsaCsPad Stats _corr_stats std_ec40 figure</a></p>
+<div class="myhidden" id="DsaCsPad_Stats__corr_stats_std_ec40_figureextra">
+<div>
+<a href="DsaCsPad_Stats__corr_stats_std_ec40.png"><img src="DsaCsPad_Stats__corr_stats_std_ec40.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_DsaCsPad_Statsextra');">HowTo make DsaCsPad Stats tables and figures.</a></p>
+<div class="myhidden" id="howto_DsaCsPad_Statsextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup DsaCsPad Stats:
+plt.rcParams['axes.labelsize'] = 24
+attr = 'DsaCsPad_corr_stats'
+xdat = x[attr]</p>
+<p># Howto make the DsaCsPad Stats _corr_stats max_ec40 figure:
+xstat = xdat.sel(stat='max').squeeze('steps')
+plt.figure(figsize=(16,14))
+xstat.sel(codes=40).plot(robust=True, size=8, aspect=True)
+plt.show()</p>
+<p># Howto make the DsaCsPad Stats _corr_stats mean_ec40 figure:
+xstat = xdat.sel(stat='mean').squeeze('steps')
+plt.figure(figsize=(16,14))
+xstat.sel(codes=40).plot(robust=True, size=8, aspect=True)
+plt.show()</p>
+<p># Howto make the DsaCsPad Stats _corr_stats std_ec40 figure:
+xstat = xdat.sel(stat='std').squeeze('steps')
+plt.figure(figsize=(16,14))
+xstat.sel(codes=40).plot(robust=True, size=8, aspect=True)
+plt.show()</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="EBeam_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('EBeam_datagroup');">EBeam Data</h3>
+<div id="EBeam_datagroup">
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('EBeam_configextra');">EBeam config</a></p>
+<div class="myhidden" id="EBeam_configextra">
+<div>
+<p><pre>src                  BldInfo(EBeam)                                    
+group                0                                                 
+alias                EBeam                                             </pre></p>
+</div>
+</div>
+<a class="anchor" id="EBeam_attrs_table"></a>
+<div>
+<h4>EBeam attrs table</h4>
+<p><pre>                  unit        doc                                                               
+Gasdet_post_atten  mJ          Energy measurement afeter attenuation (FEEGasDetEnergy_f_21_EN...
+PhotonEnergy       eV          computed photon energy, in eV                                 ...
+damageMask                     Damage mask.                                                  ...
+ebeamCharge        nC          Beam charge in nC.                                            ...
+ebeamDumpCharge    e-          Bunch charge at Dump in num. electrons                        ...
+ebeamEnergyBC1     mm          Beam position in mm (related to beam energy).                 ...
+ebeamEnergyBC2     mm          Beam position in mm (related to beam energy).                 ...
+ebeamL3Energy      MeV         Beam energy in MeV.                                           ...
+ebeamLTU250        mm          LTU250 BPM value in mm, used to compute photon energy. from BP...
+ebeamLTU450        mm          LTU450 BPM value in mm, used to compute photon energy. from BP...
+ebeamLTUAngX       mrad        LTU beam angle in mrad.                                       ...
+ebeamLTUAngY       mrad        LTU beam angle in mrad.                                       ...
+ebeamLTUPosX       mm          LTU beam position (BPMS:LTU1:720 through 750) in mm.          ...
+ebeamLTUPosY       mm          LTU beam position in mm.                                      ...
+ebeamPkCurrBC1     Amps        Beam current in Amps.                                         ...
+ebeamPkCurrBC2     Amps        Beam current in Amps.                                         ...
+ebeamUndAngX       mrad        Undulator launch feedback beam x-angle in mrad.               ...
+ebeamUndAngY       mrad        Undulator launch feedback beam y-angle in mrad.               ...
+ebeamUndPosX       mm          Undulator launch feedback (BPMs U4 through U10) beam x-positio...
+ebeamUndPosY       mm          Undulator launch feedback beam y-position in mm.              ...
+ebeamXTCAVAmpl     MVolt       XTCAV Amplitude in MVolt.                                     ...
+ebeamXTCAVPhase    degrees     XTCAV Phase in degrees.                                       ...</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('EBeam_stats_tableextra');">EBeam stats table</a></p>
+<div class="myhidden" id="EBeam_stats_tableextra">
+<div>
+<p><pre>                   count      mean       std       min        5%       50%       95%       max
+variable                                                                                      
+damageMask         100.0  1.08e+03  3.94e+03  0.00e+00  0.00e+00  0.00e+00  1.54e+04  1.54e+04
+ebeamCharge        100.0  2.47e-01  3.09e-03  2.41e-01  2.42e-01  2.47e-01  2.52e-01  2.54e-01
+ebeamDumpCharge    100.0  1.17e+09  1.03e+07  1.15e+09  1.16e+09  1.17e+09  1.19e+09  1.20e+09
+ebeamEnergyBC1     100.0 -1.26e-02  6.79e-02 -1.80e-01 -1.21e-01 -4.90e-03  9.35e-02  1.47e-01
+ebeamEnergyBC2     100.0  2.85e-02  2.39e-01 -5.13e-01 -3.65e-01  3.79e-02  4.88e-01  5.62e-01
+ebeamL3Energy      100.0  1.41e+04  3.87e+00  1.41e+04  1.41e+04  1.41e+04  1.41e+04  1.41e+04
+ebeamLTU250        100.0  2.09e-02  3.35e-02 -7.53e-02 -3.37e-02  1.80e-02  7.75e-02  1.11e-01
+ebeamLTU450        100.0  3.41e-02  3.53e-02 -6.32e-02 -2.50e-02  3.69e-02  8.89e-02  1.29e-01
+ebeamLTUAngX       100.0 -5.30e-02  5.34e-03 -6.69e-02 -6.25e-02 -5.30e-02 -4.61e-02 -4.07e-02
+ebeamLTUAngY       100.0  1.62e-02  1.54e-03  1.23e-02  1.36e-02  1.62e-02  1.86e-02  2.02e-02
+ebeamLTUPosX       100.0 -2.79e-01  8.03e-03 -3.04e-01 -2.92e-01 -2.79e-01 -2.65e-01 -2.56e-01
+ebeamLTUPosY       100.0  6.10e-02  1.97e-03  5.57e-02  5.79e-02  6.10e-02  6.45e-02  6.54e-02
+ebeamPkCurrBC1     100.0  2.09e+02  3.15e+00  2.02e+02  2.05e+02  2.09e+02  2.15e+02  2.18e+02
+ebeamPkCurrBC2     100.0  4.71e+03  3.10e+02  3.99e+03  4.20e+03  4.70e+03  5.29e+03  5.44e+03
+ebeamUndAngX       100.0  2.51e-04  3.27e-04 -5.41e-04 -2.95e-04  2.94e-04  7.67e-04  1.03e-03
+ebeamUndAngY       100.0  3.05e-04  3.44e-04 -7.29e-04 -1.93e-04  3.24e-04  8.48e-04  1.13e-03
+ebeamUndPosX       100.0 -1.42e-03  7.19e-03 -1.98e-02 -1.29e-02 -2.73e-03  1.09e-02  1.88e-02
+ebeamUndPosY       100.0  2.67e-04  4.24e-03 -1.40e-02 -6.54e-03  2.00e-04  7.40e-03  9.70e-03
+ebeamXTCAVAmpl     100.0  5.00e+00  1.23e-01  4.71e+00  4.80e+00  5.01e+00  5.17e+00  5.31e+00
+ebeamXTCAVPhase    100.0  9.25e+01  2.03e+00  8.78e+01  8.94e+01  9.24e+01  9.56e+01  9.68e+01
+PhotonEnergy       100.0  8.98e+03  4.91e+00  8.97e+03  8.98e+03  8.98e+03  8.99e+03  9.00e+03
+Gasdet_post_atten  100.0  3.19e+00  2.21e-01  2.76e+00  2.82e+00  3.18e+00  3.56e+00  3.79e+00</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('EBeam_correlation_figureextra');">EBeam correlation figure</a></p>
+<div class="myhidden" id="EBeam_correlation_figureextra">
+<div>
+<a href="EBeam_correlation.png"><img src="EBeam_correlation.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('EBeam_default_scatter_matrix_figureextra');">EBeam default scatter_matrix figure</a></p>
+<div class="myhidden" id="EBeam_default_scatter_matrix_figureextra">
+<div>
+<a href="EBeam_default_scatter_matrix.png"><img src="EBeam_default_scatter_matrix.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('EBeam_hist_figureextra');">EBeam hist figure</a></p>
+<div class="myhidden" id="EBeam_hist_figureextra">
+<div>
+<a href="EBeam_hist.png"><img src="EBeam_hist.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('EBeam_time_figureextra');">EBeam time figure</a></p>
+<div class="myhidden" id="EBeam_time_figureextra">
+<div>
+<a href="EBeam_time.png"><img src="EBeam_time.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_EBeamextra');">HowTo make EBeam tables and figures.</a></p>
+<div class="myhidden" id="howto_EBeamextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup EBeam:
+plt.rcParams['axes.labelsize'] = 20
+attrs = [u'EBeam_damageMask', u'EBeam_ebeamCharge', u'EBeam_ebeamDumpCharge', u'EBeam_ebeamEnergyBC1', u'EBeam_ebeamEnergyBC2', u'EBeam_ebeamL3Energy', u'EBeam_ebeamLTU250', u'EBeam_ebeamLTU450', u'EBeam_ebeamLTUAngX', u'EBeam_ebeamLTUAngY', u'EBeam_ebeamLTUPosX', u'EBeam_ebeamLTUPosY', u'EBeam_ebeamPkCurrBC1', u'EBeam_ebeamPkCurrBC2', u'EBeam_ebeamUndAngX', u'EBeam_ebeamUndAngY', u'EBeam_ebeamUndPosX', u'EBeam_ebeamUndPosY', u'EBeam_ebeamXTCAVAmpl', u'EBeam_ebeamXTCAVPhase', u'PhotonEnergy', 'PhotonEnergy', 'Gasdet_post_atten']
+xselect = x[attrs]
+df = xselect.to_array().to_pandas().T
+attr_names={'Gasdet_post_atten': u'Gasdet_post_atten', u'EBeam_ebeamLTU250': u'ebeamLTU250', u'EBeam_ebeamXTCAVAmpl': u'ebeamXTCAVAmpl', u'EBeam_ebeamUndAngX': u'ebeamUndAngX', u'EBeam_ebeamUndAngY': u'ebeamUndAngY', u'EBeam_ebeamLTU450': u'ebeamLTU450', u'EBeam_ebeamUndPosX': u'ebeamUndPosX', u'EBeam_ebeamUndPosY': u'ebeamUndPosY', u'EBeam_damageMask': u'damageMask', u'PhotonEnergy': u'PhotonEnergy', u'EBeam_ebeamLTUAngX': u'ebeamLTUAngX', u'EBeam_ebeamLTUAngY': u'ebeamLTUAngY', u'EBeam_ebeamDumpCharge': u'ebeamDumpCharge', u'EBeam_ebeamPkCurrBC2': u'ebeamPkCurrBC2', u'EBeam_ebeamLTUPosX': u'ebeamLTUPosX', u'EBeam_ebeamLTUPosY': u'ebeamLTUPosY', u'EBeam_ebeamL3Energy': u'ebeamL3Energy', u'EBeam_ebeamCharge': u'ebeamCharge', u'EBeam_ebeamPkCurrBC1': u'ebeamPkCurrBC1', u'EBeam_ebeamXTCAVPhase': u'ebeamXTCAVPhase', u'EBeam_ebeamEnergyBC1': u'ebeamEnergyBC1', u'EBeam_ebeamEnergyBC2': u'ebeamEnergyBC2'}
+df.rename(inplace=True, columns=attr_names)</p>
+<p># Howto make the EBeam stats table:
+df_tbl = df.describe(percentiles=[0.05, 0.5, 0.95]).T.round({'count': 0})
+print df_tbl</p>
+<p># Howto make the EBeam correlation figure:
+from PyDataSource.xarray_utils import heatmap
+heatmap(df, confidence=0.5)</p>
+<p># Howto make the EBeam default scatter_matrix figure:
+scat_attrs = ['ebeamCharge', 'ebeamDumpCharge', 'ebeamUndPosX', 'ebeamUndPosY', 'PhotonEnergy', 'Gasdet_post_atten']
+robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]
+dfr = df[robust_attrs]
+df_tblr = df_tbl.T[robust_attrs].T
+dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
+dfscat = dfcut[scat_attrs]
+g = sns.PairGrid(dfscat, diag_sharey=False)
+g.map_lower(sns.kdeplot, cmap="Blues_d")
+g.map_upper(plt.scatter)
+g.map_diag(sns.kdeplot, lw=3)</p>
+<p># Howto make the EBeam hist figure:
+df.hist(alpha=0.2, layout=(8, 3), figsize=(12, 24.0))</p>
+<p># Howto make the EBeam time figure:
+df.plot(subplots=True, sharex=True, style='.', layout=(8, 3), figsize=(12, 24.0))</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="FEEGasDetEnergy_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('FEEGasDetEnergy_datagroup');">FEEGasDetEnergy Data</h3>
+<div id="FEEGasDetEnergy_datagroup">
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('FEEGasDetEnergy_configextra');">FEEGasDetEnergy config</a></p>
+<div class="myhidden" id="FEEGasDetEnergy_configextra">
+<div>
+<p><pre>src                  BldInfo(FEEGasDetEnergy)                          
+group                0                                                 
+alias                FEEGasDetEnergy                                   </pre></p>
+</div>
+</div>
+<a class="anchor" id="FEEGasDetEnergy_attrs_table"></a>
+<div>
+<h4>FEEGasDetEnergy attrs table</h4>
+<p><pre>                  unit        doc                                                               
+Gasdet_post_atten  mJ          Energy measurement afeter attenuation (FEEGasDetEnergy_f_21_EN...
+Gasdet_pre_atten   mJ          Energy measurement before attenuation (FEEGasDetEnergy_f_11_EN...
+PhotonEnergy       eV          computed photon energy, in eV                                 ...
+f_63_ENRC          mJ          First energy measurement (mJ) for small signals (<0.5 mJ), aft...
+f_64_ENRC          mJ          Second (duplicate!) energy measurement (mJ) for small signals ...</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('FEEGasDetEnergy_stats_tableextra');">FEEGasDetEnergy stats table</a></p>
+<div class="myhidden" id="FEEGasDetEnergy_stats_tableextra">
+<div>
+<p><pre>                   count     mean   std      min       5%      50%      95%      max
+variable                                                                            
+f_63_ENRC          100.0     3.05  0.24     2.61     2.67     3.04     3.47     3.68
+f_64_ENRC          100.0     2.48  0.09     2.25     2.34     2.49     2.61     2.70
+Gasdet_post_atten  100.0     3.19  0.22     2.76     2.82     3.18     3.56     3.79
+Gasdet_pre_atten   100.0     3.38  0.20     2.94     3.07     3.37     3.72     3.89
+PhotonEnergy       100.0  8984.28  4.91  8970.50  8976.37  8983.98  8992.43  8997.49</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('FEEGasDetEnergy_correlation_figureextra');">FEEGasDetEnergy correlation figure</a></p>
+<div class="myhidden" id="FEEGasDetEnergy_correlation_figureextra">
+<div>
+<a href="FEEGasDetEnergy_correlation.png"><img src="FEEGasDetEnergy_correlation.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('FEEGasDetEnergy_default_scatter_matrix_figureextra');">FEEGasDetEnergy default scatter_matrix figure</a></p>
+<div class="myhidden" id="FEEGasDetEnergy_default_scatter_matrix_figureextra">
+<div>
+<a href="FEEGasDetEnergy_default_scatter_matrix.png"><img src="FEEGasDetEnergy_default_scatter_matrix.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('FEEGasDetEnergy_hist_figureextra');">FEEGasDetEnergy hist figure</a></p>
+<div class="myhidden" id="FEEGasDetEnergy_hist_figureextra">
+<div>
+<a href="FEEGasDetEnergy_hist.png"><img src="FEEGasDetEnergy_hist.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('FEEGasDetEnergy_time_figureextra');">FEEGasDetEnergy time figure</a></p>
+<div class="myhidden" id="FEEGasDetEnergy_time_figureextra">
+<div>
+<a href="FEEGasDetEnergy_time.png"><img src="FEEGasDetEnergy_time.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_FEEGasDetEnergyextra');">HowTo make FEEGasDetEnergy tables and figures.</a></p>
+<div class="myhidden" id="howto_FEEGasDetEnergyextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup FEEGasDetEnergy:
+plt.rcParams['axes.labelsize'] = 20
+attrs = [u'FEEGasDetEnergy_f_63_ENRC', u'FEEGasDetEnergy_f_64_ENRC', u'Gasdet_post_atten', u'Gasdet_pre_atten', 'PhotonEnergy', 'Gasdet_post_atten']
+xselect = x[attrs]
+df = xselect.to_array().to_pandas().T
+attr_names={u'FEEGasDetEnergy_f_64_ENRC': u'f_64_ENRC', u'FEEGasDetEnergy_f_63_ENRC': u'f_63_ENRC', u'Gasdet_post_atten': u'Gasdet_post_atten', u'Gasdet_pre_atten': u'Gasdet_pre_atten', 'PhotonEnergy': u'PhotonEnergy'}
+df.rename(inplace=True, columns=attr_names)</p>
+<p># Howto make the FEEGasDetEnergy stats table:
+df_tbl = df.describe(percentiles=[0.05, 0.5, 0.95]).T.round({'count': 0})
+print df_tbl</p>
+<p># Howto make the FEEGasDetEnergy correlation figure:
+from PyDataSource.xarray_utils import heatmap
+heatmap(df, confidence=0.5)</p>
+<p># Howto make the FEEGasDetEnergy default scatter_matrix figure:
+scat_attrs = [u'f_64_ENRC', u'f_63_ENRC', u'Gasdet_post_atten', u'Gasdet_pre_atten', u'PhotonEnergy']
+robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]
+dfr = df[robust_attrs]
+df_tblr = df_tbl.T[robust_attrs].T
+dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
+dfscat = dfcut[scat_attrs]
+g = sns.PairGrid(dfscat, diag_sharey=False)
+g.map_lower(sns.kdeplot, cmap="Blues_d")
+g.map_upper(plt.scatter)
+g.map_diag(sns.kdeplot, lw=3)</p>
+<p># Howto make the FEEGasDetEnergy hist figure:
+df.hist(alpha=0.2, layout=(2, 3), figsize=(12, 6.0))</p>
+<p># Howto make the FEEGasDetEnergy time figure:
+df.plot(subplots=True, sharex=True, style='.', layout=(2, 3), figsize=(12, 6.0))</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="PhaseCavity_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('PhaseCavity_datagroup');">PhaseCavity Data</h3>
+<div id="PhaseCavity_datagroup">
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhaseCavity_configextra');">PhaseCavity config</a></p>
+<div class="myhidden" id="PhaseCavity_configextra">
+<div>
+<p><pre>src                  BldInfo(PhaseCavity)                              
+group                0                                                 
+alias                PhaseCavity                                       </pre></p>
+</div>
+</div>
+<a class="anchor" id="PhaseCavity_attrs_table"></a>
+<div>
+<h4>PhaseCavity attrs table</h4>
+<p><pre>                  unit          doc                                                               
+Gasdet_post_atten    mJ          Energy measurement afeter attenuation (FEEGasDetEnergy_f_21_EN...
+PhotonEnergy         eV          computed photon energy, in eV                                 ...
+charge1            pico-columbs  UND:R02:IOC:16:BAT:Charge1 value in pico-columbs.             ...
+charge2            pico-columbs  UND:R02:IOC:16:BAT:Charge2 value in pico-columbs.             ...
+fitTime1           pico-seconds  UND:R02:IOC:16:BAT:FitTime1 value in pico-seconds.            ...
+fitTime2           pico-seconds  UND:R02:IOC:16:BAT:FitTime2 value in pico-seconds.            ...</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhaseCavity_stats_tableextra');">PhaseCavity stats table</a></p>
+<div class="myhidden" id="PhaseCavity_stats_tableextra">
+<div>
+<p><pre>                   count     mean   std      min       5%      50%       95%      max
+variable                                                                             
+charge1            100.0   191.44  1.67   188.20   188.97   191.24  1.94e+02   195.97
+charge2            100.0   204.69  1.79   201.27   202.06   204.47  2.08e+02   209.57
+fitTime1           100.0     0.72  0.08     0.50     0.61     0.72  8.53e-01     1.01
+fitTime2           100.0    -0.12  0.07    -0.27    -0.24    -0.12 -4.23e-03     0.08
+PhotonEnergy       100.0  8984.28  4.91  8970.50  8976.37  8983.98  8.99e+03  8997.49
+Gasdet_post_atten  100.0     3.19  0.22     2.76     2.82     3.18  3.56e+00     3.79</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhaseCavity_correlation_figureextra');">PhaseCavity correlation figure</a></p>
+<div class="myhidden" id="PhaseCavity_correlation_figureextra">
+<div>
+<a href="PhaseCavity_correlation.png"><img src="PhaseCavity_correlation.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhaseCavity_default_scatter_matrix_figureextra');">PhaseCavity default scatter_matrix figure</a></p>
+<div class="myhidden" id="PhaseCavity_default_scatter_matrix_figureextra">
+<div>
+<a href="PhaseCavity_default_scatter_matrix.png"><img src="PhaseCavity_default_scatter_matrix.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhaseCavity_hist_figureextra');">PhaseCavity hist figure</a></p>
+<div class="myhidden" id="PhaseCavity_hist_figureextra">
+<div>
+<a href="PhaseCavity_hist.png"><img src="PhaseCavity_hist.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhaseCavity_time_figureextra');">PhaseCavity time figure</a></p>
+<div class="myhidden" id="PhaseCavity_time_figureextra">
+<div>
+<a href="PhaseCavity_time.png"><img src="PhaseCavity_time.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_PhaseCavityextra');">HowTo make PhaseCavity tables and figures.</a></p>
+<div class="myhidden" id="howto_PhaseCavityextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup PhaseCavity:
+plt.rcParams['axes.labelsize'] = 20
+attrs = [u'PhaseCavity_charge1', u'PhaseCavity_charge2', u'PhaseCavity_fitTime1', u'PhaseCavity_fitTime2', 'PhotonEnergy', 'Gasdet_post_atten']
+xselect = x[attrs]
+df = xselect.to_array().to_pandas().T
+attr_names={u'PhaseCavity_fitTime1': u'fitTime1', u'PhaseCavity_fitTime2': u'fitTime2', 'Gasdet_post_atten': u'Gasdet_post_atten', u'PhaseCavity_charge1': u'charge1', 'PhotonEnergy': u'PhotonEnergy', u'PhaseCavity_charge2': u'charge2'}
+df.rename(inplace=True, columns=attr_names)</p>
+<p># Howto make the PhaseCavity stats table:
+df_tbl = df.describe(percentiles=[0.05, 0.5, 0.95]).T.round({'count': 0})
+print df_tbl</p>
+<p># Howto make the PhaseCavity correlation figure:
+from PyDataSource.xarray_utils import heatmap
+heatmap(df, confidence=0.5)</p>
+<p># Howto make the PhaseCavity default scatter_matrix figure:
+scat_attrs = [u'fitTime1', u'fitTime2', u'Gasdet_post_atten', u'charge1', u'PhotonEnergy', u'charge2']
+robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]
+dfr = df[robust_attrs]
+df_tblr = df_tbl.T[robust_attrs].T
+dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
+dfscat = dfcut[scat_attrs]
+g = sns.PairGrid(dfscat, diag_sharey=False)
+g.map_lower(sns.kdeplot, cmap="Blues_d")
+g.map_upper(plt.scatter)
+g.map_diag(sns.kdeplot, lw=3)</p>
+<p># Howto make the PhaseCavity hist figure:
+df.hist(alpha=0.2, layout=(2, 3), figsize=(12, 6.0))</p>
+<p># Howto make the PhaseCavity time figure:
+df.plot(subplots=True, sharex=True, style='.', layout=(2, 3), figsize=(12, 6.0))</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="PhotonEnergy_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('PhotonEnergy_datagroup');">PhotonEnergy Data</h3>
+<div id="PhotonEnergy_datagroup">
+<a class="anchor" id="PhotonEnergy_attrs_table"></a>
+<div>
+<h4>PhotonEnergy attrs table</h4>
+<p><pre>                  unit        doc                                                               
+Gasdet_post_atten  mJ          Energy measurement afeter attenuation (FEEGasDetEnergy_f_21_EN...
+PhotonEnergy       eV          computed photon energy, in eV                                 ...
+damageMask                     Damage mask.                                                  ...
+ebeamCharge        nC          Beam charge in nC.                                            ...
+ebeamDumpCharge    e-          Bunch charge at Dump in num. electrons                        ...
+ebeamEnergyBC1     mm          Beam position in mm (related to beam energy).                 ...
+ebeamEnergyBC2     mm          Beam position in mm (related to beam energy).                 ...
+ebeamL3Energy      MeV         Beam energy in MeV.                                           ...
+ebeamLTU250        mm          LTU250 BPM value in mm, used to compute photon energy. from BP...
+ebeamLTU450        mm          LTU450 BPM value in mm, used to compute photon energy. from BP...
+ebeamLTUAngX       mrad        LTU beam angle in mrad.                                       ...
+ebeamLTUAngY       mrad        LTU beam angle in mrad.                                       ...
+ebeamLTUPosX       mm          LTU beam position (BPMS:LTU1:720 through 750) in mm.          ...
+ebeamLTUPosY       mm          LTU beam position in mm.                                      ...
+ebeamPkCurrBC1     Amps        Beam current in Amps.                                         ...
+ebeamPkCurrBC2     Amps        Beam current in Amps.                                         ...
+ebeamUndAngX       mrad        Undulator launch feedback beam x-angle in mrad.               ...
+ebeamUndAngY       mrad        Undulator launch feedback beam y-angle in mrad.               ...
+ebeamUndPosX       mm          Undulator launch feedback (BPMs U4 through U10) beam x-positio...
+ebeamUndPosY       mm          Undulator launch feedback beam y-position in mm.              ...
+ebeamXTCAVAmpl     MVolt       XTCAV Amplitude in MVolt.                                     ...
+ebeamXTCAVPhase    degrees     XTCAV Phase in degrees.                                       ...</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhotonEnergy_stats_tableextra');">PhotonEnergy stats table</a></p>
+<div class="myhidden" id="PhotonEnergy_stats_tableextra">
+<div>
+<p><pre>                   count      mean       std       min        5%       50%       95%       max
+variable                                                                                      
+damageMask         100.0  1.08e+03  3.94e+03  0.00e+00  0.00e+00  0.00e+00  1.54e+04  1.54e+04
+ebeamCharge        100.0  2.47e-01  3.09e-03  2.41e-01  2.42e-01  2.47e-01  2.52e-01  2.54e-01
+ebeamDumpCharge    100.0  1.17e+09  1.03e+07  1.15e+09  1.16e+09  1.17e+09  1.19e+09  1.20e+09
+ebeamEnergyBC1     100.0 -1.26e-02  6.79e-02 -1.80e-01 -1.21e-01 -4.90e-03  9.35e-02  1.47e-01
+ebeamEnergyBC2     100.0  2.85e-02  2.39e-01 -5.13e-01 -3.65e-01  3.79e-02  4.88e-01  5.62e-01
+ebeamL3Energy      100.0  1.41e+04  3.87e+00  1.41e+04  1.41e+04  1.41e+04  1.41e+04  1.41e+04
+ebeamLTU250        100.0  2.09e-02  3.35e-02 -7.53e-02 -3.37e-02  1.80e-02  7.75e-02  1.11e-01
+ebeamLTU450        100.0  3.41e-02  3.53e-02 -6.32e-02 -2.50e-02  3.69e-02  8.89e-02  1.29e-01
+ebeamLTUAngX       100.0 -5.30e-02  5.34e-03 -6.69e-02 -6.25e-02 -5.30e-02 -4.61e-02 -4.07e-02
+ebeamLTUAngY       100.0  1.62e-02  1.54e-03  1.23e-02  1.36e-02  1.62e-02  1.86e-02  2.02e-02
+ebeamLTUPosX       100.0 -2.79e-01  8.03e-03 -3.04e-01 -2.92e-01 -2.79e-01 -2.65e-01 -2.56e-01
+ebeamLTUPosY       100.0  6.10e-02  1.97e-03  5.57e-02  5.79e-02  6.10e-02  6.45e-02  6.54e-02
+ebeamPkCurrBC1     100.0  2.09e+02  3.15e+00  2.02e+02  2.05e+02  2.09e+02  2.15e+02  2.18e+02
+ebeamPkCurrBC2     100.0  4.71e+03  3.10e+02  3.99e+03  4.20e+03  4.70e+03  5.29e+03  5.44e+03
+ebeamUndAngX       100.0  2.51e-04  3.27e-04 -5.41e-04 -2.95e-04  2.94e-04  7.67e-04  1.03e-03
+ebeamUndAngY       100.0  3.05e-04  3.44e-04 -7.29e-04 -1.93e-04  3.24e-04  8.48e-04  1.13e-03
+ebeamUndPosX       100.0 -1.42e-03  7.19e-03 -1.98e-02 -1.29e-02 -2.73e-03  1.09e-02  1.88e-02
+ebeamUndPosY       100.0  2.67e-04  4.24e-03 -1.40e-02 -6.54e-03  2.00e-04  7.40e-03  9.70e-03
+ebeamXTCAVAmpl     100.0  5.00e+00  1.23e-01  4.71e+00  4.80e+00  5.01e+00  5.17e+00  5.31e+00
+ebeamXTCAVPhase    100.0  9.25e+01  2.03e+00  8.78e+01  8.94e+01  9.24e+01  9.56e+01  9.68e+01
+PhotonEnergy       100.0  8.98e+03  4.91e+00  8.97e+03  8.98e+03  8.98e+03  8.99e+03  9.00e+03
+Gasdet_post_atten  100.0  3.19e+00  2.21e-01  2.76e+00  2.82e+00  3.18e+00  3.56e+00  3.79e+00</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhotonEnergy_correlation_figureextra');">PhotonEnergy correlation figure</a></p>
+<div class="myhidden" id="PhotonEnergy_correlation_figureextra">
+<div>
+<a href="PhotonEnergy_correlation.png"><img src="PhotonEnergy_correlation.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PhotonEnergy_default_scatter_matrix_figureextra');">PhotonEnergy default scatter_matrix figure</a></p>
+<div class="myhidden" id="PhotonEnergy_default_scatter_matrix_figureextra">
+<div>
+<a href="PhotonEnergy_default_scatter_matrix.png"><img src="PhotonEnergy_default_scatter_matrix.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_PhotonEnergyextra');">HowTo make PhotonEnergy tables and figures.</a></p>
+<div class="myhidden" id="howto_PhotonEnergyextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup PhotonEnergy:
+plt.rcParams['axes.labelsize'] = 20
+attrs = [u'EBeam_damageMask', u'EBeam_ebeamCharge', u'EBeam_ebeamDumpCharge', u'EBeam_ebeamEnergyBC1', u'EBeam_ebeamEnergyBC2', u'EBeam_ebeamL3Energy', u'EBeam_ebeamLTU250', u'EBeam_ebeamLTU450', u'EBeam_ebeamLTUAngX', u'EBeam_ebeamLTUAngY', u'EBeam_ebeamLTUPosX', u'EBeam_ebeamLTUPosY', u'EBeam_ebeamPkCurrBC1', u'EBeam_ebeamPkCurrBC2', u'EBeam_ebeamUndAngX', u'EBeam_ebeamUndAngY', u'EBeam_ebeamUndPosX', u'EBeam_ebeamUndPosY', u'EBeam_ebeamXTCAVAmpl', u'EBeam_ebeamXTCAVPhase', u'PhotonEnergy', 'PhotonEnergy', 'Gasdet_post_atten', u'EBeam_ebeamL3Energy', u'EBeam_ebeamLTU250', u'EBeam_ebeamEnergyBC1']
+xselect = x[attrs]
+df = xselect.to_array().to_pandas().T
+attr_names={'Gasdet_post_atten': 'Gasdet_post_atten', u'EBeam_ebeamLTU250': u'ebeamLTU250', u'EBeam_ebeamXTCAVAmpl': u'ebeamXTCAVAmpl', u'EBeam_ebeamUndAngX': u'ebeamUndAngX', u'EBeam_ebeamUndAngY': u'ebeamUndAngY', u'EBeam_ebeamLTU450': u'ebeamLTU450', u'EBeam_ebeamUndPosX': u'ebeamUndPosX', u'EBeam_ebeamUndPosY': u'ebeamUndPosY', u'EBeam_damageMask': u'damageMask', u'PhotonEnergy': 'PhotonEnergy', u'EBeam_ebeamLTUAngX': u'ebeamLTUAngX', u'EBeam_ebeamLTUAngY': u'ebeamLTUAngY', u'EBeam_ebeamDumpCharge': u'ebeamDumpCharge', u'EBeam_ebeamPkCurrBC2': u'ebeamPkCurrBC2', u'EBeam_ebeamLTUPosX': u'ebeamLTUPosX', u'EBeam_ebeamLTUPosY': u'ebeamLTUPosY', u'EBeam_ebeamL3Energy': u'ebeamL3Energy', u'EBeam_ebeamCharge': u'ebeamCharge', u'EBeam_ebeamPkCurrBC1': u'ebeamPkCurrBC1', u'EBeam_ebeamXTCAVPhase': u'ebeamXTCAVPhase', u'EBeam_ebeamEnergyBC1': u'ebeamEnergyBC1', u'EBeam_ebeamEnergyBC2': u'ebeamEnergyBC2'}
+df.rename(inplace=True, columns=attr_names)</p>
+<p># Howto make the PhotonEnergy stats table:
+df_tbl = df.describe(percentiles=[0.05, 0.5, 0.95]).T.round({'count': 0})
+print df_tbl</p>
+<p># Howto make the PhotonEnergy default scatter_matrix figure:
+scat_attrs = [u'ebeamL3Energy', u'ebeamLTU250', u'ebeamEnergyBC1', 'PhotonEnergy', 'Gasdet_post_atten']
+robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]
+dfr = df[robust_attrs]
+df_tblr = df_tbl.T[robust_attrs].T
+dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
+dfscat = dfcut[scat_attrs]
+g = sns.PairGrid(dfscat, diag_sharey=False)
+g.map_lower(sns.kdeplot, cmap="Blues_d")
+g.map_upper(plt.scatter)
+g.map_diag(sns.kdeplot, lw=3)</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="PulseEnergy_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('PulseEnergy_datagroup');">PulseEnergy Data</h3>
+<div id="PulseEnergy_datagroup">
+<a class="anchor" id="PulseEnergy_attrs_table"></a>
+<div>
+<h4>PulseEnergy attrs table</h4>
+<p><pre>                  unit        doc                                                               
+Gasdet_post_atten  mJ          Energy measurement afeter attenuation (FEEGasDetEnergy_f_21_EN...
+Gasdet_pre_atten   mJ          Energy measurement before attenuation (FEEGasDetEnergy_f_11_EN...
+PhotonEnergy       eV          computed photon energy, in eV                                 ...
+f_63_ENRC          mJ          First energy measurement (mJ) for small signals (<0.5 mJ), aft...
+f_64_ENRC          mJ          Second (duplicate!) energy measurement (mJ) for small signals ...</pre></p>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PulseEnergy_stats_tableextra');">PulseEnergy stats table</a></p>
+<div class="myhidden" id="PulseEnergy_stats_tableextra">
+<div>
+<p><pre>                   count     mean   std      min       5%      50%      95%      max
+variable                                                                            
+f_63_ENRC          100.0     3.05  0.24     2.61     2.67     3.04     3.47     3.68
+f_64_ENRC          100.0     2.48  0.09     2.25     2.34     2.49     2.61     2.70
+Gasdet_post_atten  100.0     3.19  0.22     2.76     2.82     3.18     3.56     3.79
+Gasdet_pre_atten   100.0     3.38  0.20     2.94     3.07     3.37     3.72     3.89
+PhotonEnergy       100.0  8984.28  4.91  8970.50  8976.37  8983.98  8992.43  8997.49</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PulseEnergy_correlation_figureextra');">PulseEnergy correlation figure</a></p>
+<div class="myhidden" id="PulseEnergy_correlation_figureextra">
+<div>
+<a href="PulseEnergy_correlation.png"><img src="PulseEnergy_correlation.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('PulseEnergy_default_scatter_matrix_figureextra');">PulseEnergy default scatter_matrix figure</a></p>
+<div class="myhidden" id="PulseEnergy_default_scatter_matrix_figureextra">
+<div>
+<a href="PulseEnergy_default_scatter_matrix.png"><img src="PulseEnergy_default_scatter_matrix.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_PulseEnergyextra');">HowTo make PulseEnergy tables and figures.</a></p>
+<div class="myhidden" id="howto_PulseEnergyextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup PulseEnergy:
+plt.rcParams['axes.labelsize'] = 20
+attrs = [u'FEEGasDetEnergy_f_63_ENRC', u'FEEGasDetEnergy_f_64_ENRC', u'Gasdet_post_atten', u'Gasdet_pre_atten', 'PhotonEnergy', 'Gasdet_post_atten', u'FEEGasDetEnergy_f_64_ENRC', u'FEEGasDetEnergy_f_63_ENRC', u'Gasdet_pre_atten']
+xselect = x[attrs]
+df = xselect.to_array().to_pandas().T
+attr_names={u'FEEGasDetEnergy_f_64_ENRC': u'f_64_ENRC', u'FEEGasDetEnergy_f_63_ENRC': u'f_63_ENRC', u'Gasdet_post_atten': 'Gasdet_post_atten', u'Gasdet_pre_atten': u'Gasdet_pre_atten', 'PhotonEnergy': 'PhotonEnergy'}
+df.rename(inplace=True, columns=attr_names)</p>
+<p># Howto make the PulseEnergy stats table:
+df_tbl = df.describe(percentiles=[0.05, 0.5, 0.95]).T.round({'count': 0})
+print df_tbl</p>
+<p># Howto make the PulseEnergy default scatter_matrix figure:
+scat_attrs = [u'f_64_ENRC', u'f_63_ENRC', u'Gasdet_pre_atten', 'PhotonEnergy', 'Gasdet_post_atten']
+robust_attrs = [a for a in [attr.replace(alias+'_','') for attr in df.keys()]]
+dfr = df[robust_attrs]
+df_tblr = df_tbl.T[robust_attrs].T
+dfcut = df[(dfr > df_tblr['5%']-2*df_tblr['std']).all(axis=1) & (dfr < df_tblr['95%']+2*df_tblr['std']).all(axis=1)]
+dfscat = dfcut[scat_attrs]
+g = sns.PairGrid(dfscat, diag_sharey=False)
+g.map_lower(sns.kdeplot, cmap="Blues_d")
+g.map_upper(plt.scatter)
+g.map_diag(sns.kdeplot, lw=3)</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="RunStats_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('RunStats_datagroup');">RunStats Data</h3>
+<div id="RunStats_datagroup">
+<p>A summary of the mean, stdev, min and max values were created for each eventCode for the detectors in this table:</p>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('RunStats_RunStats_tableextra');">RunStats RunStats table</a></p>
+<div class="myhidden" id="RunStats_RunStats_tableextra">
+<div>
+<p><pre>codes                 40    42
+variable                      
+DsaCsPad_events    100.0   NaN
+Sc2Questar_events    NaN  25.0</pre></p>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_RunStatsextra');">HowTo make RunStats tables and figures.</a></p>
+<div class="myhidden" id="howto_RunStatsextra">
+<div>
+<p><pre></p>
+<p># Howto make the RunStats RunStats table:
+attrs=[u'DsaCsPad_events', u'Sc2Questar_events'])
+df_tbl = x[attrs].sel(steps=0).to_array().to_pandas()</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="Sc2Questar_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('Sc2Questar_datagroup');">Sc2Questar Data</h3>
+<div id="Sc2Questar_datagroup">
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Sc2Questar_configextra');">Sc2Questar config</a></p>
+<div class="myhidden" id="Sc2Questar_configextra">
+<div>
+<p><pre>masked_pixel_coordinates []                                                
+vertical_binning     x1                                                
+roiBegin_column      1000                                              
+threshold            0                                                 
+roiEnd_row           1400                                              
+forwarding           FullFrame                                         
+defect_pixel_correction_enabled 1                                                 
+vertical_remapping   1                                                 
+output_mirroring     None                                              
+roiBegin_row         500                                               
+number_of_masked_pixels 0                                                 
+forward_prescale     1                                                 
+processing           NoProcessing                                      
+number_of_defect_pixels 0                                                 
+gain_percent         100                                               
+output_offset        0                                                 
+output_lookup_table  []                                                
+defect_pixel_coordinates []                                                
+roiEnd_column        1900                                              
+output_lookup_table_enabled 0                                                 
+output_resolution    Twelve_bit                                        
+output_resolution_bits 12                                                
+black_level          0                                                 
+evr_width            0.03                                              
+group                2                                                 
+eventCode            42                                                
+src                  DetInfo(CxiEndstation.0:Opal4000.1)               
+evr_delay            0.000590554621849                                 
+map_key              [2 1]                                             
+alias                Sc2Questar                                        
+evr_polarity         0                                                 </pre></p>
+</div>
+</div>
+</div>
+<a class="anchor" id="Sc2Questar Stats_data"></a>
+<h3 class="text-center bg-primary " onclick="toggler('Sc2Questar Stats_datagroup');">Sc2Questar Stats Data</h3>
+<div id="Sc2Questar Stats_datagroup">
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_xaxis_figureextra');">Sc2Questar Stats _corr_stats max scan_vs_Sc2Questar_xaxis figure</a></p>
+<div class="myhidden" id="Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_xaxis_figureextra">
+<div>
+<a href="Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_xaxis.png"><img src="Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_xaxis.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_yaxis_figureextra');">Sc2Questar Stats _corr_stats max scan_vs_Sc2Questar_yaxis figure</a></p>
+<div class="myhidden" id="Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_yaxis_figureextra">
+<div>
+<a href="Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_yaxis.png"><img src="Sc2Questar_Stats__corr_stats_max_scan_vs_Sc2Questar_yaxis.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Sc2Questar_Stats__corr_stats_max_ec42_figureextra');">Sc2Questar Stats _corr_stats max_ec42 figure</a></p>
+<div class="myhidden" id="Sc2Questar_Stats__corr_stats_max_ec42_figureextra">
+<div>
+<a href="Sc2Questar_Stats__corr_stats_max_ec42.png"><img src="Sc2Questar_Stats__corr_stats_max_ec42.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Sc2Questar_Stats__corr_stats_mean_ec42_figureextra');">Sc2Questar Stats _corr_stats mean_ec42 figure</a></p>
+<div class="myhidden" id="Sc2Questar_Stats__corr_stats_mean_ec42_figureextra">
+<div>
+<a href="Sc2Questar_Stats__corr_stats_mean_ec42.png"><img src="Sc2Questar_Stats__corr_stats_mean_ec42.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('Sc2Questar_Stats__corr_stats_std_ec42_figureextra');">Sc2Questar Stats _corr_stats std_ec42 figure</a></p>
+<div class="myhidden" id="Sc2Questar_Stats__corr_stats_std_ec42_figureextra">
+<div>
+<a href="Sc2Questar_Stats__corr_stats_std_ec42.png"><img src="Sc2Questar_Stats__corr_stats_std_ec42.png" style="width:100%;" /></a>
+</div>
+</div>
+<p class="text-center"><a class="btn btn-sm btn-default" onclick="toggler('howto_Sc2Questar_Statsextra');">HowTo make Sc2Questar Stats tables and figures.</a></p>
+<div class="myhidden" id="howto_Sc2Questar_Statsextra">
+<div>
+<p><pre></p>
+<p># For interactive plotting -- plt.ioff() to turn off interactive plotting.</p>
+<p>plt.ion()</p>
+<p># Alternatively make plt.show() after each plot and close window to make next</p>
+<p># Howto setup Sc2Questar Stats:
+plt.rcParams['axes.labelsize'] = 24
+attr = 'Sc2Questar_corr_stats'
+xdat = x[attr]</p>
+<p># Howto make the Sc2Questar Stats _corr_stats max scan_vs_Sc2Questar_xaxis figure:
+plt.rcParams['axes.labelsize'] = 24
+xstat = xdat.sel(stat='mean').squeeze('steps')
+da = xstat.mean(axis=2)
+df = da.to_pandas().T.plot()
+plt.show()</p>
+<p># Howto make the Sc2Questar Stats _corr_stats max scan_vs_Sc2Questar_yaxis figure:
+plt.rcParams['axes.labelsize'] = 24
+xstat = xdat.sel(stat='mean').squeeze('steps')
+da = xstat.mean(axis=1)
+df = da.to_pandas().T.plot()
+plt.show()</p>
+<p># Howto make the Sc2Questar Stats _corr_stats max_ec42 figure:
+xstat = xdat.sel(stat='max').squeeze('steps')
+plt.figure(figsize=(16,14))
+xstat.sel(codes=42).plot(robust=True, size=8, aspect=True)
+plt.show()</p>
+<p># Howto make the Sc2Questar Stats _corr_stats mean_ec42 figure:
+xstat = xdat.sel(stat='mean').squeeze('steps')
+plt.figure(figsize=(16,14))
+xstat.sel(codes=42).plot(robust=True, size=8, aspect=True)
+plt.show()</p>
+<p># Howto make the Sc2Questar Stats _corr_stats std_ec42 figure:
+xstat = xdat.sel(stat='std').squeeze('steps')
+plt.figure(figsize=(16,14))
+xstat.sel(codes=42).plot(robust=True, size=8, aspect=True)
+plt.show()</p>
+<p></pre></p>
+</div>
+</div>
+</div>
+</div>
+<div class="col-md-3 blog-sidebar text-muted">
+<div id="sticky-anchor">
+</div>
+<div id="sticky" class="nav sidebar-module">
+<h4>Navigation</h4>
+<ul class="list-unstyled" style="font-size:90%" role="navigation">
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#metadata">Data Summary</a></li>
+<li><a href="#datatime">Data Information</a></li>
+<li><a href="#Access_the_Data">Access the Data</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#Detector Count_data">Detector Count Data</a></li>
+<li><a href="#Detector_Count_attrs_table">Detector Count attrs table</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#DsaCsPad_data">DsaCsPad Data</a></li>
+<li><a href="#DsaCsPad_attrs_table">DsaCsPad attrs table</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#DsaCsPad Stats_data">DsaCsPad Stats Data</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#EBeam_data">EBeam Data</a></li>
+<li><a href="#EBeam_attrs_table">EBeam attrs table</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#FEEGasDetEnergy_data">FEEGasDetEnergy Data</a></li>
+<li><a href="#FEEGasDetEnergy_attrs_table">FEEGasDetEnergy attrs table</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#PhaseCavity_data">PhaseCavity Data</a></li>
+<li><a href="#PhaseCavity_attrs_table">PhaseCavity attrs table</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#PhotonEnergy_data">PhotonEnergy Data</a></li>
+<li><a href="#PhotonEnergy_attrs_table">PhotonEnergy attrs table</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#PulseEnergy_data">PulseEnergy Data</a></li>
+<li><a href="#PulseEnergy_attrs_table">PulseEnergy attrs table</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#RunStats_data">RunStats Data</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#Sc2Questar_data">Sc2Questar Data</a></li>
+<li style="border-bottom: 1px solid #eee; margin-top:8px;"><a href="#Sc2Questar Stats_data">Sc2Questar Stats Data</a></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

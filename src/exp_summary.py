@@ -9,7 +9,7 @@ import time
 import traceback
 from pylab import *
 
-def write_exp_summary(self, file_name=None, path='scratch', **kwargs):
+def write_exp_summary(self, file_name=None, path=None, **kwargs):
     """Write ExperimentSummary as pickle file.
     """
     import cPickle as pickle
@@ -23,7 +23,14 @@ def write_exp_summary(self, file_name=None, path='scratch', **kwargs):
 
     if not os.path.isdir(path):
         os.mkdir(path)
-  
+    
+    try:
+        self.xpvs.to_netcdf(path=os.path.join(path,'xpvs.nc'), engine='h5netcdf')
+        self.xscan.to_netcdf(path=os.path.join(path,'xscan.nc'), engine='h5netcdf')
+        self.xset.to_netcdf(path=os.path.join(path,'xset.nc'), engine='h5netcdf')
+    except:
+        traceback.print_exc()
+
     try:
         with open(path+'/'+file_name, 'wb') as pickle_file:
             pickle.dump(pickle.dumps(self, protocol=-1), pickle_file, protocol=-1)
@@ -31,7 +38,101 @@ def write_exp_summary(self, file_name=None, path='scratch', **kwargs):
         traceback.print_exc()
         print 'Failes writing pickle file', path+'/'+file_name
 
-def read_exp_summary(exp=None, file_name=None, path='scratch', **kwargs):
+def open_epics_data(exp=None, file_name=None, path=None, run=None, **kwargs):
+    import glob
+    import xarray as xr
+    if not file_name:
+        file_name = 'xpvs.nc'
+    
+    if exp is None:
+        print 'Must supply exp Name'
+        return 
+
+    instrument = exp[0:3]
+    exp_dir = "/reg/d/psdm/{:}/{:}".format(instrument, exp)
+    if path == 'scratch':
+        path = os.path.join(exp_dir,'scratch', 'RunSummary')
+    elif os.path.isdir(os.path.join(exp_dir,'res')): 
+        path = os.path.join(exp_dir,'res','RunSummary')
+    else:
+        path = os.path.join(exp_dir,'results','RunSummary')
+
+    full_file = path+'/'+file_name
+    if glob.glob(full_file):
+        try:
+            xdata = xr.open_dataset(full_file, engine='h5netcdf')
+        except:
+            traceback.print_exc()
+            print 'Failes reading file', full_file
+            return None
+
+    else:
+        print 'Failes finding file', full_file
+        return None
+    
+    return xdata
+
+def get_pv_attrs(exp):
+    """
+    Get dict of attributes for epics pvs
+
+    Parameters
+    ----------
+    exp : str
+        Experiment Name
+
+    """
+    try:
+        xpvs = open_epics_data(exp, 'xpvs.nc')
+    except:
+        print 'Failed open_epics_data for', exp
+        xpvs = None
+
+    if not xpvs:
+        es = get_exp_summary(exp, reload=True)
+        es.save()
+        xpvs = es.xpvs
+
+    return {a: dict(item.attrs) for a, item in xpvs.data_vars.items()}
+
+def get_scan_pvs(exp, run=None):
+    """
+    Get scan pvs for exp.  
+    If run is provided return dict of alias, pv
+    Otherwise return pandas data frame for all runs
+    
+    Parameters
+    ----------
+    exp : str
+        Experiment Name
+    run : int
+        Run number (optional)
+    
+    """
+    try:
+        xscan = open_epics_data(exp, 'xscan.nc')
+    except:
+        xscan = None
+
+    if not xscan:
+        es = get_exp_summary(exp, reload=True)
+        es.save()
+        xscan = es.xscan
+
+    attrs = [a for a in xscan.data_vars.keys()]
+    dfscan = xscan.sel(stat='count').reset_coords()[attrs]
+    dfscan = dfscan.dropna(dim='run', how='all').to_dataframe().astype(int)
+   
+    if run:
+        df = dfscan.T[run]
+        df = df[df>0].to_dict()
+        if df is None:
+            df = []
+        return df
+    else:
+        return dfscan.T
+
+def read_exp_summary(exp=None, file_name=None, path=None, **kwargs):
     """
     Read exp_summary pickle file.  Return none if does not exist.
     """
@@ -40,6 +141,10 @@ def read_exp_summary(exp=None, file_name=None, path='scratch', **kwargs):
     if not file_name:
         file_name = 'experiment_summary.pkl'
     
+    if exp is None:
+        print 'Must supply exp Name'
+        return 
+
     instrument = exp[0:3]
     exp_dir = "/reg/d/psdm/{:}/{:}".format(instrument, exp)
     if path == 'scratch':
@@ -66,7 +171,7 @@ def read_exp_summary(exp=None, file_name=None, path='scratch', **kwargs):
     else:
         return None
 
-def get_exp_summary(exp, reload=False, path='scratch', **kwargs):
+def get_exp_summary(exp, reload=False, path=None, **kwargs):
     """
     Use scratch for now since results unreliable
     """
@@ -242,6 +347,10 @@ class ExperimentSummary(object):
             setattr(self, alias, tbl)
 
     def to_html(self, **kwargs):
+        """
+        Build experiment html report.  
+        see build_html.Build_experiment
+        """
         import build_html
         return build_html.Build_experiment(self, **kwargs)
 
@@ -794,7 +903,7 @@ class ExperimentSummary(object):
                                     #data_machine[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs)
                                 elif len(vals) > max_size:
                                     if not quiet:
-                                        print 'Skipping {:} due to too many data points {:}'.sformat(alias, len(vals))
+                                        print 'Skipping {:} due to too many data points {:}'.format(alias, len(vals))
                                 elif len(vals) > 1:
                                     dfs = pd.Series(vals, times).sort_index()
                                     dfs = dfs[~dfs.index.duplicated()]

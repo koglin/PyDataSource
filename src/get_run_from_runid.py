@@ -4,7 +4,7 @@ def get_run_from_id(run_id, exp):
     exp_runs = experiment_info.experiment_runs(instrument.upper(),exp)
     run_dict = {int(item['id']): int(item['num']) for item in exp_runs}
 
-    return run_dict.get(run_id)
+    return run_dict.get(run_id, run_id)
  
 if __name__ == "__main__":
     from sys import argv

@@ -92,6 +92,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../api.html#data-source">Data Source</a></li>
@@ -102,7 +105,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../api.html#epics-data">Epics Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#low-level-psana-data-interface">Low-level Psana Data Interface</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#data-structures">Data Structures</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="PyDataSource.to_xarray.html">PyDataSource.to_xarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="PyDataSource.DataSource.to_hdf5.html">PyDataSource.DataSource.to_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="PyDataSource.to_summary.html">PyDataSource.to_summary</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">PyDataSource.to_h5netcdf</a></li>
 <li class="toctree-l3"><a class="reference internal" href="PyDataSource.open_h5netcdf.html">PyDataSource.open_h5netcdf</a></li>
@@ -180,7 +183,7 @@
 <h1>PyDataSource.to_h5netcdf<a class="headerlink" href="#pydatasource-to-h5netcdf" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
 <dt id="PyDataSource.to_h5netcdf">
-<code class="descclassname">PyDataSource.</code><code class="descname">to_h5netcdf</code><span class="sig-paren">(</span><em>xdat=None</em>, <em>ds=None</em>, <em>file_name=None</em>, <em>path=None</em>, <em>h5folder='scratch'</em>, <em>subfolder='nc'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/psxarray.html#to_h5netcdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.to_h5netcdf" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">PyDataSource.</code><code class="descname">to_h5netcdf</code><span class="sig-paren">(</span><em>xdat=None</em>, <em>ds=None</em>, <em>file_name=None</em>, <em>path=None</em>, <em>h5folder=’scratch’</em>, <em>subfolder=’nc’</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/h5write.html#to_h5netcdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.to_h5netcdf" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</p>
 </dd></dl>
 
@@ -240,7 +243,7 @@
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

@@ -113,6 +113,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
@@ -184,83 +187,48 @@
 <h1>PyDataSource.AddOn.projection<a class="headerlink" href="#pydatasource-addon-projection" title="Permalink to this headline">¶</a></h1>
 <dl class="method">
 <dt id="PyDataSource.AddOn.projection">
-<code class="descclassname">AddOn.</code><code class="descname">projection</code><span class="sig-paren">(</span><em>attr=None</em>, <em>axis='x'</em>, <em>roi=None</em>, <em>sensor=None</em>, <em>name=None</em>, <em>axis_name=None</em>, <em>method=None</em>, <em>mask=None</em>, <em>bins=None</em>, <em>bin_size=None</em>, <em>rmin=None</em>, <em>rmax=None</em>, <em>unit='ADU'</em>, <em>doc=''</em>, <em>publish=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#AddOn.projection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.AddOn.projection" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">AddOn.</code><code class="descname">projection</code><span class="sig-paren">(</span><em>attr=None</em>, <em>axis=’x’</em>, <em>roi=None</em>, <em>sensor=None</em>, <em>name=None</em>, <em>axis_name=None</em>, <em>method=None</em>, <em>coords_x=None</em>, <em>coords_y=None</em>, <em>mask=None</em>, <em>bins=None</em>, <em>bin_size=None</em>, <em>rmin=None</em>, <em>rmax=None</em>, <em>unit=’ADU’</em>, <em>doc=”</em>, <em>publish=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#AddOn.projection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.AddOn.projection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a projection along an axis.</p>
-<p>Options implemented for x/y projections (i.e., axis=&#8217;x&#8217; or axis=&#8217;y&#8217;)
-But radial (axis=&#8217;r&#8217;) and azimuth (axis=&#8217;az&#8217;) projections are valid
+<p>Options implemented for x/y projections (i.e., axis=’x’ or axis=’y’)
+But radial (axis=’r’) and azimuth (axis=’az’) projections are valid
 in limited circumstances.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>attr</strong> : str</p>
-<blockquote>
-<div><p>Name of data object on which to make projection</p>
-</div></blockquote>
-<p><strong>axis</strong> : str</p>
-<blockquote>
-<div><dl class="docutils">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>attr</strong> (<em>str</em>) – Name of data object on which to make projection</li>
+<li><strong>axis</strong> (<em>str</em>) – <dl class="docutils">
 <dt>Projection axis</dt>
-<dd><p class="first last">&#8216;x&#8217;: x-axis
-&#8216;y&#8217;: y-axis
-&#8216;r&#8217;: radial
-&#8216;az&#8217;: azimuth
-True: both &#8216;x&#8217; and &#8216;y&#8217; projections</p>
-</dd>
+<dd>’x’: x-axis
+‘y’: y-axis
+‘r’: radial
+‘az’: azimuth
+True: both ‘x’ and ‘y’ projections</dd>
 </dl>
-</div></blockquote>
-<p><strong>name</strong> : str</p>
-<blockquote>
-<div><p>Name of projection object [Default is to append &#8216;_&#8217;+axis and sequential number
-to input attr name.</p>
-</div></blockquote>
-<p><strong>axis_name</strong> : str</p>
-<blockquote>
-<div><p>name of axis [default = axis+name]</p>
-</div></blockquote>
-<p><strong>method</strong> : str</p>
-<blockquote>
-<div><p>by default the method is &#8216;sum&#8217; but other numpy methods are
-also possible (e.g., &#8216;mean&#8217;, &#8216;std&#8217;, &#8216;min&#8217;, &#8216;max&#8217;, &#8216;var&#8217;).</p>
-</div></blockquote>
-<p><strong>sensor</strong> : int, optional</p>
-<blockquote>
-<div><p>First array element for 3 dim objects
-If no roi given, then roi created for entire sensor</p>
-</div></blockquote>
-<p><strong>roi</strong> : tuple, optional</p>
-<blockquote>
-<div><p>Region of interest (roi) parameters passed to roi method.
-roi method then acts on this reduced data</p>
-</div></blockquote>
-<p><strong>mask</strong> : str, optional</p>
-<blockquote>
-<div><p>Name of mask to apply before making projection.</p>
-</div></blockquote>
-<p><strong>bins</strong> : int or sequence of scalars, optional</p>
-<blockquote>
-<div><p>If <cite>bins</cite> is an int, it defines the number of equal-width
+</li>
+<li><strong>name</strong> (<em>str</em>) – Name of projection object [Default is to append ‘_’+axis and sequential number
+to input attr name.</li>
+<li><strong>axis_name</strong> (<em>str</em>) – name of axis [default = axis+name]</li>
+<li><strong>coords_x</strong> (<em>array</em>) – Array of X coordinates for input data object defined by attr</li>
+<li><strong>coords_y</strong> (<em>array</em>) – Array of X coordinates for input data object defined by attr</li>
+<li><strong>method</strong> (<em>str</em>) – by default the method is ‘sum’ but other numpy methods are
+also possible (e.g., ‘mean’, ‘std’, ‘min’, ‘max’, ‘var’).</li>
+<li><strong>sensor</strong> (<em>int</em><em>, </em><em>optional</em>) – First array element for 3 dim objects
+If no roi given, then roi created for entire sensor</li>
+<li><strong>roi</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Region of interest (roi) parameters passed to roi method.
+roi method then acts on this reduced data</li>
+<li><strong>mask</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of mask to apply before making projection.</li>
+<li><strong>bins</strong> (<em>int</em><em> or </em><em>sequence of scalars</em><em>, </em><em>optional</em>) – If <cite>bins</cite> is an int, it defines the number of equal-width
 bins in the given range (10, by default). If <cite>bins</cite> is a sequence,
 it defines the bin edges, including the rightmost edge, allowing
-for non-uniform bin widths. (used with np.histogram)</p>
-</div></blockquote>
-<p><strong>bin_size</strong> : float, optional</p>
-<blockquote>
-<div><p>Size of bins for polar coordinate projections.
-Default = pixelsize</p>
-</div></blockquote>
-<p><strong>doc</strong> : str, optional</p>
-<blockquote>
-<div><p>Doc string for resulting projection data</p>
-</div></blockquote>
-<p><strong>unit</strong> : str, optional</p>
-<blockquote>
-<div><p>Units of roi data [Default assumes same as attr data]</p>
-</div></blockquote>
-<p><strong>publish</strong> : bool, optional</p>
-<blockquote class="last">
-<div><p>Make psplot of roi data</p>
-</div></blockquote>
+for non-uniform bin widths. (used with np.histogram)</li>
+<li><strong>bin_size</strong> (<em>float</em><em>, </em><em>optional</em>) – Size of bins for polar coordinate projections.
+Default = pixelsize</li>
+<li><strong>doc</strong> (<em>str</em><em>, </em><em>optional</em>) – Doc string for resulting projection data</li>
+<li><strong>unit</strong> (<em>str</em><em>, </em><em>optional</em>) – Units of roi data [Default assumes same as attr data]</li>
+<li><strong>publish</strong> (<em>bool</em><em>, </em><em>optional</em>) – Make psplot of roi data</li>
+</ul>
 </td>
 </tr>
 </tbody>
@@ -323,7 +291,7 @@ Default = pixelsize</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

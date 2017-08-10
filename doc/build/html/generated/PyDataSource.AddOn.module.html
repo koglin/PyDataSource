@@ -113,6 +113,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
@@ -190,27 +193,24 @@
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>module</strong> : str</p>
-<blockquote>
-<div><p>Name of python module that contains a user defined PyDataSource.Detector class
-with the same name as the module.  e.g., &#8216;acqiris&#8217; loads &#8216;acqiris.py&#8217; file
-which must have class Acqiris(PyDatasource.Detector)</p>
-</div></blockquote>
-<p><strong>path</strong> : str</p>
-<blockquote>
-<div><p>Name of path for python module (default is the path of PyDataSource)</p>
-</div></blockquote>
-<p><strong>desc</strong> : str</p>
-<blockquote class="last">
-<div><p>Description</p>
-</div></blockquote>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>module</strong> (<em>str</em>) – Name of python module that contains a user defined PyDataSource.Detector class
+with the same name as the module.  e.g., ‘acqiris’ loads ‘acqiris.py’ file
+which must have class Acqiris(PyDatasource.Detector)</li>
+<li><strong>path</strong> (<em>str</em>) – Name of path for python module (default is the path of PyDataSource)</li>
+<li><strong>desc</strong> (<em>str</em>) – Description</li>
+</ul>
 </td>
 </tr>
 </tbody>
 </table>
+<p class="rubric">Example</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">evt</span><span class="o">.</span><span class="n">acqiris</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">module</span><span class="p">(</span><span class="s1">&#39;acqiris&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.add_detector</span></code></p>
+<p class="last"><code class="xref py py-meth docutils literal"><span class="pre">DataSource.add_detector()</span></code></p>
 </div>
 </dd></dl>
 
@@ -270,7 +270,7 @@ which must have class Acqiris(PyDatasource.Detector)</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

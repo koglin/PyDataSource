@@ -112,7 +112,6 @@ Details
     :toctree: generated/
 
     to_summary
-    xy_ploterr
 
 
 

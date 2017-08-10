@@ -33,10 +33,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../index.html"/>
-        <link rel="up" title="Data Structures" href="../xarray.html"/>
-        <link rel="next" title="PyDataSource.DataSource.xarray_kwargs" href="PyDataSource.DataSource.xarray_kwargs.html"/>
-        <link rel="prev" title="Data Structures" href="../xarray.html"/> 
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../index.html"/> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -86,31 +83,17 @@
           
             
             
-                <ul class="current">
+                <ul>
 <li class="toctree-l1"><a class="reference internal" href="../data_access.html">Data Access Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_processing.html">Data Processing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../api.html#data-source">Data Source</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#data-iterators">Data Iterators</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#detector-access">Detector Access</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#event-info">Event Info</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#psana-detector-access">psana.Detector Access</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#epics-data">Epics Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#low-level-psana-data-interface">Low-level Psana Data Interface</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="../api.html#data-structures">Data Structures</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">PyDataSource.to_xarray</a></li>
-<li class="toctree-l3"><a class="reference internal" href="PyDataSource.to_summary.html">PyDataSource.to_summary</a></li>
-<li class="toctree-l3"><a class="reference internal" href="PyDataSource.to_h5netcdf.html">PyDataSource.to_h5netcdf</a></li>
-<li class="toctree-l3"><a class="reference internal" href="PyDataSource.open_h5netcdf.html">PyDataSource.open_h5netcdf</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#datasource-configuration">DataSource Configuration</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
 
             
@@ -155,8 +138,6 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-          <li><a href="../xarray.html">Data Structures</a> &raquo;</li>
-        
       <li>PyDataSource.to_xarray</li>
     
     
@@ -178,51 +159,6 @@
             
   <div class="section" id="pydatasource-to-xarray">
 <h1>PyDataSource.to_xarray<a class="headerlink" href="#pydatasource-to-xarray" title="Permalink to this headline">¶</a></h1>
-<dl class="function">
-<dt id="PyDataSource.to_xarray">
-<code class="descclassname">PyDataSource.</code><code class="descname">to_xarray</code><span class="sig-paren">(</span><em>ds=None, nevents=None, max_size=10001, xbase=None, publish=False, store_data=[], chunk_steps=True, ichunk=None, nchunks=24, code_flags={'XrayOn': [-162], 'XrayOff': [162]}, drop_unused_codes=True, pvs=[], epics_attrs=[], eventCodes=None, save=None, **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/psxarray.html#to_xarray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.to_xarray" title="Permalink to this definition">¶</a></dt>
-<dd><p>Build xarray object from PyDataSource.DataSource object.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>max_size</strong> : uint</p>
-<blockquote>
-<div><p>Maximum array size of data objects to build into xarray.</p>
-</div></blockquote>
-<p><strong>ichunk: int</strong> :</p>
-<blockquote>
-<div><p>chunk index (skip ahead nevents*ichunk)</p>
-</div></blockquote>
-<p><strong>pvs: list</strong> :</p>
-<blockquote>
-<div><p>List of pvs to be loaded vs time</p>
-</div></blockquote>
-<p><strong>epics_attrs: list</strong> :</p>
-<blockquote>
-<div><p>List of epics pvs to be saved as run attributes based on inital value
-of first event.</p>
-</div></blockquote>
-<p><strong>code_flags</strong> : dict</p>
-<blockquote>
-<div><p>Dictionary of event code flags.
-Default = {&#8216;XrayOff&#8217;: [162], &#8216;XrayOn&#8217;: [-162]}</p>
-</div></blockquote>
-<p><strong>eventCodes</strong> : list</p>
-<blockquote>
-<div><p>List of event codes
-Default is all event codes in DataSource</p>
-</div></blockquote>
-<p><strong>drop_unused_codes</strong> : bool</p>
-<blockquote class="last">
-<div><p>If true drop unused eventCodes [default=True]</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </div>
 
 
@@ -232,15 +168,6 @@ Default is all event codes in DataSource</p>
            </div>
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="PyDataSource.DataSource.xarray_kwargs.html" class="btn btn-neutral float-right" title="PyDataSource.DataSource.xarray_kwargs" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="../xarray.html" class="btn btn-neutral" title="Data Structures" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>
@@ -279,7 +206,7 @@ Default is all event codes in DataSource</p>
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

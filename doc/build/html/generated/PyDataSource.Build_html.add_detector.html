@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>PyDataSource.Build_html.add_detector &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../index.html"/>
+        <link rel="up" title="Run Summary Reports" href="../build_html.html"/>
+        <link rel="next" title="PyDataSource.Build_html.add_summary" href="PyDataSource.Build_html.add_summary.html"/>
+        <link rel="prev" title="PyDataSource.Build_html.add_all" href="PyDataSource.Build_html.add_all.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../build_html.html">Run Summary Reports</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#basic-report-structure">Basic Report Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#auto-add-default-report">Auto add default report</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#customizing-reports">Customizing reports</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../build_html.html#add-detector">Add Detector</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">PyDataSource.Build_html.add_detector</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#add-summary">Add Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#add-statistics">Add Statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#other-common-plots">Other common plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#write-html-report">write html report</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../build_html.html#base-level-report-methods">Base level report methods</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../build_html.html">Run Summary Reports</a> &raquo;</li>
+        
+      <li>PyDataSource.Build_html.add_detector</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/PyDataSource.Build_html.add_detector.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="pydatasource-build-html-add-detector">
+<h1>PyDataSource.Build_html.add_detector<a class="headerlink" href="#pydatasource-build-html-add-detector" title="Permalink to this headline">¶</a></h1>
+<dl class="method">
+<dt id="PyDataSource.Build_html.add_detector">
+<code class="descclassname">Build_html.</code><code class="descname">add_detector</code><span class="sig-paren">(</span><em>alias=’FEEGasDetEnergy’, percentiles=[0.05, 0.5, 0.95], attrs=None, catagory=None, figsize=None, layout=None, groupby=None, scat_name=None, make_scatter=None, make_table=True, make_timeplot=None, make_histplot=None, make_correlation=True, min_step_data=5, confidence=0.5, labelsize=20, robust_attrs=None, plot_errors=False, bins=50, max_steps=20, plt_style=’.’, cut=None, show=False, **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/build_html.html#Build_html.add_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.Build_html.add_detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a detector based on alias</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>alias</strong> (<em>str</em>) – Detector alias</li>
+<li><strong>attrs</strong> (<em>list</em>) – List of attributes to be operated on.
+By default attrs will be the list of all data elements with the given alias and dim = (‘time’,)</li>
+<li><strong>catagory</strong> (<em>str</em>) – Plot catagory for organization in html page [Default = alias]</li>
+<li><strong>make_table</strong> (<em>bool</em>) – Make a table with statistical description of attributes
+(uses pandas DataFrame.describe method)</li>
+<li><strong>make_histplot</strong> (<em>bool</em>) – Make histotram plots for each attr</li>
+<li><strong>bins</strong> (<em>int</em>) – Number of bins used in histograms [Default = 50]</li>
+<li><strong>make_timeplot</strong> (<em>bool</em>) – Make plots vs time for each attr</li>
+<li><strong>make_correlation</strong> (<em>bool</em>) – Make a correlation plot of attributes that have a correlation
+confidence greater than the specified confidence value</li>
+<li><strong>confidence</strong> (<em>float</em>) – Minimum confidence level for correlation plot.</li>
+<li><strong>make_scatter</strong> (<em>bool</em><em>, </em><em>list</em><em>, or </em><em>dict</em>) – Make scatter correlation plot of detector attributes.
+Optionally provide list specifying attrs for scatter plots.
+If dict of lists of attributes is provided, than make multiple
+loop through dict to make scatter plots with the keys used
+as names of the plots and values used as attributes in plot.</li>
+<li><strong>max_steps</strong> (<em>int</em>) – Max steps in scatter plot to be color coded</li>
+<li><strong>robust_attrs</strong> (<em>list</em>) – List of attibutes to cut on outliers in making scatter plots.</li>
+<li><strong>scat_name</strong> (<em>str</em>) – Optional name of scatter plot</li>
+<li><strong>groupby</strong> (<em>list</em>) – Optionally group data by each attribute in groupby list
+Default is to use attibutes in scan_variables DataSet attrs.</li>
+<li><strong>min_step_data</strong> (<em>int</em>) – Minimum number of steps in groupby attributes to make groupby plots
+Default = 20</li>
+<li><strong>plot_errors</strong> (<em>bool</em>) – Optionally plot error bars in groupby plots</li>
+<li><strong>cut</strong> (<em>str</em>) – Attribute on which to make cut when making plots</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="PyDataSource.Build_html.add_summary.html" class="btn btn-neutral float-right" title="PyDataSource.Build_html.add_summary" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="PyDataSource.Build_html.add_all.html" class="btn btn-neutral" title="PyDataSource.Build_html.add_all" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

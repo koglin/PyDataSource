@@ -115,6 +115,9 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
 </ul>
@@ -182,7 +185,7 @@
             
   <div class="section" id="data-processing">
 <span id="id1"></span><h1>Data Processing<a class="headerlink" href="#data-processing" title="Permalink to this headline">¶</a></h1>
-<p>With the &#8216;add&#8217; property for each detector, a collection of methods are provided to add parameters, properties, and reduction/proccesing of data with roi, projection, histogram methods.</p>
+<p>With the ‘add’ property for each detector, a collection of methods are provided to add parameters, properties, and reduction/proccesing of data with roi, projection, histogram methods.</p>
 <p>We will use some practice data summarized in a table found at this link:
 <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Publicly+Available+Practice+Data">https://confluence.slac.stanford.edu/display/PSDM/Publicly+Available+Practice+Data</a></p>
 <div class="section" id="tutorial-data">
@@ -344,7 +347,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 </div>
 <div class="section" id="make-projections">
 <h2>Make Projections<a class="headerlink" href="#make-projections" title="Permalink to this headline">¶</a></h2>
-<p>Use the add.projection method to make a radial projection of the CSpad data.  Note that it is more accurate as well as faster to compute the radial projection from the calib &#8220;unassembled data&#8221; rather than the assembled image.  The publish keyword opens a plot, in which we clearly see several diffraction rings.</p>
+<p>Use the add.projection method to make a radial projection of the CSpad data.  Note that it is more accurate as well as faster to compute the radial projection from the calib “unassembled data” rather than the assembled image.  The publish keyword opens a plot, in which we clearly see several diffraction rings.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">publish</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="go">psmon plot added -- use the following to view:</span>
 <span class="go">--&gt; psplot -s psanaphi103 -p 12301 DscCsPad_calib_r</span>
@@ -355,7 +358,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <div class="figure align-center">
 <img alt="_images/cxitut13_run10_DscCsPad_calib_r_22.jpg" src="_images/cxitut13_run10_DscCsPad_calib_r_22.jpg" />
 </div>
-<p>For another example we go back to the xpptut15 and open up a plot of the &#8216;opal_1&#8217; camera.  Note that here we use &#8216;raw&#8217; for the camera data since most cameras are already internally calibrated and do not need pedestal or common mode corrections and are already uniform 2D images, so do not need geometry files to create images.</p>
+<p>For another example we go back to the xpptut15 and open up a plot of the ‘opal_1’ camera.  Note that here we use ‘raw’ for the camera data since most cameras are already internally calibrated and do not need pedestal or common mode corrections and are already uniform 2D images, so do not need geometry files to create images.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">evt</span><span class="o">.</span><span class="n">opal_1</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">psplot</span><span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span>
 <span class="go">psmon plot added -- use the following to view:</span>
 <span class="go">--&gt; psplot -s psanaphi108 -p 12301 opal_1_raw</span>
@@ -395,7 +398,7 @@ for flexibility in writing advanced methods.</p>
 </pre></div>
 </div>
 <p>A module can then be added to a detector with the add.module method, as in the example below for a
-module to process an &#8216;Imp&#8217; waveform detector.  This module creates filtered waveform numpy arrays
+module to process an ‘Imp’ waveform detector.  This module creates filtered waveform numpy arrays
 from the waveforms and calculates the peak amplitudes of the filtered waveforms.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
@@ -496,10 +499,10 @@ path keyword pointing to your work area. e.g.,</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.count.html#PyDataSource.AddOn.count" title="PyDataSource.AddOn.count"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.count</span></code></a>([attr,&nbsp;gain,&nbsp;unit,&nbsp;doc,&nbsp;roi,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.count.html#PyDataSource.AddOn.count" title="PyDataSource.AddOn.count"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.count</span></code></a>([attr,&nbsp;gain,&nbsp;unit,&nbsp;doc,&nbsp;roi,&nbsp;…])</td>
 <td>Count (i.e., sum) of detector within optional roi.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.histogram.html#PyDataSource.AddOn.histogram" title="PyDataSource.AddOn.histogram"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.histogram</span></code></a>([attr,&nbsp;bins,&nbsp;gain,&nbsp;unit,&nbsp;...])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.histogram.html#PyDataSource.AddOn.histogram" title="PyDataSource.AddOn.histogram"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.histogram</span></code></a>([attr,&nbsp;bins,&nbsp;gain,&nbsp;unit,&nbsp;…])</td>
 <td>Make a histogram.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.module.html#PyDataSource.AddOn.module" title="PyDataSource.AddOn.module"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.module</span></code></a>([module])</td>
@@ -508,13 +511,13 @@ path keyword pointing to your work area. e.g.,</p>
 <tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.parameter.html#PyDataSource.AddOn.parameter" title="PyDataSource.AddOn.parameter"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.parameter</span></code></a>(**kwargs)</td>
 <td>Add parameters as keword arguments.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.peak.html#PyDataSource.AddOn.peak" title="PyDataSource.AddOn.peak"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.peak</span></code></a>([attr,&nbsp;ichannel,&nbsp;name,&nbsp;xaxis,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.peak.html#PyDataSource.AddOn.peak" title="PyDataSource.AddOn.peak"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.peak</span></code></a>([attr,&nbsp;ichannel,&nbsp;name,&nbsp;xaxis,&nbsp;…])</td>
 <td>Simple 1D peak locator.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection" title="PyDataSource.AddOn.projection"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.projection</span></code></a>([attr,&nbsp;axis,&nbsp;roi,&nbsp;sensor,&nbsp;...])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection" title="PyDataSource.AddOn.projection"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.projection</span></code></a>([attr,&nbsp;axis,&nbsp;roi,&nbsp;sensor,&nbsp;…])</td>
 <td>Make a projection along an axis.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.property.html#PyDataSource.AddOn.property" title="PyDataSource.AddOn.property"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.property</span></code></a>(func_name,&nbsp;*args,&nbsp;**kwargs)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.property.html#PyDataSource.AddOn.property" title="PyDataSource.AddOn.property"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.property</span></code></a>(func_name[,&nbsp;attr])</td>
 <td>Add a property that operates on this detector object.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.psplot.html#PyDataSource.AddOn.psplot" title="PyDataSource.AddOn.psplot"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.psplot</span></code></a>(*attrs,&nbsp;**kwargs)</td>
@@ -579,7 +582,7 @@ path keyword pointing to your work area. e.g.,</p>
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

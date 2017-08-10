@@ -92,6 +92,9 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#data-source">Data Source</a><ul class="current">
@@ -188,40 +191,46 @@
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>source</strong> : str</p>
-<blockquote>
-<div><p>Source name</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><p class="first"><strong>evr_width</strong> : float</p>
-<blockquote>
-<div><p>Detector evr trigger width [&#8216;s&#8217;]</p>
-</div></blockquote>
-<p><strong>evr_delay</strong> : float</p>
-<blockquote>
-<div><p>Detector evr trigger delay [&#8216;s&#8217;]</p>
-</div></blockquote>
-<p><strong>evr_polarity</strong> : bool</p>
-<blockquote>
-<div><p>Detector evr trigger polarity</p>
-</div></blockquote>
-<p><strong>group: int</strong> :</p>
-<blockquote>
-<div><p>Daq evr group</p>
-</div></blockquote>
-<p><strong>map_key: int tuple</strong> :</p>
-<blockquote>
-<div><p>Evr configuation map key (card,channel)</p>
-</div></blockquote>
-<p><strong>eventCode: int</strong> :</p>
-<blockquote class="last">
-<div><p>Evr event code</p>
-</div></blockquote>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>source</strong> (<em>str</em>) – Source name</td>
 </tr>
 </tbody>
 </table>
+<dl class="attribute">
+<dt id="PyDataSource.SourceData.evr_width">
+<code class="descname">evr_width</code><a class="headerlink" href="#PyDataSource.SourceData.evr_width" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>float</em> – Detector evr trigger width [‘s’]</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.SourceData.evr_delay">
+<code class="descname">evr_delay</code><a class="headerlink" href="#PyDataSource.SourceData.evr_delay" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>float</em> – Detector evr trigger delay [‘s’]</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.SourceData.evr_polarity">
+<code class="descname">evr_polarity</code><a class="headerlink" href="#PyDataSource.SourceData.evr_polarity" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>bool</em> – Detector evr trigger polarity</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.SourceData.group">
+<code class="descname">group</code><a class="headerlink" href="#PyDataSource.SourceData.group" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int</em> – Daq evr group</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.SourceData.map_key">
+<code class="descname">map_key</code><a class="headerlink" href="#PyDataSource.SourceData.map_key" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int tuple</em> – Evr configuation map key (card,channel)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="PyDataSource.SourceData.eventCode">
+<code class="descname">eventCode</code><a class="headerlink" href="#PyDataSource.SourceData.eventCode" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>int</em> – Evr event code</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="PyDataSource.SourceData.__init__">
 <code class="descname">__init__</code><span class="sig-paren">(</span><em>source</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#SourceData.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.SourceData.__init__" title="Permalink to this definition">¶</a></dt>
@@ -300,7 +309,7 @@
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

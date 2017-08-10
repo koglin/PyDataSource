@@ -93,12 +93,14 @@
 <li class="toctree-l2"><a class="reference internal" href="#error-bar-plots">Error Bar Plots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#details">Details</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.to_summary.html">PyDataSource.to_summary</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.xy_ploterr.html">PyDataSource.xy_ploterr</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
 </ul>
@@ -166,7 +168,7 @@
             
   <div class="section" id="summarizing-data">
 <span id="data-summary"></span><h1>Summarizing Data<a class="headerlink" href="#summarizing-data" title="Permalink to this headline">¶</a></h1>
-<p>The to_summary method uses a split-apply-combine strategy using the groupby method in <a class="reference external" href="http://xarray.pydata.org">xarray</a> (based on the <a class="reference external" href="http://pandas.pydata.org">pandas</a> groupby API) to create a statistical summary of a run.  This is often useful for runs that have steps (i.e., data acquired from daq or python scans).   The defaults for the to_summary method will provide the statistics (&#8216;mean&#8217;, &#8216;std&#8217;, &#8216;min&#8217;, &#8216;max&#8217;, and &#8216;count&#8217;) of events grouped according according to step.  By default, the scan variables are automatically built in the to_xarray method and conveniently available in the resulting xarray.Dataset.</p>
+<p>The to_summary method uses a split-apply-combine strategy using the groupby method in <a class="reference external" href="http://xarray.pydata.org">xarray</a> (based on the <a class="reference external" href="http://pandas.pydata.org">pandas</a> groupby API) to create a statistical summary of a run.  This is often useful for runs that have steps (i.e., data acquired from daq or python scans).   The defaults for the to_summary method will provide the statistics (‘mean’, ‘std’, ‘min’, ‘max’, and ‘count’) of events grouped according according to step.  By default, the scan variables are automatically built in the to_xarray method and conveniently available in the resulting xarray.Dataset.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [2]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 
 <span class="gp">In [3]: </span><span class="n">a</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">to_summary</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
@@ -247,7 +249,7 @@
 </div>
 <div class="section" id="error-bar-plots">
 <h2>Error Bar Plots<a class="headerlink" href="#error-bar-plots" title="Permalink to this headline">¶</a></h2>
-<p>Error bar plots can be conveniently generated for summarized data using the xy_ploterr method.  This method takes advantage the meta-data stored in the xarray.DataSet as well as features in plotting methods in <a class="reference external" href="http://pandas.pydata.org">pandas</a> to automatically add labels to the plot.  By default the plot is against the daq scan coordinate, which in this case is &#8216;lxt_vitara_ttc&#8217;.  Plotting with respect to another axis is done with the xaxis keyword.</p>
+<p>Error bar plots can be conveniently generated for summarized data using the xy_ploterr method.  This method takes advantage the meta-data stored in the xarray.DataSet as well as features in plotting methods in <a class="reference external" href="http://pandas.pydata.org">pandas</a> to automatically add labels to the plot.  By default the plot is against the daq scan coordinate, which in this case is ‘lxt_vitara_ttc’.  Plotting with respect to another axis is done with the xaxis keyword.</p>
 <p>The example below also illustrates that the steps this run with large variation in Photon Energy are correlated with low beam Charge.</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
@@ -277,11 +279,8 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_summary.html#PyDataSource.to_summary" title="PyDataSource.to_summary"><code class="xref py py-obj docutils literal"><span class="pre">to_summary</span></code></a>(x[,&nbsp;dim,&nbsp;groupby,&nbsp;save_summary,&nbsp;...])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_summary.html#PyDataSource.to_summary" title="PyDataSource.to_summary"><code class="xref py py-obj docutils literal"><span class="pre">to_summary</span></code></a>(x[,&nbsp;dim,&nbsp;groupby,&nbsp;save_summary,&nbsp;…])</td>
 <td>Summarize a run.</td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.xy_ploterr.html#PyDataSource.xy_ploterr" title="PyDataSource.xy_ploterr"><code class="xref py py-obj docutils literal"><span class="pre">xy_ploterr</span></code></a>(a[,&nbsp;attr,&nbsp;xaxis,&nbsp;title,&nbsp;desc,&nbsp;fmt])</td>
-<td>Plot summary data with error bars.</td>
 </tr>
 </tbody>
 </table>
@@ -342,7 +341,7 @@
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

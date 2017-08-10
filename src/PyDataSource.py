@@ -107,6 +107,10 @@ from psmon.plots import Image, XYPlot, MultiPlot
 from DataSourceInfo import *
 from psana_doc_info import * 
 from psmessage import Message
+from build_html import Build_html
+from exp_summary import ExperimentSummary
+
+
 
 _eventCodes_rate = {
         40: '120 Hz',
@@ -1400,6 +1404,9 @@ class DataSource(object):
 
     def _get_config_file(self, run=None, exp=None, instrument=None, user=None, 
             path=None):
+        """
+        Get the full config file name.  
+        """
         if user:
             if user is True:
                 path = self.data_source.user_dir
@@ -1407,9 +1414,10 @@ class DataSource(object):
                 path = self.data_source._get_user_dir(user)
 
         elif not path:
-            base_path = '/reg/d/psdm/{:}/{:}/results'.format(self.instrument,self.experiment)
+            exp = self.experiment
+            base_path = '/reg/d/psdm/{:}/{:}/results'.format(self.instrument, exp)
             if not os.path.isdir(base_path):
-                base_path = '/reg/d/psdm/{:}/{:}/res'.format(self.instrument,self.experiment)
+                base_path = '/reg/d/psdm/{:}/{:}/res'.format(self.instrument, exp)
             path = base_path+'/summary_config'
 
         if not os.path.isdir(path):
@@ -1421,13 +1429,15 @@ class DataSource(object):
                 if os.path.isfile(file_name):
                     return file_name
             
-            print 'No valid config file found for {:} Run {:}'.format(exp, run)
-            return None
-            #raise Exception('No valid config file found for {:} Run {:}'.format(exp, run))
-        
         else:
-            return '{:}/run{:04}.config'.format(path, int(run))
-                
+            file_name = '{:}/run{:04}.config'.format(path, int(run))
+            if os.path.isfile(file_name):
+                return file_name
+            
+        err_message = 'No valid config file found for {:} Run {:}'.format(exp, run)
+        print err_message
+        return None
+            
 
     def save_config(self, file_name=None, path=None, **kwargs):
         """
@@ -1441,7 +1451,16 @@ class DataSource(object):
             Path of file
         """
         if not file_name:
-            file_name = self._get_config_file(run=self.data_source.run, path=path)
+            #file_name = self._get_config_file(run=self.data_source.run, path=path)
+            if not path:
+                exp = self.experiment
+                base_path = '/reg/d/psdm/{:}/{:}/results'.format(self.instrument, exp)
+                if not os.path.isdir(base_path):
+                    base_path = '/reg/d/psdm/{:}/{:}/res'.format(self.instrument, exp)
+                path = base_path+'/summary_config'
+            
+            run = self.data_source.run
+            file_name = '{:}/run{:04}.config'.format(path, int(run))
 
         if file_name:
             pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
@@ -1473,13 +1492,24 @@ class DataSource(object):
     
         if not file_name:
             print 'No config file to load'
+        elif not os.path.isfile(file_name): 
+            print 'Config file not present: {:}'.format(file_name)
         else:
-            config = pd.read_json(file_name).to_dict()
+            try:
+                config = pd.read_json(file_name).to_dict()
+            except:
+                print 'Config file not present: {:}'.format(file_name)
+                return
+
             for alias, item in config.items():
                 if alias in self._device_sets:
                     if 'module' in item:
                         module_dict = item.pop('module')
+
                         if module_dict:
+                            # Make sure start with event when loading
+                            if self._current_evt is None:
+                                self.events.next()
                             #print alias, module_dict
                             kwargs = module_dict.get('kwargs', {})
                             kwargs.update({'alias': alias, 
@@ -1487,7 +1517,9 @@ class DataSource(object):
                                            'module': module_dict.get('name'),
                                            'path': module_dict.get('path'),
                                            'desc': module_dict.get('desc')})
+                            print 'add_detector', kwargs
                             self.add_detector(**kwargs)
+                            self.reload()
 
                     det_config = self._device_sets[alias]
                     for attr, config_dict in item.items():
@@ -2927,17 +2959,22 @@ class EvrData(PsanaTypeData):
         typ_func = ds._current_evt.get(self._typ,self._src)
         PsanaTypeData.__init__(self, typ_func)
         self.eventCodes = self.fifoEvents.eventCode
+        self._ds = ds
 
-    def _present(self, eventCode):
+    def _present(self, eventCode, strict=True):
         """Return True if the eventCode is present.
         """
         try:
             pres = self._typ_func.present(eventCode)
             if pres:
-                return True
+                if strict and self.timestampHigh[eventCode] != self.EventId.fiducials:
+                    return False
+                else:
+                    return True
             else:
                 return False
         except:
+            print 'error'
             try:
                 return (eventCode in self.eventCodes)
             except:
@@ -2945,11 +2982,16 @@ class EvrData(PsanaTypeData):
         
         return False
 
-    def present(self, *args):
+    def present(self, *args, **kwargs):
         """
         Check if the event has specified event code.
         Multiple event codes can be tested.
         
+        Parameters
+        ----------
+        strict: bool (default=True)
+            check if code has same timestamp as EventId
+
         Example
         -------
         
@@ -2978,21 +3020,45 @@ class EvrData(PsanaTypeData):
             eventCodes = args
 
         for eventCode in eventCodes:
-            if (eventCode > 0 and not self._present(eventCode)) \
-                    or (eventCode < 0 and self._present(abs(eventCode))):
+            if (eventCode > 0 and not self._present(eventCode, **kwargs)):
+                return False
+
+            if (eventCode < 0 and self._present(abs(eventCode), **kwargs)):
                 return False
 
         return True
+
+    @property
+    def timestampHigh(self):
+        """
+        timstampHigh dict from fifoEvents data
+        """
+        return dict(zip(self.fifoEvents.eventCode, self.fifoEvents.timestampHigh))
+
+    @property
+    def timestampLow(self):
+        """
+        timstampLow dict from fifoEvents data
+        """
+        return dict(zip(self.fifoEvents.eventCode, self.fifoEvents.timestampLow))
+    
+    @property
+    def EventId(self):
+        """
+        EventId object
+        """
+        return EventId(self._ds._current_evt)
+
 
     def show_table(self, **kwargs):
         """Show table of event codes present'
         """
         message = Message(quiet=True, **kwargs)
         ecs = self.fifoEvents
-        message('{:>8} {:>10} {:>10}'.format('Code','TS_high', 'TS_low'))
+        message('{:>6} {:>8} {:>8} {:>9}'.format('Code','TS_high', 'TS_low', 'Present'))
         for i in range(self.numFifoEvents):
-            message('{:8} {:10} {:10}'.format(ecs.eventCode[i], 
-                            ecs.timestampHigh[i], ecs.timestampLow[i]))
+            message('{:6} {:8} {:8}   {:}'.format(ecs.eventCode[i], 
+                            ecs.timestampHigh[i], ecs.timestampLow[i], self.present(ecs.eventCode[i])))
         return message
 
     def __str__(self):
@@ -3002,6 +3068,12 @@ class EvrData(PsanaTypeData):
             eventCodeStr = ''
         
         return eventCodeStr
+
+    def __dir__(self):
+        all_attrs =  set(self.__dict__.keys() + dir(EvrData))
+        
+        return list(sorted(all_attrs))
+
 
 class EvrNullData(object):
     """
@@ -3431,9 +3503,10 @@ class Detector(object):
                     else:
                         xattrs = {}
                     dims_dict[attr] = ([], (), xattrs)
+               
+                self.add.property('.'.join(['evtData',attr]), attr)
 
         self._xarray_info['dims'].update(**dims_dict)
-
 
     @property
     def _attrs(self):
@@ -3603,7 +3676,7 @@ class Detector(object):
     def _get_info(self, attr):
         info = self.detector._attr_info.get(attr)
         if info:
-            info({'type': 'detector'})
+            info.update({'type': 'detector'})
             return info
 
         for typ in ['count','histogram','parameter','peak','projection','property','stats']:
@@ -4007,10 +4080,14 @@ class Detector(object):
         attr : str
             Attribute name
         """
+        import six
         func_name = self._det_config['property'].get(attr)
         if hasattr(func_name,'__call__'):
-            func_name = func_name(self)
-        return func_name
+            return func_name(self)
+        elif isinstance(func_name, six.string_types)  and hasattr(self, func_name):
+            return getattr_complete(self, func_name)
+        else:
+            return None
 
     def __str__(self):
         return '{:} {:}'.format(self._alias, str(self._ds.events.current))
@@ -4140,7 +4217,8 @@ class AddOn(object):
         for param, value in kwargs.items():
             self._det_config['parameter'][param] = value 
 
-    def property(self, func_name, *args, **kwargs):
+    #def property(self, func_name, *args, **kwargs):
+    def property(self, func_name, attr=None, **kwargs):
         """
         Add a property that operates on this detector object.
         
@@ -4161,9 +4239,7 @@ class AddOn(object):
         >>> evt.EBeam.add.property(lambda self: self.ebeamL3Energy, 'energy')
         
         """
-        if len(args) > 0:
-            attr = args[0]
-        else:
+        if not attr:
             attr = func_name.func_name
         
         self._det_config['property'][attr] = func_name 
@@ -4485,7 +4561,7 @@ class AddOn(object):
         try:
             img = self._getattr(attr)
         except:
-            print 'Not valid {:}'.format(attr)
+            print 'Not valid roi {:}'.format(attr)
             return
         
         if sensor is not None:
@@ -4916,8 +4992,8 @@ class AddOn(object):
         attr : str
             Name of data object on which to find peaks
         ichannel : int
-            acqiris waveform channels start with 1.  
-            If not present, peak locators will be created for alll chanels
+            If not present, peak locators will be created for all chanels
+            [Note: acqiris waveform default names start with ch1 following AMI convention]  
         name : str
             Name of peak object [Default is to append '_peak' and sequential number
             to input attr name.
@@ -4959,10 +5035,11 @@ class AddOn(object):
                     return
 
         if not methods:
-            methods = {'index': 'index', 'max': 'max', 'pos': 'pos'}
+            methods = {'index': 'index', 'max': 'max'}
             if attr == 'waveform':
-                methods.pop('index')
                 methods.update({'time': 'time', 'waveform': 'waveform'})
+            else:
+                methods.update({'pos': 'pos'})
 
         attr_info = self._det._get_info(attr)
 
