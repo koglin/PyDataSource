@@ -4550,7 +4550,9 @@ class AddOn(object):
             Make psplot of roi data
         projection : bool
             Make projection(s) of data.  See projection method. 
-        
+        graphical : bool
+            Select roi interactively
+
         """
         if not attr:
             if sensor is not None:
@@ -4567,7 +4569,7 @@ class AddOn(object):
         if sensor is not None:
             img = img[sensor]
 
-        if not roi and graphical is not False:
+        if not roi and sensor is None and graphical is not False:
             try:
                 plotMax = np.percentile(img, 99.5)
                 plotMin = np.percentile(img, 5)

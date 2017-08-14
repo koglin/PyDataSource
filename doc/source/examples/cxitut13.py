@@ -23,8 +23,19 @@ def DataSource(exp=exp, run=30,
                 gain=evt.DscCsPad.gain, 
                 name='photon_count', unit='photons', 
                 doc='Front CsPad Photon Count')
+        evt.DscCsPad.add.stats('calib')
+        for i in range(32):
+            evt.DscCsPad.add.roi('calib',sensor=i,graphical=False)
+            sensor = 'sensor{:}'.format(i)
+            evt.DscCsPad.add.histogram(sensor, bins=bins, gain=evt.DscCsPad.gain, 
+                    name=sensor+'_photon_hist', unit='photons', 
+                    doc='CsPad Gain corrected histogram', 
+                    publish=publish)
+
 
     elif run == 20:
+        evt.Sc2Questar.next().add.stats('raw')
+        evt.DsaCsPad.next().add.stats('calib')
         evt.DsaCsPad.add.parameter(gain=1/27.7)
         bins = np.arange(-20,150,1)*evt.DsaCsPad.gain
         evt.DsaCsPad.add.histogram('calib', bins=bins, gain=evt.DsaCsPad.gain, 
@@ -35,22 +46,43 @@ def DataSource(exp=exp, run=30,
                 gain=evt.DsaCsPad.gain, 
                 name='photon_count', unit='photons', 
                 doc='CsPad Photon Count')
+        for i in range(32):
+            evt.DsaCsPad.add.roi('calib',sensor=i,graphical=False)
+            sensor = 'sensor{:}'.format(i)
+            evt.DsaCsPad.add.histogram(sensor, bins=bins, gain=evt.DsaCsPad.gain, 
+                    name=sensor+'_photon_hist', unit='photons', 
+                    doc='CsPad Gain corrected histogram', 
+                    publish=publish)
+
 
     elif run == 30:
         evt.Sc2Imp.add.module('impbox')
+        evt.Sc2Imp.next()
+        attrs={ 'filter': evt.Sc2Imp.filter}
+        evt.Sc2Imp.add.stats('filtered', doc='Filted waveforms', attrs=attrs) 
         evt.Acqiris.add.module('acqiris')
-    
+        evt.Acqiris.add.stats('waveform')
+
     if save_config:
         ds.save_config()
 
     return ds
 
-def to_xarray(ds, build_html='auto', **kwargs):
+def to_xarray(ds, build_html=True, default_stats=False, **kwargs):
     """
     Make xarray object
     """
-    x = ds.to_hdf5(build_html=build_html, **kwargs) 
+    x = ds.to_hdf5(default_stats=default_stats, **kwargs) 
+    if build_html:
+        b = build_run(x, **kwargs)
     return x
+
+def open_hdf5(exp=exp, run=30):
+    """
+    Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.
+    """
+    import PyDataSource
+    return PyDataSource.open_h5netcdf(exp=exp,run=run)
 
 def make_cuts(x, **kwargs):
     """
@@ -86,26 +118,29 @@ def build_run(x, ioff=True, auto=False, **kwargs):
         variables = ['DscCsPad_photon_hist']
         b.add_summary(variables)
         b.add_detector('DscCsPad')
-        b.to_html()
     
     elif run == 20:
         variables = ['DsaCsPad_photon_hist']
         b.add_summary(variables)
         b.add_detector('DsaCsPad')
-        b.add_stats('DsaCsPad_corr_stats')
-        b.add_stats('Sc2Questar_corr_stats')
-        b.to_html()
+        if 'DsaCsPad_corr_stats' in x:
+            b.add_stats('DsaCsPad_corr_stats')
+        if 'Sc2Questar_corr_stats' in x:
+            b.add_stats('Sc2Questar_corr_stats')
 
     else:
-        if not auto:
+        if auto:
             b.add_all(**kwargs)
-            b.to_html()
+    
+    b.to_html()
     
     return b
 
 def main():
     """Main script to create run summary.
     """
+    import matplotlib as mpl
+    mpl.use('Agg')
     from PyDataSource import initArgs
     time0 = time.time()
     print time0
@@ -120,27 +155,24 @@ def main():
         x = h5write.open_h5netcdf(exp=exp,run=run)
         print x
         b = build_run(x)
-   
+ 
     else:
         ds = DataSource(exp=exp,run=run)
-        if attr in ['batch']:
+        if attr == 'epics':
+            print ds.configData
+            es = ds.exp_summary
+            if es:
+                es.to_html()
+            else:
+                print 'Failed to load or generate exp_summary'
+
+        elif attr in ['batch']:
             from PyDataSource import write_hdf5
-            if args.config:
-                if args.config in ['auto', 'default']:
-                    config = ds._get_config_file()
-                    print 'Loading default config: {:}'.format(config)
-                    ds.load_config()
-                else:
-                    print 'Loading config: {:}'.format(args.config)
-                    ds.load_config(file_name=args.config)
-            
             x = to_xarray(ds) 
             print x
             b = build_run(x)
         else:
             print ds.configData
-
-
 
 if __name__ == "__main__":
     sys.exit(main())

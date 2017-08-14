@@ -244,6 +244,7 @@ place it in the experiment results/src subfolder and add the name of the file as
 </table>
 <p>Note for older experiments like cxitut13, the results folder in named ‘res’ instead of ‘results’.
 The submit_summary summary will use the res folder when the results folder is not present.</p>
+<p><a class="reference download internal" href="_downloads/cxitut13.py" download=""><code class="xref download docutils literal"><span class="pre">Open</span> <span class="pre">cxitut13.py</span> <span class="pre">example</span></code></a>.</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
@@ -269,8 +270,19 @@ The submit_summary summary will use the res folder when the results folder is no
                 <span class="n">gain</span><span class="o">=</span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> 
                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;photon_count&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;photons&#39;</span><span class="p">,</span> 
                 <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Front CsPad Photon Count&#39;</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">):</span>
+            <span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">roi</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span><span class="n">sensor</span><span class="o">=</span><span class="n">i</span><span class="p">,</span><span class="n">graphical</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">sensor</span> <span class="o">=</span> <span class="s1">&#39;sensor</span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> 
+                    <span class="n">name</span><span class="o">=</span><span class="n">sensor</span><span class="o">+</span><span class="s1">&#39;_photon_hist&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;photons&#39;</span><span class="p">,</span> 
+                    <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;CsPad Gain corrected histogram&#39;</span><span class="p">,</span> 
+                    <span class="n">publish</span><span class="o">=</span><span class="n">publish</span><span class="p">)</span>
+
 
     <span class="k">elif</span> <span class="n">run</span> <span class="o">==</span> <span class="mi">20</span><span class="p">:</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">Sc2Questar</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">next</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">)</span>
         <span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">parameter</span><span class="p">(</span><span class="n">gain</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mf">27.7</span><span class="p">)</span>
         <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">gain</span>
         <span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> 
@@ -281,22 +293,43 @@ The submit_summary summary will use the res folder when the results folder is no
                 <span class="n">gain</span><span class="o">=</span><span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> 
                 <span class="n">name</span><span class="o">=</span><span class="s1">&#39;photon_count&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;photons&#39;</span><span class="p">,</span> 
                 <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;CsPad Photon Count&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">32</span><span class="p">):</span>
+            <span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">roi</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span><span class="n">sensor</span><span class="o">=</span><span class="n">i</span><span class="p">,</span><span class="n">graphical</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">sensor</span> <span class="o">=</span> <span class="s1">&#39;sensor</span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bins</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="n">evt</span><span class="o">.</span><span class="n">DsaCsPad</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> 
+                    <span class="n">name</span><span class="o">=</span><span class="n">sensor</span><span class="o">+</span><span class="s1">&#39;_photon_hist&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;photons&#39;</span><span class="p">,</span> 
+                    <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;CsPad Gain corrected histogram&#39;</span><span class="p">,</span> 
+                    <span class="n">publish</span><span class="o">=</span><span class="n">publish</span><span class="p">)</span>
+
 
     <span class="k">elif</span> <span class="n">run</span> <span class="o">==</span> <span class="mi">30</span><span class="p">:</span>
         <span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">module</span><span class="p">(</span><span class="s1">&#39;impbox&#39;</span><span class="p">)</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span> <span class="s1">&#39;filter&#39;</span><span class="p">:</span> <span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">filter</span><span class="p">}</span>
+        <span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s1">&#39;filtered&#39;</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Filted waveforms&#39;</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="n">attrs</span><span class="p">)</span> 
         <span class="n">evt</span><span class="o">.</span><span class="n">Acqiris</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">module</span><span class="p">(</span><span class="s1">&#39;acqiris&#39;</span><span class="p">)</span>
-    
+        <span class="n">evt</span><span class="o">.</span><span class="n">Acqiris</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="s1">&#39;waveform&#39;</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">save_config</span><span class="p">:</span>
         <span class="n">ds</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">ds</span>
 
-<span class="k">def</span> <span class="nf">to_xarray</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">build_html</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">to_xarray</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">build_html</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Make xarray object</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">build_html</span><span class="o">=</span><span class="n">build_html</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> 
+    <span class="n">x</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">default_stats</span><span class="o">=</span><span class="n">default_stats</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> 
+    <span class="k">if</span> <span class="n">build_html</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">build_run</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">x</span>
+
+<span class="k">def</span> <span class="nf">open_hdf5</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="n">exp</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="mi">30</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">PyDataSource</span>
+    <span class="k">return</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="n">exp</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">make_cuts</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -332,26 +365,29 @@ The submit_summary summary will use the res folder when the results folder is no
         <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DscCsPad_photon_hist&#39;</span><span class="p">]</span>
         <span class="n">b</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
         <span class="n">b</span><span class="o">.</span><span class="n">add_detector</span><span class="p">(</span><span class="s1">&#39;DscCsPad&#39;</span><span class="p">)</span>
-        <span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
     
     <span class="k">elif</span> <span class="n">run</span> <span class="o">==</span> <span class="mi">20</span><span class="p">:</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DsaCsPad_photon_hist&#39;</span><span class="p">]</span>
         <span class="n">b</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
         <span class="n">b</span><span class="o">.</span><span class="n">add_detector</span><span class="p">(</span><span class="s1">&#39;DsaCsPad&#39;</span><span class="p">)</span>
-        <span class="n">b</span><span class="o">.</span><span class="n">add_stats</span><span class="p">(</span><span class="s1">&#39;DsaCsPad_corr_stats&#39;</span><span class="p">)</span>
-        <span class="n">b</span><span class="o">.</span><span class="n">add_stats</span><span class="p">(</span><span class="s1">&#39;Sc2Questar_corr_stats&#39;</span><span class="p">)</span>
-        <span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;DsaCsPad_corr_stats&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">add_stats</span><span class="p">(</span><span class="s1">&#39;DsaCsPad_corr_stats&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;Sc2Questar_corr_stats&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">add_stats</span><span class="p">(</span><span class="s1">&#39;Sc2Questar_corr_stats&#39;</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">auto</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">auto</span><span class="p">:</span>
             <span class="n">b</span><span class="o">.</span><span class="n">add_all</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+    
+    <span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
     
     <span class="k">return</span> <span class="n">b</span>
 
 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Main script to create run summary.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+    <span class="n">mpl</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;Agg&#39;</span><span class="p">)</span>
     <span class="kn">from</span> <span class="nn">PyDataSource</span> <span class="k">import</span> <span class="n">initArgs</span>
     <span class="n">time0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="nb">print</span> <span class="n">time0</span>
@@ -366,27 +402,24 @@ The submit_summary summary will use the res folder when the results folder is no
         <span class="n">x</span> <span class="o">=</span> <span class="n">h5write</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="n">exp</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">)</span>
         <span class="nb">print</span> <span class="n">x</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">build_run</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-   
+ 
     <span class="k">else</span><span class="p">:</span>
         <span class="n">ds</span> <span class="o">=</span> <span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="n">exp</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="o">==</span> <span class="s1">&#39;epics&#39;</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="n">ds</span><span class="o">.</span><span class="n">configData</span>
+            <span class="n">es</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">exp_summary</span>
+            <span class="k">if</span> <span class="n">es</span><span class="p">:</span>
+                <span class="n">es</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;Failed to load or generate exp_summary&#39;</span>
+
+        <span class="k">elif</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;batch&#39;</span><span class="p">]:</span>
             <span class="kn">from</span> <span class="nn">PyDataSource</span> <span class="k">import</span> <span class="n">write_hdf5</span>
-            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">config</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">]:</span>
-                    <span class="n">config</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">_get_config_file</span><span class="p">()</span>
-                    <span class="nb">print</span> <span class="s1">&#39;Loading default config: </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-                    <span class="n">ds</span><span class="o">.</span><span class="n">load_config</span><span class="p">()</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="nb">print</span> <span class="s1">&#39;Loading config: </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
-                    <span class="n">ds</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="n">file_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
-            
             <span class="n">x</span> <span class="o">=</span> <span class="n">to_xarray</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span> 
             <span class="nb">print</span> <span class="n">x</span>
             <span class="n">b</span> <span class="o">=</span> <span class="n">build_run</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="nb">print</span> <span class="n">ds</span><span class="o">.</span><span class="n">configData</span>
-
-
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>

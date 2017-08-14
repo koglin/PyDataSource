@@ -10,6 +10,8 @@
 # SConscript file for any SIT project
 Import('*')
 
+#SConscript(dirs=['src/examples'])
+#SConscript('src/SConscript', variant_dir='build', duplicate=0)
 #
 # For the standard SIT packages which build libraries, applications,
 # and Python modules it is usually sufficient to call

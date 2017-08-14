@@ -4711,7 +4711,9 @@
 <span class="sd">            Make psplot of roi data</span>
 <span class="sd">        projection : bool</span>
 <span class="sd">            Make projection(s) of data.  See projection method. </span>
-<span class="sd">        </span>
+<span class="sd">        graphical : bool</span>
+<span class="sd">            Select roi interactively</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">attr</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">sensor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -4728,7 +4730,7 @@
         <span class="k">if</span> <span class="n">sensor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="n">sensor</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">roi</span> <span class="ow">and</span> <span class="n">graphical</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">roi</span> <span class="ow">and</span> <span class="n">sensor</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">graphical</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">plotMax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mf">99.5</span><span class="p">)</span>
                 <span class="n">plotMin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>

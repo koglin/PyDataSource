@@ -76,5 +76,7 @@ e.g., /reg/d/psdm/cxi/cxitut13/results/src/cxitut13.py
 Note for older experiments like cxitut13, the results folder in named 'res' instead of 'results'. 
 The submit_summary summary will use the res folder when the results folder is not present.
 
+:download:`Open cxitut13.py example <examples/cxitut13.py>`.
+
 .. literalinclude:: examples/cxitut13.py
 

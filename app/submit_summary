@@ -47,13 +47,12 @@ fi
 : ${DIRNAME:="$DIR/../python/PyDataSource/"}
 : ${PYFILE:="__main__.py"}
 : ${MAX_SIZE:="10001"}
-: ${QUEUEREQ:="psfehq"}
+: ${QUEUEREQ:="psanaq"}
 #: ${QUEUEREQ="psdebugq"}
 OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
 RUNSTR=Run`python "$DIRNAME/get_run_from_runid.py" $EXP $RUN`
 EXPRUN="$EXP$RUNSTR"
 BATCHUSER=`whoami`
-#OUTLOG="$OUTDIR/logs/$RUNSTR"
 OUTLOG="/reg/neh/home/$BATCHUSER/logs/$EXP/$RUNSTR"
 if [[ ! -a $OUTLOG ]];  then
     mkdir -p $OUTLOG
@@ -63,13 +62,21 @@ if [[ $PYOPT == '' ]]; then
     JOBNAME="$EXPRUN"
     PYOPT='batch'
     : ${RUNFILE:="$DIRNAME/$PYFILE"}
+elif [[ $PYOPT == 'batch' ]]; then 
+    JOBNAME="$EXPRUN"
+    : ${RUNFILE:="$DIRNAME/$PYFILE"}
 elif [[ $PYOPT == 'epics' ]]; then 
     JOBNAME="$EXP"epics
     : ${RUNFILE:="$DIRNAME/$PYFILE"}
 else
     JOBNAME="$EXPRUN"
     EXPFILE="$PYOPT"
-    RUNFILE="/reg/d/psdm/$INSTRUMENT/$EXP/results/src/$EXPFILE.py"
+    RESDIR="/reg/d/psdm/$INSTRUMENT/$EXP/results"
+    if [[ ! -a $RESDIR ]];  then
+        RESDIR="/reg/d/psdm/$INSTRUMENT/$EXP/res"
+    fi
+    RUNFILE="$RESDIR/src/$EXPFILE.py"
+    echo 'Run File: '$RUNFILE
     PYOPT='batch'
 fi
 

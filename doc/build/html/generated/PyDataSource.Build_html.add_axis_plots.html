@@ -185,8 +185,20 @@
 <h1>PyDataSource.Build_html.add_axis_plots<a class="headerlink" href="#pydatasource-build-html-add-axis-plots" title="Permalink to this headline">¶</a></h1>
 <dl class="method">
 <dt id="PyDataSource.Build_html.add_axis_plots">
-<code class="descclassname">Build_html.</code><code class="descname">add_axis_plots</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/build_html.html#Build_html.add_axis_plots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.Build_html.add_axis_plots" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add correlation plots of X and Y axis data.</p>
+<code class="descclassname">Build_html.</code><code class="descname">add_axis_plots</code><span class="sig-paren">(</span><em>base_attrs=[‘PhotonEnergy’, ‘Gasdet_post_atten’]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/build_html.html#Build_html.add_axis_plots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.Build_html.add_axis_plots" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Add correlation plots of X and Y axis data.  Compare all attrs that end with:</dt>
+<dd>Xaxis: _PosX, _AngX or xpos
+Yaxis: _PosY, _AngY or ypos</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>base_attrs</strong> (<em>list</em>) – List of base attrs to add to axis attrs. Default = [‘PhotonEnergy’, ‘Gasdet_post_atten’]</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>

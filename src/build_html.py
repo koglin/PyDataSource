@@ -840,26 +840,36 @@ class Build_html(object):
             attrs.append('Gasdet_post_atten')
         self.add_detector(attrs=attrs, catagory=catagory, confidence=confidence)
        
-    def add_axis_plots(self):
+    def add_axis_plots(self, base_attrs=['PhotonEnergy', 'Gasdet_post_atten']):
         """
-        Add correlation plots of X and Y axis data.
+        Add correlation plots of X and Y axis data.  Compare all attrs that end with:
+           Xaxis: _PosX, _AngX or xpos 
+           Yaxis: _PosY, _AngY or ypos 
+
+        Parameters
+        ----------
+
+        base_attrs : list
+            List of base attrs to add to axis attrs. Default = ['PhotonEnergy', 'Gasdet_post_atten']  
+
         """
+        x = self._xdat
         attrs = [a for a in x.keys() if (a.endswith('_PosX') or a.endswith('_AngX') or a.endswith('xpos'))
-                    and len(x[a].dims) == 1 and 'time' in x[a].dims]
+                    and len(x[a].dims) == 1 and 'time' in x[a].dims] + base_attrs
         if attrs:
-            if 'PhotonEnergy' in x:
-                attrs.append('PhotonEnergy')
-            if 'Gasdet_post_atten' in x:
-                attrs.append('Gasdet_post_atten')
+#            if 'PhotonEnergy' in x:
+#                attrs.append('PhotonEnergy')
+#            if 'Gasdet_post_atten' in x:
+#                attrs.append('Gasdet_post_atten')
             self.add_detector(attrs=attrs, catagory='Xaxis', confidence=0.1)
             
         attrs = [a for a in x.keys() if (a.endswith('_PosY') or a.endswith('_AngY') or a.endswith('ypos'))
-                    and len(x[a].dims) == 1 and 'time' in x[a].dims]
+                    and len(x[a].dims) == 1 and 'time' in x[a].dims] + base_attrs
         if attrs:
-            if 'PhotonEnergy' in x:
-                attrs.append('PhotonEnergy')
-            if 'Gasdet_post_atten' in x:
-                attrs.append('Gasdet_post_atten')
+#            if 'PhotonEnergy' in x:
+#                attrs.append('PhotonEnergy')
+#            if 'Gasdet_post_atten' in x:
+#                attrs.append('Gasdet_post_atten')
             self.add_detector(attrs=attrs, catagory='Yaxis', confidence=0.1)
 
     def make_default_cuts(self, gasdetcut_mJ=0.5):
@@ -901,7 +911,6 @@ class Build_html(object):
 
         attrs : list
             List of detector aliases to describe configuration.
-
         
         """
         howto = []
@@ -2190,9 +2199,13 @@ class Build_html(object):
 
         """
         plt.close('all')
-        xdat = self._xdat[attr]
-        if len(xdat.shape) not in [5,6]:
-            print "add_stats only valid for objects with dimensions ('stat','step','codes', xdim, ydim)"
+        if attr in self._xdat:
+            xdat = self._xdat[attr]
+            if len(xdat.shape) not in [5,6]:
+                print "add_stats only valid for objects with dimensions ('stat','step','codes', xdim, ydim)"
+                return
+        else:
+            print 'No stats available for', attr
             return
 
         if 'alias' in xdat.attrs:
