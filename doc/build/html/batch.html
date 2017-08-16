@@ -167,7 +167,13 @@
 <p>The run summary hdf5 files and html reports can be generated from batch jobs with the submit_summary app.</p>
 <p>For details on setting up analysis environment see <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System">conda</a> secton.</p>
 <p>The submit_summary bash script takes the experiment name and run number as arguments
-followed by the batch queue and type of processing.  For example:</p>
+followed by the batch queue and type of processing.</p>
+<p>For mpi processing (12 nodes):</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
+submit_summary cxitut13 <span class="m">20</span> psanaq mpi
+</pre></div>
+</div>
+<p>For single core batch processing:</p>
 <div class="highlight-bash"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
 submit_summary cxitut13 <span class="m">20</span> psanaq batch
 </pre></div>
@@ -185,23 +191,6 @@ a web service that allows for the easier submission of batch jobs through the ex
 <p>To use the <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing">ARP</a> for executing this command, follow the <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing">ARP</a> instructions for setting up
 the Batch Job Definition.
 Under the Experiment tab, the Batch defs tab enter the following for submitting default run summaries.</p>
-<table border="1" class="docutils">
-<colgroup>
-<col width="13%" />
-<col width="87%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td>Hash:</td>
-<td>#experiment_summary</td>
-</tr>
-<tr class="row-even"><td>Executable:</td>
-<td>/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.10/bin/submit_summary</td>
-</tr>
-<tr class="row-odd"><td>Parameters:</td>
-<td>psanaq</td>
-</tr>
-</tbody>
-</table>
 <p>For updating the experiment summary add ‘epics’ as a second parameter</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -213,7 +202,7 @@ Under the Experiment tab, the Batch defs tab enter the following for submitting 
 <td>#experiment_summary</td>
 </tr>
 <tr class="row-even"><td>Executable:</td>
-<td>/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.10/bin/submit_summary</td>
+<td>/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary</td>
 </tr>
 <tr class="row-odd"><td>Parameters:</td>
 <td>psanaq epics</td>
@@ -235,7 +224,7 @@ place it in the experiment results/src subfolder and add the name of the file as
 <td>#custom_summary</td>
 </tr>
 <tr class="row-even"><td>Executable:</td>
-<td>/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.10/bin/submit_summary</td>
+<td>/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary</td>
 </tr>
 <tr class="row-odd"><td>Parameters:</td>
 <td>psanaq cxitut13</td>

@@ -18,8 +18,8 @@ class Wave8(PyDataSource.Detector):
 
         self.add.property(peaks)
         self.add.property(waveforms)
-        self.add.property(intensity)
-        bkrange = kwargs.get('bkrange', [880,980])
+        self.add.property(count)
+        bkrange = kwargs.get('bkrange', [500,600])
         self.add.parameter(bkrange=bkrange)
 
     def _update_xarray_info(self):
@@ -33,7 +33,7 @@ class Wave8(PyDataSource.Detector):
 
         xattrs = {'doc': 'BeamMonitor summed intensity for first 4 diode channel waveforms',
                   'unit': 'ADU'}
-        self._xarray_info['dims'].update({'intensity': ([], (), xattrs)}) 
+        self._xarray_info['dims'].update({'count': ([], (), xattrs)}) 
         
         xattrs = {'doc': 'BeamMonitor peak intensity for 8 diode channel waveforms',
                   'unit': 'ADU'}
@@ -49,7 +49,7 @@ def peaks(self):
     """
     return np.array([max(self.waveforms[ch]) for ch in range(self.nchannels)])
 
-def intensity(self):
+def count(self):
     """Sum of first four waveform peaks [ADU]
     """
     return sum(self.peaks[0:3])

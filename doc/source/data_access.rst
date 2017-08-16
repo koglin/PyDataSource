@@ -103,6 +103,9 @@ To check if an event codes is present:
 
     evt.Evr.present(41)
 
+Note that the default is to strictly check if code has same timestamp as the EventId.
+Use strict=False keyword to check if code occurred with any timestamp since last event.
+
 Beamline Data
 -------------
 

@@ -700,13 +700,17 @@ class DataSource(object):
         if self.data_source.smd:
             self._load_smd_config()
 
-    def _load_smd_config(self):
+    def _load_smd_config(self, quiet=False):
         """Load configData of first calib cycle by going to first step.
            Reload so that steps can be used as an iterator.
         """
         if self.data_source.smd:
-            step = self.steps.next()
-            self.reload()
+            try:
+                step = self.steps.next()
+                self.reload()
+            except:
+                traceback.print_exc()
+                print 'Could not load first step in smd data.' 
 
     # not robust -- orig alias used in other places
 #    def rename(self, **kwargs):
@@ -4520,7 +4524,7 @@ class AddOn(object):
             self.psplot(name)
 
     def roi(self, attr=None, sensor=None, roi=None, name=None, xaxis=None, yaxis=None, 
-                doc='', unit='ADU', publish=False, projection=None, graphical=None, **kwargs):       
+                doc='', unit='ADU', publish=False, projection=None, graphical=None, quiet=True, **kwargs):       
         """
         Make roi for given attribute, by default this is given the name img.
 
@@ -4563,7 +4567,8 @@ class AddOn(object):
         try:
             img = self._getattr(attr)
         except:
-            print 'Not valid roi {:}'.format(attr)
+            if not quiet:
+                print 'Not valid roi {:} {:}'.format(self._alias, attr)
             return
         
         if sensor is not None:
@@ -4723,16 +4728,20 @@ class AddOn(object):
         try:
             img = self._getattr(attr)
         except:
-            print 'Stats add Not valid for {:}'.format(attr)
+            print 'Stats add Not valid for {:} {:}'.format(self._alias, attr)
             return False
 
         if not eventCodes:
-            code0 = self._det.configData.eventCode
+            # try first source eventCode to make sure get 140 instead of 40 
+            # for example in CsPad where 40 is given in configData.eventCode
+            srcstr = self._det._srcstr
+            code0 = self._det._ds.configData._sources.get(srcstr,{}).get('eventCode')
+            #print attr, srcstr, code0
+            
             if not code0:
                 # some devices like Timetool with roi do not give eventCode in configData
-                srcstr = self._det._srcstr
-                code0 = self._det._ds.configData._sources.get(srcstr,{}).get('eventCode')
-                print attr, srcstr, code0
+                code0 = self._det.configData.eventCode
+            
             if not code0:
                 code0 = 40
                 if code0 not in self._ds.configData._eventcodes:

@@ -304,7 +304,7 @@ class ExperimentSummary(object):
 
     def _init(self, **kwargs):
         self._load_run_info(self.exp)
-        self._init_arch()
+        self._init_arch(**kwargs)
         try:
             self._load_exp_runs(**kwargs)
         except:
@@ -681,7 +681,7 @@ class ExperimentSummary(object):
 
         return self.xruns
 
-    def _init_arch(self):
+    def _init_arch(self, min_run=None, max_run=None, **kwargs):
         """
         Initialize archive
         """
@@ -690,7 +690,11 @@ class ExperimentSummary(object):
             self._load_run_info()
         self._arch = EpicsArchive()
         df = self.xruns.to_dataframe()
-        dt = df['begin_time'].min()
+        if max_run:
+            df = df[df.index <= max_run]
+        if min_run:
+            df = df[df.index >= min_run]
+        dt = df[1:]['begin_time'].min()
         tstart = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
         self._tstart = tstart
         dt = df['end_time'].max()

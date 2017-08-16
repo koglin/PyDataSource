@@ -193,12 +193,12 @@ def open_h5netcdf(file_name=None, path='', file_base=None, exp=None, run=None,
             else:
                 file_name = '{:}/run{:04}_*.nc'.format(path, int(run))
 
-        return read_netcdfs(file_name)
+        return read_netcdfs(file_name, make_cuts=False)
  
     elif chunk and run:
         file_names = '{:}/run{:04}_c*.nc'.format(path, int(run))
         if True:
-            x = read_netcdfs(file_names)
+            x = read_netcdfs(file_names, make_cuts=False)
         else:
             import glob
             files = glob.glob(file_names)
@@ -324,6 +324,86 @@ def merge_datasets(file_names, engine='h5netcdf',
 
     return x, xattrs
 
+def merge_stats(run=None, path=None, exp=None, dim='steps', 
+        h5folder='scratch', subfolder='nc',
+        engine='h5netcdf', quiet=False, **kwargs):
+    """
+    Read netcdf chunked stats 
+
+    Parameters
+    ----------
+    dim : str
+        Diminsion along which to merge stats files
+        Default = 'steps'
+    engine : str
+        Engine for loading files.  default = 'h5netcdf'
+
+    """
+    import xarray as xr
+    import glob
+    if not run:
+        raise Exception('run must be provided')
+
+    if not path:
+        if exp:
+            instrument = exp[0:3]
+        else:
+            raise Exception('exp must be provided')
+
+        path = '/reg/d/psdm/{:}/{:}/{:}/{:}/Run{:04}/'.format(instrument, 
+                exp,h5folder,subfolder,run)
+    
+    files = sorted(glob.glob('{:}/run{:04}_*stats.nc'.format(path, run)))
+    xdata = {}
+    for ifile, file_name in enumerate(files):
+        if not quiet:
+            print 'Loading stats ', file 
+        xdat = xr.open_dataset(file_name, engine=engine)
+       
+        steps = xdat.get(dim)
+        if steps is not None:
+            for step in xdat.steps.values:
+                x = xdat.sel(steps=step)
+                dattrs = [a for a in x.coords if a != dim and x.coords[a].dims == ()]
+                if dattrs:
+                    x = x.drop(dattrs)
+                
+                if step not in xdata:
+                    xdata[step] = x
+                else:
+                    for attr, item in xdata[step].coords.items():
+                        if attr.endswith('events') and attr in x.coords:
+                            item.values += x.coords[attr].values
+                    for attr, item in xdata[step].data_vars.items():
+                        stats = item.stat.values
+                        istats = {stat:i for i,stat in enumerate(list(stats))}
+                        stat = 'min'
+                        if stat in stats:
+                            item[istats[stat]] = np.minimum(item.sel(stat=stat).values, 
+                                                            x[attr].sel(stat=stat).values)
+                        stat = 'max'
+                        if stat in stats:
+                            item[istats[stat]] = np.maximum(item.sel(stat=stat).values, 
+                                                            x[attr].sel(stat=stat).values)
+                        stat = 'var'
+                        if stat in stats:
+                            xvar = x[attr].sel(stat=stat).values
+                            svar = item.sel(stat=stat).values
+                            item[istats[stat]] = 1./(1./xvar+1./svar)
+                        
+                        if 'mean' in stats and 'std' in stats:
+                            svar = item.sel(stat='std').values**2
+                            xvar = x[attr].sel(stat='std').values**2
+                            smean = item.sel(stat='mean').values
+                            xmean = x[attr].sel(stat='mean').values
+                            sxvar = 1./(1./xvar+1./svar)
+                            item[istats['mean']] = (xmean/xvar+smean/svar)*sxvar
+                            item[istats['std']] = np.sqrt(sxvar)
+
+    x = xr.concat(xdata.values(), dim)
+    
+    return x
+
 def read_chunked(run=None, path=None, exp=None, dim='time', 
         h5folder='scratch', subfolder='nc',
         omit_attrs=['ichunk', 'nevents'], 
@@ -369,7 +449,7 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
         else:
             raise Exception( 'File does not exist: {:}'.format(file_name) )
 
-    files = glob.glob('{:}/run{:04}_*.nc'.format(path, run)) 
+    files = [f for f in glob.glob('{:}/run{:04}_*.nc'.format(path, run)) if not f.endswith('stats.nc')]
     #dets = set([a.lstrip('{:}/run{:04}_'.format(path,run)).split('_')[1].split('.')[0] for a in files])
     datachunks = []
     chunks = set([int(a.lstrip('{:}/run{:04}_'.format(path,run)).lstrip('C').split('.')[0].split('_')[0]) for a in files])
@@ -389,7 +469,8 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
         if merge or merge_chunk:
             if not quiet:
                 print 'Merging chunk', chunk
-            file_names = glob.glob('{:}//run{:04}_C{:02}_*.nc'.format(path,run,chunk)) 
+            file_names = glob.glob('{:}//run{:04}_C{:02}_*.nc'.format(path,run,chunk))
+            file_names = [f for f in file_names if not f.endswith('stats.nc')]
             save_file = '{:}//run{:04}_C{:02}.nc'.format(path,run,chunk)
             #x = merge_datasets(file_names, save_file=save_file, quiet=quiet)
             x, cxattrs = merge_datasets(file_names, quiet=quiet)
@@ -449,7 +530,14 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
             traceback.print_exc()
             print 'Cannot make default cuts'
 
+    print '... merge stats chunks', run, path
+    xstats = merge_stats(run=run, path=path, engine=engine)
+    if xstats is not None:
+        print '... merge stats with event data'
+        x = x.merge(xstats)
+
     if save:
+        print 'Saving data'
         if isinstance(save, str):
             save_file = save
         else:
@@ -477,6 +565,43 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
             return x
 
     return x
+
+def to_hdf5_mpi(self, build_html=None, save=True, cleanup=True, **kwargs):
+    time0 = time.time()
+    try:
+        import xarray as xr
+        import h5netcdf
+        from mpi4py import MPI
+    except:
+        raise Exception('xarray package not available. Use for example conda environment with "source conda_setup"')
+
+    comm = MPI.COMM_WORLD
+    rank = MPI.COMM_WORLD.rank  # The process ID (integer 0-3 for 4-process run)
+    size = comm.Get_size()
+
+    path, file_base = write_hdf5(self, **kwargs)
+    
+    files = comm.gather(file_base)
+
+    if rank == 0:
+        exp = self.data_source.exp
+        run = int(self.data_source.run)
+        try:
+            x = read_chunked(exp=exp, run=run, save=save, cleanup=cleanup, **kwargs)
+        except:
+            print 'Could not read files', path, file_base
+            traceback.print_exc()
+            return None
+        
+        if build_html:
+            try:
+                import build_html
+                self.html = build_html.Build_html(x, auto=True) 
+            except:
+                traceback.print_exc()
+                print 'Could not build html run summary for', str(self)
+
+    MPI.Finalize()
 
 
 def to_hdf5(self, save=True, cleanup=True, **kwargs):
@@ -547,7 +672,6 @@ def get_config_xarray(ds=None, exp=None, run=None, path=None, file_name=None,
         x = to_summary(x)
 
     return x
-
 
 # Need to add in 'chunking based on steps'
 def write_hdf5(self, nevents=None, max_size=10001, 
@@ -627,11 +751,13 @@ def write_hdf5(self, nevents=None, max_size=10001,
     except:
         raise Exception('xarray package not available. Use for example conda environment with "source conda_setup"')
 
+    comm = MPI.COMM_WORLD
     rank = MPI.COMM_WORLD.rank  # The process ID (integer 0-3 for 4-process run)
+    size = comm.Get_size()
 
     exp = self.data_source.exp
 
-    if not no_events:
+    if not no_events and ichunk is None:
         ichunk=rank
    
     self.reload()
@@ -1066,6 +1192,10 @@ def write_hdf5(self, nevents=None, max_size=10001,
             if ichunk > 1 and not chunk_steps:
                 for i in range(ievent0):
                     evt = self.events.next()
+                
+                print 'reset_stats ...'
+                self.reset_stats()
+                
             
                 #print 'Previous event before current chunk:', evt
 
@@ -1088,6 +1218,9 @@ def write_hdf5(self, nevents=None, max_size=10001,
                     # on first event skip to the desired step
                     for i in range(ichunk):
                         step_events = self.steps.next()
+                
+                    print 'reset_stats ...'
+                    self.reset_stats()
                 
                 try:
                     evt = step_events.next()

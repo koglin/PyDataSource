@@ -75,47 +75,17 @@ if __name__ == "__main__":
         if attr in ['scan']:
             print ds.configData.ScanData.show_info()
         if attr in ['mpi']:
-            from h5write import write_hdf5
+            from h5write import to_hdf5_mpi
             #print 'to hdf5 with mpi {:}'.format(args)
-            if args.config:
+            if args.config and args.config not in ['auto', 'default']:
                 print 'Loading config: {:}'.format(args.config)
                 ds.load_config(file_name=args.config)
-    #        else:
-    #            print 'Auto config'
-    #            ds.load_config()
+            else:
+                print 'Auto config'
+                ds.load_config()
 
-            write_hdf5(ds, nevents=args.nevents, nchunks=args.nchunks)
+            x = to_hdf5_mpi(ds, nevents=args.nevents, nchunks=args.nchunks, build_html='auto')
 
-    #    if attr in ['build']:
-    #        from h5write import write_hdf5
-    #        if args.config:
-    #            print 'Loading config: {:}'.format(args.config)
-    #            ds.load_config(file_name=args.config)
-    #       
-    #        x = ds.to_hdf5(build_html='auto') 
-    #        print x
-        if attr in ['test']:
-            from h5write import write_hdf5
-            print ds.configData.__repr__()
-            print '-'*80
-            print ds._device_sets
-            print '-'*80
-            if args.config:
-                if args.config in ['auto', 'default']:
-                    config = ds._get_config_file()
-                    print 'Loading default config: {:}'.format(config)
-                    ds.load_config()
-                else:
-                    print 'Loading config: {:}'.format(args.config)
-                    ds.load_config(file_name=args.config)
-            
-            print '-'*80
-            print ds._device_sets
-            print '-'*80
-            #write_hdf5(ds)
-            x = ds.to_hdf5(nevents=100) 
-            print x
- 
         if attr in ['batch']:
             from h5write import write_hdf5
             if args.config:
@@ -150,6 +120,28 @@ if __name__ == "__main__":
                              build=args.build)
             print x
 
+        if attr in ['test']:
+            from h5write import write_hdf5
+            print ds.configData.__repr__()
+            print '-'*80
+            print ds._device_sets
+            print '-'*80
+            if args.config:
+                if args.config in ['auto', 'default']:
+                    config = ds._get_config_file()
+                    print 'Loading default config: {:}'.format(config)
+                    ds.load_config()
+                else:
+                    print 'Loading config: {:}'.format(args.config)
+                    ds.load_config(file_name=args.config)
+            
+            print '-'*80
+            print ds._device_sets
+            print '-'*80
+            #write_hdf5(ds)
+            x = ds.to_hdf5(nevents=100) 
+            print x
+ 
 
     #print 'Total time = {:8.3f}'.format(time.time()-time0)
 

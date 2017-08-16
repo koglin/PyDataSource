@@ -861,13 +861,17 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">smd</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_load_smd_config</span><span class="p">()</span></div>
 
-    <span class="k">def</span> <span class="nf">_load_smd_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_load_smd_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Load configData of first calib cycle by going to first step.</span>
 <span class="sd">           Reload so that steps can be used as an iterator.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">smd</span><span class="p">:</span>
-            <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="nb">print</span> <span class="s1">&#39;Could not load first step in smd data.&#39;</span> 
 
     <span class="c1"># not robust -- orig alias used in other places</span>
 <span class="c1">#    def rename(self, **kwargs):</span>
@@ -4681,7 +4685,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">psplot</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">roi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sensor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">roi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">yaxis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
-                <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;ADU&#39;</span><span class="p">,</span> <span class="n">publish</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">graphical</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>       
+                <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;ADU&#39;</span><span class="p">,</span> <span class="n">publish</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">graphical</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>       
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make roi for given attribute, by default this is given the name img.</span>
 
@@ -4724,7 +4728,8 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getattr</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="s1">&#39;Not valid roi </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;Not valid roi </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
             <span class="k">return</span>
         
         <span class="k">if</span> <span class="n">sensor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -4884,16 +4889,20 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_getattr</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="s1">&#39;Stats add Not valid for </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            <span class="nb">print</span> <span class="s1">&#39;Stats add Not valid for </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">eventCodes</span><span class="p">:</span>
-            <span class="n">code0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">eventCode</span>
+            <span class="c1"># try first source eventCode to make sure get 140 instead of 40 </span>
+            <span class="c1"># for example in CsPad where 40 is given in configData.eventCode</span>
+            <span class="n">srcstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">_srcstr</span>
+            <span class="n">code0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_sources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">srcstr</span><span class="p">,{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;eventCode&#39;</span><span class="p">)</span>
+            <span class="c1">#print attr, srcstr, code0</span>
+            
             <span class="k">if</span> <span class="ow">not</span> <span class="n">code0</span><span class="p">:</span>
                 <span class="c1"># some devices like Timetool with roi do not give eventCode in configData</span>
-                <span class="n">srcstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">_srcstr</span>
-                <span class="n">code0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_sources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">srcstr</span><span class="p">,{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;eventCode&#39;</span><span class="p">)</span>
-                <span class="nb">print</span> <span class="n">attr</span><span class="p">,</span> <span class="n">srcstr</span><span class="p">,</span> <span class="n">code0</span>
+                <span class="n">code0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_det</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">eventCode</span>
+            
             <span class="k">if</span> <span class="ow">not</span> <span class="n">code0</span><span class="p">:</span>
                 <span class="n">code0</span> <span class="o">=</span> <span class="mi">40</span>
                 <span class="k">if</span> <span class="n">code0</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_eventcodes</span><span class="p">:</span>

@@ -13,7 +13,16 @@ The run summary hdf5 files and html reports can be generated from batch jobs wit
 For details on setting up analysis environment see conda_ secton. 
 
 The submit_summary bash script takes the experiment name and run number as arguments
-followed by the batch queue and type of processing.  For example:
+followed by the batch queue and type of processing.  
+
+For mpi processing (12 nodes):
+
+.. code-block:: bash 
+
+    .  /reg/g/psdm/etc/psconda.sh
+    submit_summary cxitut13 20 psanaq mpi
+
+For single core batch processing:
 
 .. code-block:: bash 
 
@@ -40,9 +49,9 @@ the Batch Job Definition.
 Under the Experiment tab, the Batch defs tab enter the following for submitting default run summaries.
 
 +-------------+------------------------------------------------------------------------------------+
-| Hash:       | #experiment_summary                                                                |
+| Hash:       | #submit_summary                                                                |
 +-------------+------------------------------------------------------------------------------------+
-| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.10/bin/submit_summary |
+| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary |
 +-------------+------------------------------------------------------------------------------------+
 | Parameters: | psanaq                                                                             |
 +-------------+------------------------------------------------------------------------------------+
@@ -52,7 +61,7 @@ For updating the experiment summary add 'epics' as a second parameter
 +-------------+------------------------------------------------------------------------------------+
 | Hash:       | #experiment_summary                                                                |
 +-------------+------------------------------------------------------------------------------------+
-| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.10/bin/submit_summary |
+| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary |
 +-------------+------------------------------------------------------------------------------------+
 | Parameters: | psanaq epics                                                                       |
 +-------------+------------------------------------------------------------------------------------+
@@ -68,7 +77,7 @@ e.g., /reg/d/psdm/cxi/cxitut13/results/src/cxitut13.py
 +-------------+------------------------------------------------------------------------------------+
 | Hash:       | #custom_summary                                                                    |
 +-------------+------------------------------------------------------------------------------------+
-| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.10/bin/submit_summary |
+| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary |
 +-------------+------------------------------------------------------------------------------------+
 | Parameters: | psanaq cxitut13                                                                    |
 +-------------+------------------------------------------------------------------------------------+

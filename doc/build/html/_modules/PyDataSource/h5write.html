@@ -354,12 +354,12 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">file_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">_*.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">run</span><span class="p">))</span>
 
-        <span class="k">return</span> <span class="n">read_netcdfs</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">read_netcdfs</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">make_cuts</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
  
     <span class="k">elif</span> <span class="n">chunk</span> <span class="ow">and</span> <span class="n">run</span><span class="p">:</span>
         <span class="n">file_names</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">_c*.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">run</span><span class="p">))</span>
         <span class="k">if</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">read_netcdfs</span><span class="p">(</span><span class="n">file_names</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">read_netcdfs</span><span class="p">(</span><span class="n">file_names</span><span class="p">,</span> <span class="n">make_cuts</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">glob</span>
             <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">file_names</span><span class="p">)</span>
@@ -485,6 +485,86 @@
 
     <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">xattrs</span>
 
+<span class="k">def</span> <span class="nf">merge_stats</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="s1">&#39;steps&#39;</span><span class="p">,</span> 
+        <span class="n">h5folder</span><span class="o">=</span><span class="s1">&#39;scratch&#39;</span><span class="p">,</span> <span class="n">subfolder</span><span class="o">=</span><span class="s1">&#39;nc&#39;</span><span class="p">,</span>
+        <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;h5netcdf&#39;</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read netcdf chunked stats </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dim : str</span>
+<span class="sd">        Diminsion along which to merge stats files</span>
+<span class="sd">        Default = &#39;steps&#39;</span>
+<span class="sd">    engine : str</span>
+<span class="sd">        Engine for loading files.  default = &#39;h5netcdf&#39;</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+    <span class="kn">import</span> <span class="nn">glob</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;run must be provided&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exp</span><span class="p">:</span>
+            <span class="n">instrument</span> <span class="o">=</span> <span class="n">exp</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;exp must be provided&#39;</span><span class="p">)</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;/reg/d/psdm/</span><span class="si">{:}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">/Run</span><span class="si">{:04}</span><span class="s1">/&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> 
+                <span class="n">exp</span><span class="p">,</span><span class="n">h5folder</span><span class="p">,</span><span class="n">subfolder</span><span class="p">,</span><span class="n">run</span><span class="p">)</span>
+    
+    <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">_*stats.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">run</span><span class="p">)))</span>
+    <span class="n">xdata</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">ifile</span><span class="p">,</span> <span class="n">file_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;Loading stats &#39;</span><span class="p">,</span> <span class="n">file</span> 
+        <span class="n">xdat</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+       
+        <span class="n">steps</span> <span class="o">=</span> <span class="n">xdat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">steps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">xdat</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">xdat</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">steps</span><span class="o">=</span><span class="n">step</span><span class="p">)</span>
+                <span class="n">dattrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">dim</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">()]</span>
+                <span class="k">if</span> <span class="n">dattrs</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">dattrs</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">step</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xdata</span><span class="p">:</span>
+                    <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">attr</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;events&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">values</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+                    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">stats</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">values</span>
+                        <span class="n">istats</span> <span class="o">=</span> <span class="p">{</span><span class="n">stat</span><span class="p">:</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">stat</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">stats</span><span class="p">))}</span>
+                        <span class="n">stat</span> <span class="o">=</span> <span class="s1">&#39;min&#39;</span>
+                        <span class="k">if</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
+                            <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="n">stat</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> 
+                                                            <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+                        <span class="n">stat</span> <span class="o">=</span> <span class="s1">&#39;max&#39;</span>
+                        <span class="k">if</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
+                            <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="n">stat</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> 
+                                                            <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+                        <span class="n">stat</span> <span class="o">=</span> <span class="s1">&#39;var&#39;</span>
+                        <span class="k">if</span> <span class="n">stat</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
+                            <span class="n">xvar</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+                            <span class="n">svar</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+                            <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="n">stat</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">xvar</span><span class="o">+</span><span class="mf">1.</span><span class="o">/</span><span class="n">svar</span><span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="s1">&#39;mean&#39;</span> <span class="ow">in</span> <span class="n">stats</span> <span class="ow">and</span> <span class="s1">&#39;std&#39;</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">:</span>
+                            <span class="n">svar</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="s1">&#39;std&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">**</span><span class="mi">2</span>
+                            <span class="n">xvar</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="s1">&#39;std&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">**</span><span class="mi">2</span>
+                            <span class="n">smean</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+                            <span class="n">xmean</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+                            <span class="n">sxvar</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">xvar</span><span class="o">+</span><span class="mf">1.</span><span class="o">/</span><span class="n">svar</span><span class="p">)</span>
+                            <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">xmean</span><span class="o">/</span><span class="n">xvar</span><span class="o">+</span><span class="n">smean</span><span class="o">/</span><span class="n">svar</span><span class="p">)</span><span class="o">*</span><span class="n">sxvar</span>
+                            <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="s1">&#39;std&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sxvar</span><span class="p">)</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">dim</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">x</span>
+
 <span class="k">def</span> <span class="nf">read_chunked</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> 
         <span class="n">h5folder</span><span class="o">=</span><span class="s1">&#39;scratch&#39;</span><span class="p">,</span> <span class="n">subfolder</span><span class="o">=</span><span class="s1">&#39;nc&#39;</span><span class="p">,</span>
         <span class="n">omit_attrs</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ichunk&#39;</span><span class="p">,</span> <span class="s1">&#39;nevents&#39;</span><span class="p">],</span> 
@@ -530,7 +610,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span> <span class="s1">&#39;File does not exist: </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span> <span class="p">)</span>
 
-    <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">_*.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">run</span><span class="p">))</span> 
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">_*.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">run</span><span class="p">))</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;stats.nc&#39;</span><span class="p">)]</span>
     <span class="c1">#dets = set([a.lstrip(&#39;{:}/run{:04}_&#39;.format(path,run)).split(&#39;_&#39;)[1].split(&#39;.&#39;)[0] for a in files])</span>
     <span class="n">datachunks</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">chunks</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">_&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">run</span><span class="p">))</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">files</span><span class="p">])</span>
@@ -550,7 +630,8 @@
         <span class="k">if</span> <span class="n">merge</span> <span class="ow">or</span> <span class="n">merge_chunk</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
                 <span class="nb">print</span> <span class="s1">&#39;Merging chunk&#39;</span><span class="p">,</span> <span class="n">chunk</span>
-            <span class="n">file_names</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">//run</span><span class="si">{:04}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_*.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">run</span><span class="p">,</span><span class="n">chunk</span><span class="p">))</span> 
+            <span class="n">file_names</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">//run</span><span class="si">{:04}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_*.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">run</span><span class="p">,</span><span class="n">chunk</span><span class="p">))</span>
+            <span class="n">file_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">file_names</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;stats.nc&#39;</span><span class="p">)]</span>
             <span class="n">save_file</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">//run</span><span class="si">{:04}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">run</span><span class="p">,</span><span class="n">chunk</span><span class="p">)</span>
             <span class="c1">#x = merge_datasets(file_names, save_file=save_file, quiet=quiet)</span>
             <span class="n">x</span><span class="p">,</span> <span class="n">cxattrs</span> <span class="o">=</span> <span class="n">merge_datasets</span><span class="p">(</span><span class="n">file_names</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="n">quiet</span><span class="p">)</span>
@@ -610,7 +691,14 @@
             <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
             <span class="nb">print</span> <span class="s1">&#39;Cannot make default cuts&#39;</span>
 
+    <span class="nb">print</span> <span class="s1">&#39;... merge stats chunks&#39;</span><span class="p">,</span> <span class="n">run</span><span class="p">,</span> <span class="n">path</span>
+    <span class="n">xstats</span> <span class="o">=</span> <span class="n">merge_stats</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">xstats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;... merge stats with event data&#39;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">xstats</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;Saving data&#39;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">save</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">save_file</span> <span class="o">=</span> <span class="n">save</span>
         <span class="k">else</span><span class="p">:</span>
@@ -638,6 +726,43 @@
             <span class="k">return</span> <span class="n">x</span>
 
     <span class="k">return</span> <span class="n">x</span>
+
+<span class="k">def</span> <span class="nf">to_hdf5_mpi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">build_html</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">time0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+        <span class="kn">import</span> <span class="nn">h5netcdf</span>
+        <span class="kn">from</span> <span class="nn">mpi4py</span> <span class="k">import</span> <span class="n">MPI</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;xarray package not available. Use for example conda environment with &quot;source conda_setup&quot;&#39;</span><span class="p">)</span>
+
+    <span class="n">comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
+    <span class="n">rank</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">rank</span>  <span class="c1"># The process ID (integer 0-3 for 4-process run)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
+
+    <span class="n">path</span><span class="p">,</span> <span class="n">file_base</span> <span class="o">=</span> <span class="n">write_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    
+    <span class="n">files</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">file_base</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">exp</span>
+        <span class="n">run</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">run</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">read_chunked</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="n">exp</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="n">cleanup</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;Could not read files&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">file_base</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="k">if</span> <span class="n">build_html</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">build_html</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">html</span> <span class="o">=</span> <span class="n">build_html</span><span class="o">.</span><span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> 
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="nb">print</span> <span class="s1">&#39;Could not build html run summary for&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="n">MPI</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="to_hdf5"><a class="viewcode-back" href="../../generated/PyDataSource.to_hdf5.html#PyDataSource.to_hdf5">[docs]</a><span class="k">def</span> <span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -708,7 +833,6 @@
         <span class="n">x</span> <span class="o">=</span> <span class="n">to_summary</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">x</span>
-
 
 <span class="c1"># Need to add in &#39;chunking based on steps&#39;</span>
 <span class="k">def</span> <span class="nf">write_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nevents</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mi">10001</span><span class="p">,</span> 
@@ -788,11 +912,13 @@
     <span class="k">except</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;xarray package not available. Use for example conda environment with &quot;source conda_setup&quot;&#39;</span><span class="p">)</span>
 
+    <span class="n">comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
     <span class="n">rank</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">rank</span>  <span class="c1"># The process ID (integer 0-3 for 4-process run)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
 
     <span class="n">exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">exp</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span> <span class="ow">and</span> <span class="n">ichunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ichunk</span><span class="o">=</span><span class="n">rank</span>
    
     <span class="bp">self</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
@@ -1227,6 +1353,10 @@
             <span class="k">if</span> <span class="n">ichunk</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">chunk_steps</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ievent0</span><span class="p">):</span>
                     <span class="n">evt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                
+                <span class="nb">print</span> <span class="s1">&#39;reset_stats ...&#39;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
+                
             
                 <span class="c1">#print &#39;Previous event before current chunk:&#39;, evt</span>
 
@@ -1249,6 +1379,9 @@
                     <span class="c1"># on first event skip to the desired step</span>
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ichunk</span><span class="p">):</span>
                         <span class="n">step_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                
+                    <span class="nb">print</span> <span class="s1">&#39;reset_stats ...&#39;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
                 
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">evt</span> <span class="o">=</span> <span class="n">step_events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>

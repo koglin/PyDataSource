@@ -465,7 +465,7 @@
 
     <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_load_run_info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_init_arch</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_arch</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_load_exp_runs</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
@@ -842,7 +842,7 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">xruns</span>
 
-    <span class="k">def</span> <span class="nf">_init_arch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_init_arch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialize archive</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -851,7 +851,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_load_run_info</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_arch</span> <span class="o">=</span> <span class="n">EpicsArchive</span><span class="p">()</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xruns</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
-        <span class="n">dt</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;begin_time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">max_run</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">&lt;=</span> <span class="n">max_run</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">min_run</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">&gt;=</span> <span class="n">min_run</span><span class="p">]</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="mi">1</span><span class="p">:][</span><span class="s1">&#39;begin_time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
         <span class="n">tstart</span> <span class="o">=</span> <span class="p">[</span><span class="n">dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span><span class="p">,</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tstart</span> <span class="o">=</span> <span class="n">tstart</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;end_time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
