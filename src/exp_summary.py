@@ -72,7 +72,7 @@ def open_epics_data(exp=None, file_name=None, path=None, run=None, **kwargs):
     
     return xdata
 
-def get_pv_attrs(exp):
+def get_pv_attrs(exp, auto_load=False):
     """
     Get dict of attributes for epics pvs
 
@@ -80,22 +80,28 @@ def get_pv_attrs(exp):
     ----------
     exp : str
         Experiment Name
+    
+    auto_load : bool
+        Automatically reload exp_summary if not existing
 
     """
     try:
         xpvs = open_epics_data(exp, 'xpvs.nc')
     except:
         print 'Failed open_epics_data for', exp
-        xpvs = None
+        xpvs = {}
 
     if not xpvs:
-        es = get_exp_summary(exp, reload=True)
-        es.save()
-        xpvs = es.xpvs
+        if auto_load:
+            es = get_exp_summary(exp, reload=True)
+            es.save()
+            xpvs = es.xpvs
+        else:
+            return {} 
 
     return {a: dict(item.attrs) for a, item in xpvs.data_vars.items()}
 
-def get_scan_pvs(exp, run=None):
+def get_scan_pvs(exp, run=None, auto_load=False):
     """
     Get scan pvs for exp.  
     If run is provided return dict of alias, pv
@@ -107,6 +113,8 @@ def get_scan_pvs(exp, run=None):
         Experiment Name
     run : int
         Run number (optional)
+    auto_load : bool
+        Automatically reload exp_summary if not existing
     
     """
     try:
@@ -115,9 +123,12 @@ def get_scan_pvs(exp, run=None):
         xscan = None
 
     if not xscan:
-        es = get_exp_summary(exp, reload=True)
-        es.save()
-        xscan = es.xscan
+        if auto_load:
+            es = get_exp_summary(exp, reload=True)
+            es.save()
+            xscan = es.xscan
+        else:
+            return None
 
     attrs = [a for a in xscan.data_vars.keys()]
     dfscan = xscan.sel(stat='count').reset_coords()[attrs]

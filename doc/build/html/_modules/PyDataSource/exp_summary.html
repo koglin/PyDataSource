@@ -233,7 +233,7 @@
     
     <span class="k">return</span> <span class="n">xdata</span>
 
-<span class="k">def</span> <span class="nf">get_pv_attrs</span><span class="p">(</span><span class="n">exp</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_pv_attrs</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">auto_load</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get dict of attributes for epics pvs</span>
 
@@ -241,22 +241,28 @@
 <span class="sd">    ----------</span>
 <span class="sd">    exp : str</span>
 <span class="sd">        Experiment Name</span>
+<span class="sd">    </span>
+<span class="sd">    auto_load : bool</span>
+<span class="sd">        Automatically reload exp_summary if not existing</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">xpvs</span> <span class="o">=</span> <span class="n">open_epics_data</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="s1">&#39;xpvs.nc&#39;</span><span class="p">)</span>
     <span class="k">except</span><span class="p">:</span>
         <span class="nb">print</span> <span class="s1">&#39;Failed open_epics_data for&#39;</span><span class="p">,</span> <span class="n">exp</span>
-        <span class="n">xpvs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">xpvs</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">xpvs</span><span class="p">:</span>
-        <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">es</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
-        <span class="n">xpvs</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">xpvs</span>
+        <span class="k">if</span> <span class="n">auto_load</span><span class="p">:</span>
+            <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">es</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="n">xpvs</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">xpvs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span> 
 
     <span class="k">return</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">xpvs</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
-<span class="k">def</span> <span class="nf">get_scan_pvs</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_scan_pvs</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">auto_load</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get scan pvs for exp.  </span>
 <span class="sd">    If run is provided return dict of alias, pv</span>
@@ -268,6 +274,8 @@
 <span class="sd">        Experiment Name</span>
 <span class="sd">    run : int</span>
 <span class="sd">        Run number (optional)</span>
+<span class="sd">    auto_load : bool</span>
+<span class="sd">        Automatically reload exp_summary if not existing</span>
 <span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
@@ -276,9 +284,12 @@
         <span class="n">xscan</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">xscan</span><span class="p">:</span>
-        <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">es</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
-        <span class="n">xscan</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">xscan</span>
+        <span class="k">if</span> <span class="n">auto_load</span><span class="p">:</span>
+            <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">es</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="n">xscan</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">xscan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">xscan</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
     <span class="n">dfscan</span> <span class="o">=</span> <span class="n">xscan</span><span class="o">.</span><span class="n">sel</span><span class="p">(</span><span class="n">stat</span><span class="o">=</span><span class="s1">&#39;count&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()[</span><span class="n">attrs</span><span class="p">]</span>

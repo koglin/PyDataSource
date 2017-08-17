@@ -15,7 +15,9 @@ HTML web page reports can be built from the xarray data summaries using the Buil
 
     In [2]: x = PyDataSource.open_h5netcdf(exp='cxitut13',run=20)
 
-    In [3]: b = Build_html(x, auto=True, path='home')
+    In [3]: from PyDataSource.build_html import Build_html
+
+    In [4]: b = Build_html(x, auto=True, path='home')
 This run is an example of 8keV t-field data on DsaCsPad as noted in the practice_ data confluence page.
 
 See link for the html report generated in this example for `cxitut13/run0020 <_static/reports/cxitut13/run0020/report.html>`_ 
@@ -37,11 +39,11 @@ The auto=True keyword is a shortcut for the following:
 
 .. sourcecode:: ipython
 
-    In [3]: b = Build_html(x, auto=False, path='home')
+    In [5]: b = Build_html(x, auto=False, path='home')
 
-    In [4]: b.add_all()
+    In [6]: b.add_all()
 
-    In [5]: b.to_html()
+    In [7]: b.to_html()
 
 Where the add_all calls the following methods for each detector base alias in the xarray DataSet.
 
@@ -59,7 +61,7 @@ Later the lower level methods for adding plots and tables will be described.
 
 .. sourcecode:: ipython
 
-    In [6]: b = Build_html(x, auto=False, path='home')
+    In [8]: b = Build_html(x, auto=False, path='home')
 
 Add Detector
 ------------
@@ -69,7 +71,7 @@ data elements with the detector alias, i.e., 'DsaCsPad' in this example.
 
 .. sourcecode:: ipython
 
-    In [7]: b.add_detector('DsaCsPad')
+    In [9]: b.add_detector('DsaCsPad')
 
 .. autosummary::
     :toctree: generated/
@@ -83,8 +85,8 @@ Add summary plots for data variables
 
 .. sourcecode:: ipython
 
-    In [8]: variables = ['DsaCsPad_photon_hist']
-    In [9]:  b.add_summary(variables)
+    In [10]: variables = ['DsaCsPad_photon_hist']
+    In [11]:  b.add_summary(variables)
 
 .. autosummary::
     :toctree: generated/
@@ -97,7 +99,7 @@ Add detector statistics plots for data variables that have 'stats' dims.
 
 .. sourcecode:: ipython
 
-    In [10]: b.add_stats('DsaCsPad_corr_stats')
+    In [12]: b.add_stats('DsaCsPad_corr_stats')
 
 .. autosummary::
     :toctree: generated/
@@ -123,7 +125,7 @@ write html report
 
 .. sourcecode:: ipython
 
-    In [12]: b.to_html()
+    In [13]: b.to_html()
 
 .. autosummary::
     :toctree: generated/

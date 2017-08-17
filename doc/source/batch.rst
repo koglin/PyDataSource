@@ -51,7 +51,7 @@ Under the Experiment tab, the Batch defs tab enter the following for submitting 
 +-------------+------------------------------------------------------------------------------------+
 | Hash:       | #submit_summary                                                                |
 +-------------+------------------------------------------------------------------------------------+
-| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary |
+| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.12/bin/submit_summary |
 +-------------+------------------------------------------------------------------------------------+
 | Parameters: | psanaq                                                                             |
 +-------------+------------------------------------------------------------------------------------+
@@ -61,7 +61,7 @@ For updating the experiment summary add 'epics' as a second parameter
 +-------------+------------------------------------------------------------------------------------+
 | Hash:       | #experiment_summary                                                                |
 +-------------+------------------------------------------------------------------------------------+
-| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary |
+| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.12/bin/submit_summary |
 +-------------+------------------------------------------------------------------------------------+
 | Parameters: | psanaq epics                                                                       |
 +-------------+------------------------------------------------------------------------------------+
@@ -77,7 +77,7 @@ e.g., /reg/d/psdm/cxi/cxitut13/results/src/cxitut13.py
 +-------------+------------------------------------------------------------------------------------+
 | Hash:       | #custom_summary                                                                    |
 +-------------+------------------------------------------------------------------------------------+
-| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/bin/submit_summary |
+| Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.12/bin/submit_summary |
 +-------------+------------------------------------------------------------------------------------+
 | Parameters: | psanaq cxitut13                                                                    |
 +-------------+------------------------------------------------------------------------------------+

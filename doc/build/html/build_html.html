@@ -206,7 +206,9 @@
 
 <span class="gp">In [2]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
 
-<span class="gp">In [3]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
+<span class="gp">In [3]: </span><span class="kn">from</span> <span class="nn">PyDataSource.build_html</span> <span class="kn">import</span> <span class="n">Build_html</span>
+
+<span class="gp">In [4]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>This run is an example of 8keV t-field data on DsaCsPad as noted in the <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Publicly+Available+Practice+Data">practice</a> data confluence page.</p>
@@ -223,11 +225,11 @@ contraceted boxes with title text by default.</p>
 <div class="section" id="auto-add-default-report">
 <h2>Auto add default report<a class="headerlink" href="#auto-add-default-report" title="Permalink to this headline">¶</a></h2>
 <p>The auto=True keyword is a shortcut for the following:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [3]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
 
-<span class="gp">In [4]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_all</span><span class="p">()</span>
+<span class="gp">In [6]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_all</span><span class="p">()</span>
 
-<span class="gp">In [5]: </span><span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+<span class="gp">In [7]: </span><span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Where the add_all calls the following methods for each detector base alias in the xarray DataSet.</p>
@@ -251,7 +253,7 @@ contraceted boxes with title text by default.</p>
 <p>Custom reports can be generated using the following high level methods
 for makine sets of plots based on detector alias and data attribute names.
 Later the lower level methods for adding plots and tables will be described.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="n">b</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;home&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -260,7 +262,7 @@ Later the lower level methods for adding plots and tables will be described.</p>
 <p>By convention the psana detector alias is passed to each data element in the xarray object.
 If no keywords are provided, the add_detector method will attempt to add all relevant plots for
 data elements with the detector alias, i.e., ‘DsaCsPad’ in this example.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_detector</span><span class="p">(</span><span class="s1">&#39;DsaCsPad&#39;</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [9]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_detector</span><span class="p">(</span><span class="s1">&#39;DsaCsPad&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <table border="1" class="longtable docutils">
@@ -278,8 +280,8 @@ data elements with the detector alias, i.e., ‘DsaCsPad’ in this example.</p>
 <div class="section" id="add-summary">
 <h2>Add Summary<a class="headerlink" href="#add-summary" title="Permalink to this headline">¶</a></h2>
 <p>Add summary plots for data variables</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [8]: </span><span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DsaCsPad_photon_hist&#39;</span><span class="p">]</span>
-<span class="gp">In [9]: </span> <span class="n">b</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;DsaCsPad_photon_hist&#39;</span><span class="p">]</span>
+<span class="gp">In [11]: </span> <span class="n">b</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
 </pre></div>
 </div>
 <table border="1" class="longtable docutils">
@@ -297,7 +299,7 @@ data elements with the detector alias, i.e., ‘DsaCsPad’ in this example.</p>
 <div class="section" id="add-statistics">
 <h2>Add Statistics<a class="headerlink" href="#add-statistics" title="Permalink to this headline">¶</a></h2>
 <p>Add detector statistics plots for data variables that have ‘stats’ dims.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_stats</span><span class="p">(</span><span class="s1">&#39;DsaCsPad_corr_stats&#39;</span><span class="p">)</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">b</span><span class="o">.</span><span class="n">add_stats</span><span class="p">(</span><span class="s1">&#39;DsaCsPad_corr_stats&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <table border="1" class="longtable docutils">
@@ -335,7 +337,7 @@ data elements with the detector alias, i.e., ‘DsaCsPad’ in this example.</p>
 <tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_counts.html#PyDataSource.Build_html.add_counts" title="PyDataSource.Build_html.add_counts"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_counts</span></code></a>([catagory,&nbsp;confidence])</td>
 <td>Add correlation plots of detector count and sum values</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_axis_plots.html#PyDataSource.Build_html.add_axis_plots" title="PyDataSource.Build_html.add_axis_plots"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_axis_plots</span></code></a>()</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.Build_html.add_axis_plots.html#PyDataSource.Build_html.add_axis_plots" title="PyDataSource.Build_html.add_axis_plots"><code class="xref py py-obj docutils literal"><span class="pre">Build_html.add_axis_plots</span></code></a>([base_attrs])</td>
 <td>Add correlation plots of X and Y axis data.</td>
 </tr>
 </tbody>
@@ -343,7 +345,7 @@ data elements with the detector alias, i.e., ‘DsaCsPad’ in this example.</p>
 </div>
 <div class="section" id="write-html-report">
 <h2>write html report<a class="headerlink" href="#write-html-report" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">b</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
 </pre></div>
 </div>
 <table border="1" class="longtable docutils">

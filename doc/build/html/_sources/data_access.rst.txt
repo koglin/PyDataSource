@@ -14,8 +14,7 @@ Use the following environment Setup from psana machine.  Start ipython with the 
 
 .. code-block:: bash 
 
-    .  /reg/g/psdm/etc/ana_env.sh
-    source conda_setup
+    .  /reg/g/psdm/etc/psconda.sh
     ipython --pylab
  
 Data Source

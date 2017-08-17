@@ -44,7 +44,11 @@ fi
 
 #PYOPT='test'
 
-: ${DIRNAME:="$DIR/../python/PyDataSource/"}
+: ${DIRNAME:="$DIR/../lib/python2.7/site-packages/PyDataSource/"}
+if [[ ! -a $DIRNAME ]]; then
+    DIRNAME="$DIR/../python/PyDataSource/"
+fi
+
 : ${PYFILE:="__main__.py"}
 : ${MAX_SIZE:="10001"}
 : ${QUEUEREQ:="psanaq"}

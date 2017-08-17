@@ -49,11 +49,11 @@ We start with the basic data processing previously outlined for the cxi lysozyme
     In [9]: evt.DscCsPad.add.projection('calib', axis='r')
     
 
-Now load the first 10 events into an xarray Dataset.  The max_size keyword sets the maximum array size to be saved.  By default max_size=10001, which is about the size of data in the 'smd' Daq small data files that is most quickly retrieved from file.  By setting this to a large number (1e9), even large CSpad images are loaded. 
+Now load the first 10 events into an xarray Dataset.  The max_size keyword sets the maximum array size to be saved.  By default max_size=10001, which is about the size of data in the 'smd' Daq small data files that is most quickly retrieved from file.  By setting this to a large number (1e9), even large CSpad images are loaded.  Note that for tutorial data set auto_pvs=False and either save=False or set path keyword to a folder in your home directory since you will not necessarily have write permission to the tutorial experiment folders. 
 
 .. sourcecode:: ipython
     
-    In [10]: x = ds.to_hdf5(nevents=10, max_size=1e9)
+    In [10]: x = ds.to_hdf5(nevents=10, max_size=1e9, auto_pvs=False, save=False)
     updating DetInfo(CxiDs1.0:Cspad.0) DscCsPad
     updating BldInfo(FEEGasDetEnergy) FEEGasDetEnergy
     updating BldInfo(PhaseCavity) PhaseCavity

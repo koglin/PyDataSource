@@ -22,6 +22,14 @@ nc_path = os.path.join(data_path,'scratch/nc/')
 #exp_path = os.path.join('/reg/neh/operator/',instrument+'opr','experiments',exp)
 exp_path = results_path 
 
+def get_atten(x, thicks=atten_thicks,sicoeff=sicoeff): 
+    thick=0.
+    for i in range(1,7):
+        attr = 'att{:02}_in'.format(i)
+        vals = x[attr].values
+        thick += vals*thicks[i]
+    
+    return np.exp(-thick*1e-4*sicoeff)
 
 def fit_attenuators(x, attr='BeamMonitor_intensity', name=None,  
             cut='fit_cut', sicoeff=107, PhotonEnergy0=9000., 
@@ -231,7 +239,8 @@ def summary_html(a, ioff=True, exp_path=exp_path):
     b.add_xy_ploterr('BeamMonitor_intensity', xaxis='atten_corr', logx=True, logy=True, catagory='Corrected')
 #    b.add_xy_ploterr('BeamMonitor_peaks', xaxis='atten_corr',logx=True, logy=True, catagory='Corrected')
 
-    b.add_xy_ploterr('BeamMonitor_intensity', xaxis='atten_trans1', logx=True, logy=True)
+    if 'atten_trans1' in a:
+        b.add_xy_ploterr('BeamMonitor_intensity', xaxis='atten_trans1', logx=True, logy=True)
 #    b.add_xy_ploterr('BeamMonitor_peaks', xaxis='atten_trans1', logx=True, logy=True)
 #    b.add_xy_ploterr('BeamMonitor_intensity_norm', xaxis='atten_trans1', logx=True, logy=True)
 #    b.add_xy_ploterr('BeamMonitor_peaks_norm', xaxis='atten_trans1', logx=True, logy=True)
@@ -365,23 +374,25 @@ def make_cuts(x, fit=None, stepmax=55):
     x.coords['PhaseCavity_cut'] = (['time'], phasecut)
   
     attr = 'FEEGasDetEnergy_f_11_ENRC'
-    x['Gasdet_pre_atten'] = (['time'], x[attr].values)
-    x['Gasdet_pre_atten'].attrs['doc'] = "Energy measurement before attenuation ({:})".format(attr)
-    for a in ['unit', 'alias']: 
-        try:
-            x['Gasdet_pre_atten'].attrs[a] = x[attr].attrs[a]  
-        except:
-            pass
+    if attr in x:
+        x['Gasdet_pre_atten'] = (['time'], x[attr].values)
+        x['Gasdet_pre_atten'].attrs['doc'] = "Energy measurement before attenuation ({:})".format(attr)
+        for a in ['unit', 'alias']: 
+            try:
+                x['Gasdet_pre_atten'].attrs[a] = x[attr].attrs[a]  
+            except:
+                pass
 
 
     attr = 'FEEGasDetEnergy_f_21_ENRC'
-    x['Gasdet_post_atten'] = (['time'], x[attr].values)
-    x['Gasdet_post_atten'].attrs['doc'] = "Energy measurement afeter attenuation ({:})".format(attr)
-    for a in ['unit', 'alias']: 
-        try:
-            x['Gasdet_post_atten'].attrs[a] = x[attr].attrs[a]  
-        except:
-            pass
+    if attr in x:
+        x['Gasdet_post_atten'] = (['time'], x[attr].values)
+        x['Gasdet_post_atten'].attrs['doc'] = "Energy measurement afeter attenuation ({:})".format(attr)
+        for a in ['unit', 'alias']: 
+            try:
+                x['Gasdet_post_atten'].attrs[a] = x[attr].attrs[a]  
+            except:
+                pass
 
     gasdetcut_mJ = 0.5
     gasdetcut =  np.array(x.Gasdet_pre_atten.values > gasdetcut_mJ, dtype=byte)
@@ -413,10 +424,6 @@ def make_cuts(x, fit=None, stepmax=55):
         x['PhotonEnergy'] = x['EBeam_ebeamPhotonEnergy']
     except:
         pass
-    
-    x['PulseEnergy'] = x['Gasdet_post_atten']*x['atten_trans1']
-    x['PulseEnergy'].attrs = x['Gasdet_post_atten'].attrs
-    x['PulseEnergy'].attrs['doc'] = "Energy measurement normalized by attenuators"
 
     # Change attenuator to in/out
     for i in range(1,10):
@@ -426,6 +433,21 @@ def make_cuts(x, fit=None, stepmax=55):
             x[attr] = (['time'], np.array(2-x[pvalias], dtype=byte))
             x[attr].attrs['doc'] = 'Attenuator {:} In/Out'.format(pvalias)
             del x[pvalias]
+
+    if 'atten_trans1' not in x:
+        try:
+            atten_trans1 = get_atten(x)
+            x['atten_trans1'] = (['time'], atten_trans1)
+            if len(set(atten_trans1)) > 2:
+                x.attrs['scan_variables'] += ['atten_trans1']
+        except:
+            pass
+    
+    if 'atten_trans1' in x:
+        x['PulseEnergy'] = x['Gasdet_post_atten']*x['atten_trans1']
+        x['PulseEnergy'].attrs = x['Gasdet_post_atten'].attrs
+        x['PulseEnergy'].attrs['doc'] = "Energy measurement normalized by attenuators"
+
 
 #   x = thick_corr(x)
     if fit:
@@ -456,13 +478,15 @@ def make_cuts(x, fit=None, stepmax=55):
 def build_html(x, add_scatter=False, do_inline=False):
     """Make html web page from xarray summary dataset.
     """
+    from PyDataSource.build_html import Build_html
     b = Build_html(x)
 
     #b.add_detector('EBeam',cut='Damage_cut')
     #b.add_detector('FEEGasDetector',cut='Damage_cut')
     #b.add_detector('PhaseCavity',cut='Damage_cut')
     b.add_summary(variables=['BeamMonitor_waveforms'],groupby=['Damage_cut'])
-    b.add_summary(variables=['BeamMonitor_waveforms'],groupby=['atten_trans1'])
+    if 'atten_trans1' in x:
+        b.add_summary(variables=['BeamMonitor_waveforms'],groupby=['atten_trans1'])
 
     attr_groups = {
 #                   'Undulator X': ['EBeam_ebeamUndAngX', 'EBeam_ebeamUndPosX'],
@@ -751,15 +775,6 @@ if __name__ == "__main__":
 
 #    bm = x.BeamMonitor_intensity.groupby('step').mean().values
 
-#def get_corr(x, thicks=atten_thicks,sicoeff=sicoeff): 
-#    thick=0.
-#    for i in range(1,7):
-#        attr = 'atten_s{:02}'.format(i)
-#        vals = x[attr].values
-#        thick += (2-vals)*thicks[i]
-#    
-#    return np.exp(-thick*1e-4*sicoeff)
-#
 #def plot_norm(x, thicks=atten_thicks,sicoeff=sicoeff, **kwargs):
 #    (x.BeamMonitor_intensity/get_corr(x,thicks=thicks,sicoeff=sicoeff)).groupby('step').mean().to_pandas().T.plot(**kwargs)
 #
