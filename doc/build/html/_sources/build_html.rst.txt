@@ -18,6 +18,7 @@ HTML web page reports can be built from the xarray data summaries using the Buil
     In [3]: from PyDataSource.build_html import Build_html
 
     In [4]: b = Build_html(x, auto=True, path='home')
+
 This run is an example of 8keV t-field data on DsaCsPad as noted in the practice_ data confluence page.
 
 See link for the html report generated in this example for `cxitut13/run0020 <_static/reports/cxitut13/run0020/report.html>`_ 

@@ -185,6 +185,33 @@
 <dt id="PyDataSource.DataSource.to_hdf5">
 <code class="descclassname">DataSource.</code><code class="descname">to_hdf5</code><span class="sig-paren">(</span><em>build_html=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#DataSource.to_hdf5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.DataSource.to_hdf5" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write directly to hdf5 in xarray comatable netcdf4 format.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>build_html</strong> (<em>bool</em>) – Build run summary if True</li>
+<li><strong>max_size</strong> (<em>uint</em>) – Maximum array size of data objects to build into xarray.</li>
+<li><strong>ichunk</strong> (<em>int</em>) – chunk index (skip ahead nevents*ichunk)</li>
+<li><strong>pvs</strong> (<em>list</em>) – List of pvs to be loaded vs time</li>
+<li><strong>epics_attrs</strong> (<em>list</em>) – List of epics pvs to be saved as run attributes based on inital value
+of first event.</li>
+<li><strong>code_flags</strong> (<em>dict</em>) – Dictionary of event code flags.
+Default = {‘XrayOff’: [162], ‘XrayOn’: [-162]}</li>
+<li><strong>eventCodes</strong> (<em>list</em>) – List of event codes
+Default is all event codes in DataSource</li>
+<li><strong>drop_unused_codes</strong> (<em>bool</em>) – If true drop unused eventCodes [default=True]</li>
+<li><strong>default_stats</strong> (<em>bool</em>) – If true include stats for waveforms and calib image data.</li>
+<li><strong>min_all_save</strong> (<em>int</em>) – Min number of events where all ‘calib’ data saved.  Sets max_size = 1e10</li>
+<li><strong>default_stats</strong> – If true automatically add default stats for all detectors that do not already
+have stats added</li>
+<li><strong>auto_update</strong> (<em>bool</em>) – If true automatically update xarray info for all detectors</li>
+<li><strong>auto_pvs</strong> (<em>bool</em>) – If true automatically add pvs that were moved during run.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -243,7 +270,7 @@
       <script type="text/javascript" src="../_static/jquery.js"></script>
       <script type="text/javascript" src="../_static/underscore.js"></script>
       <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

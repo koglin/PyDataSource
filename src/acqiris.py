@@ -11,7 +11,7 @@ class Acqiris(PyDataSource.Detector):
 
         PyDataSource.Detector.__init__(self,*args,**kwargs)
 
-        if False and hasattr(self.configData, 'nbrChannels'):
+        if hasattr(self.configData, 'nbrChannels'):
             self.add.parameter(nchannels=self.configData.nbrChannels)
         else: 
             self.add.parameter(nchannels=4)

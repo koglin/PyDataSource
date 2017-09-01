@@ -605,7 +605,8 @@ def to_hdf5_mpi(self, build_html=None, save=True, cleanup=True, **kwargs):
 
 
 def to_hdf5(self, save=True, cleanup=True, **kwargs):
-    """Write PyDataSource.DataSource to hdf5 file.
+    """
+    Write PyDataSource.DataSource to hdf5 file.
     """
     path, file_base = write_hdf5(self, **kwargs)
     exp = self.data_source.exp
@@ -699,8 +700,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
         auto_pvs=True,
         **kwargs):
     """
-    DEVELOPMENT:  Write directly to hdf5 with h5netcdf package.  
-    based on to_xarray method.
+    Write directly to hdf5 with h5netcdf package.  
        
     Parameters
     ----------

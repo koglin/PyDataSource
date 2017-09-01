@@ -189,41 +189,24 @@ ipython --pylab
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="gp">In [2]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">RuntimeError</span><span class="g g-Whitespace">                              </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-2-1bfe009d6780&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
-
-<span class="nn">/reg/neh/home4/koglin/conda/arch/x86_64-rhel7-gcc48-opt/python/PyDataSource/PyDataSource.pyc</span> in <span class="ni">__init__</span><span class="nt">(self, data_source, **kwargs)</span>
-<span class="g g-Whitespace">    </span><span class="mi">697</span>         <span class="bp">self</span><span class="o">.</span><span class="n">_default_modules</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="n">path</span><span class="p">})</span>
-<span class="g g-Whitespace">    </span><span class="mi">698</span>         <span class="c1">#self._default_modules.update({&#39;path&#39;: os.path.join(path,&#39;detectors&#39;)})</span>
-<span class="ne">--&gt; </span><span class="mi">699</span>         <span class="bp">self</span><span class="o">.</span><span class="n">load_run</span><span class="p">(</span><span class="n">data_source</span><span class="o">=</span><span class="n">data_source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<span class="g g-Whitespace">    </span><span class="mi">700</span>         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">smd</span><span class="p">:</span>
-<span class="g g-Whitespace">    </span><span class="mi">701</span>             <span class="bp">self</span><span class="o">.</span><span class="n">_load_smd_config</span><span class="p">()</span>
-
-<span class="nn">/reg/neh/home4/koglin/conda/arch/x86_64-rhel7-gcc48-opt/python/PyDataSource/PyDataSource.pyc</span> in <span class="ni">load_run</span><span class="nt">(self, data_source, reload, try_idx, **kwargs)</span>
-<span class="g g-Whitespace">    </span><span class="mi">791</span>         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">monshmserver</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="p">):</span>
-<span class="g g-Whitespace">    </span><span class="mi">792</span>             <span class="k">if</span> <span class="bp">True</span><span class="p">:</span>
-<span class="ne">--&gt; </span><span class="mi">793</span>                 <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span> <span class="o">=</span> <span class="n">psana</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="p">))</span>
-<span class="g g-Whitespace">    </span><span class="mi">794</span>                 <span class="n">_key_info</span><span class="p">,</span> <span class="n">_modules</span> <span class="o">=</span> <span class="n">get_keys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">env</span><span class="p">()</span><span class="o">.</span><span class="n">configStore</span><span class="p">())</span>
-<span class="g g-Whitespace">    </span><span class="mi">795</span>                 <span class="k">if</span> <span class="s1">&#39;Partition&#39;</span> <span class="ow">in</span> <span class="n">_modules</span><span class="p">:</span>
-
-<span class="nn">/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/lib/python2.7/site-packages/psana/datasource.pyc</span> in <span class="ni">DataSource</span><span class="nt">(*args, **kwargs)</span>
-<span class="g g-Whitespace">     </span><span class="mi">63</span> 
-<span class="g g-Whitespace">     </span><span class="mi">64</span>     <span class="c1"># Create the PSANA datasource object</span>
-<span class="ne">---&gt; </span><span class="mi">65</span>     <span class="n">ds</span> <span class="o">=</span> <span class="n">fwk</span><span class="o">.</span><span class="n">dataSource</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-<span class="g g-Whitespace">     </span><span class="mi">66</span> 
-<span class="g g-Whitespace">     </span><span class="mi">67</span> 
-
-<span class="ne">RuntimeError</span>: IData::Exception: dataset directory is missing: /reg/d/psdm/XPP/xpptut15/xtc/smalldata [in function files at IData/src/Dataset.cpp:367]
 
 <span class="gp">In [3]: </span><span class="n">ds</span><span class="o">.</span><span class="n">configData</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-3-b2bdde492635&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">ds</span><span class="o">.</span><span class="n">configData</span>
+<span class="gh">Out[3]: </span><span class="go">&lt; ConfigData: exp=xpptut15:run=54:smd &gt;</span>
+<span class="go">*Detectors in group 0 are &quot;BLD&quot; data recorded at 120 Hz on event code 40</span>
+<span class="go">*Detectors listed as Controls are controls devices with unknown event code (but likely 40).</span>
 
-<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
+<span class="go">Alias                     Group          Rate  Code  Pol. Delay [s]    Width [s]    Source                    </span>
+<span class="gt">------------------------------------------------------------------------------------------------------------------------</span>
+<span class="n">EBeam</span>                         <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">EBeam</span><span class="p">)</span>                          
+<span class="n">FEEGasDetEnergy</span>               <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">FEEGasDetEnergy</span><span class="p">)</span>                
+<span class="n">PhaseCavity</span>                   <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">PhaseCavity</span><span class="p">)</span>                    
+<span class="n">XppEnds_Ipm0</span>                  <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppEnds_Ipm0</span><span class="p">)</span>                   
+<span class="n">XppSb2_Ipm</span>                    <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb2_Ipm</span><span class="p">)</span>                     
+<span class="n">XppSb3_Ipm</span>                    <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb3_Ipm</span><span class="p">)</span>                     
+<span class="n">cspad</span>                         <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>   <span class="n">Pos</span> <span class="mf">0.000549832</span>  <span class="mf">0.000010000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppGon</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Cspad</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>               
+<span class="n">yag2</span>                          <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>   <span class="n">Pos</span> <span class="mf">0.000690739</span>  <span class="mf">0.000300000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppSb3Pim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span>           
+<span class="n">yag_lom</span>                       <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>   <span class="n">Pos</span> <span class="mf">0.000690739</span>  <span class="mf">0.000300000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppMonPim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span>           
+<span class="o">&lt;</span> <span class="n">ConfigData</span><span class="p">:</span> <span class="n">exp</span><span class="o">=</span><span class="n">xpptut15</span><span class="p">:</span><span class="n">run</span><span class="o">=</span><span class="mi">54</span><span class="p">:</span><span class="n">smd</span> <span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>Get the first event and press tab to see detectors in event (according to aliases defined in daq).</p>
@@ -277,44 +260,22 @@ ipython --pylab
 <p>One can iterate events from the ds.events object, the evt object, or a detector object.  Each of these are python iterators.</p>
 <p>The representation of each of these provides details of the event including the event codes present.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-6-7843259d71fb&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
 
 <span class="gp">In [7]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-7-83bcbfe18d91&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[7]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 54, Step 0, Event 1, 11:37:12.4599, [140, 40] &gt;</span>
 
 <span class="gp">In [8]: </span><span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-8-9dc7d62f31b9&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[8]: </span><span class="go">&lt; Detector: cspad xpptut15, Run 54, Step 0, Event 2, 11:37:12.4683, [140, 141, 142, 143, 144, 41, 42, 43, 44, 40] &gt;</span>
 
 <span class="gp">In [9]: </span><span class="k">for</span> <span class="n">evt</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="p">:</span>
 <span class="gp">   ...: </span>    <span class="k">print</span> <span class="n">evt</span>
 <span class="gp">   ...: </span>    <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">_ievent</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
 <span class="gp">   ...: </span>        <span class="k">break</span>
 <span class="gp">   ...: </span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-9-578c30a98df6&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="k">for</span> <span class="n">evt</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="p">:</span>
-<span class="g g-Whitespace">      </span><span class="mi">2</span>     <span class="k">print</span> <span class="n">evt</span>
-<span class="g g-Whitespace">      </span><span class="mi">3</span>     <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">_ievent</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
-<span class="g g-Whitespace">      </span><span class="mi">4</span>         <span class="k">break</span>
-<span class="g g-Whitespace">      </span><span class="mi">5</span> 
-
-<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
+<span class="go">xpptut15, Run 54, Step 0, Event 3, 11:37:12.4768, [140, 40]</span>
+<span class="go">xpptut15, Run 54, Step 0, Event 4, 11:37:12.4849, [140, 141, 41, 40]</span>
+<span class="go">xpptut15, Run 54, Step 0, Event 5, 11:37:12.4934, [140, 40]</span>
+<span class="go">xpptut15, Run 54, Step 0, Event 6, 11:37:12.5019, [140, 141, 142, 41, 42, 40]</span>
 </pre></div>
 </div>
 </div>
@@ -322,20 +283,10 @@ ipython --pylab
 <h2>Event Codes<a class="headerlink" href="#event-codes" title="Permalink to this headline">¶</a></h2>
 <p>To check if an event codes is present:</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-10-ec87a6014ff7&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[10]: </span><span class="go">True</span>
 
 <span class="gp">In [11]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="mi">41</span><span class="p">)</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-11-04dc9962d9ad&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="mi">41</span><span class="p">)</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[11]: </span><span class="go">True</span>
 </pre></div>
 </div>
 <p>Note that the default is to strictly check if code has same timestamp as the EventId.
@@ -345,28 +296,53 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <h2>Beamline Data<a class="headerlink" href="#beamline-data" title="Permalink to this headline">¶</a></h2>
 <p>The following Electron and Photon Beam data are generally recorded for all experiments.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-12-8f568803c26b&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[12]: </span><span class="go"></span>
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">EBeam</span> <span class="n">xpptut15</span><span class="p">,</span> <span class="n">Run</span> <span class="mi">54</span><span class="p">,</span> <span class="n">Step</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Event</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">11</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="mf">12.5019</span><span class="p">,</span> <span class="p">[</span><span class="mi">140</span><span class="p">,</span> <span class="mi">141</span><span class="p">,</span> <span class="mi">142</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">damageMask</span>                    <span class="mi">1048510</span>         <span class="n">Damage</span> <span class="n">mask</span><span class="o">.</span>
+<span class="n">ebeamCharge</span>              <span class="mf">0.0008491380174</span> <span class="n">nC</span>      <span class="n">Beam</span> <span class="n">charge</span> <span class="ow">in</span> <span class="n">nC</span><span class="o">.</span>
+<span class="n">ebeamDumpCharge</span>                   <span class="mf">0.0</span> <span class="n">e</span><span class="o">-</span>      <span class="n">Bunch</span> <span class="n">charge</span> <span class="n">at</span> <span class="n">Dump</span> <span class="ow">in</span> <span class="n">num</span><span class="o">.</span> <span class="n">electrons</span>
+<span class="n">ebeamEnergyBC1</span>           <span class="o">-</span><span class="mf">13.771941185</span> <span class="n">mm</span>      <span class="n">Beam</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">mm</span> <span class="p">(</span><span class="n">related</span> <span class="n">to</span> <span class="n">beam</span> <span class="n">energy</span><span class="p">)</span><span class="o">.</span>
+<span class="n">ebeamEnergyBC2</span>           <span class="o">-</span><span class="mf">0.385529458523</span> <span class="n">mm</span>      <span class="n">Beam</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">mm</span> <span class="p">(</span><span class="n">related</span> <span class="n">to</span> <span class="n">beam</span> <span class="n">energy</span><span class="p">)</span><span class="o">.</span>
+<span class="n">ebeamL3Energy</span>                     <span class="mf">0.0</span> <span class="n">MeV</span>     <span class="n">Beam</span> <span class="n">energy</span> <span class="ow">in</span> <span class="n">MeV</span><span class="o">.</span>
+<span class="n">ebeamLTU250</span>                       <span class="mf">0.0</span> <span class="n">mm</span>      <span class="n">LTU250</span> <span class="n">BPM</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">mm</span><span class="p">,</span> <span class="n">used</span> <span class="n">to</span> <span class="n">compute</span> <span class="n">photon</span> <span class="n">energy</span><span class="o">.</span> <span class="kn">from</span> <span class="nn">BPMS</span><span class="p">:</span><span class="n">LTU1</span><span class="p">:</span><span class="mi">250</span><span class="p">:</span><span class="n">X</span>
+<span class="n">ebeamLTU450</span>                       <span class="mf">0.0</span> <span class="n">mm</span>      <span class="n">LTU450</span> <span class="n">BPM</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">mm</span><span class="p">,</span> <span class="n">used</span> <span class="n">to</span> <span class="n">compute</span> <span class="n">photon</span> <span class="n">energy</span><span class="o">.</span> <span class="kn">from</span> <span class="nn">BPMS</span><span class="p">:</span><span class="n">LTU1</span><span class="p">:</span><span class="mi">450</span><span class="p">:</span><span class="n">X</span>
+<span class="n">ebeamLTUAngX</span>                      <span class="mf">0.0</span> <span class="n">mrad</span>    <span class="n">LTU</span> <span class="n">beam</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">mrad</span><span class="o">.</span>
+<span class="n">ebeamLTUAngY</span>                      <span class="mf">0.0</span> <span class="n">mrad</span>    <span class="n">LTU</span> <span class="n">beam</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">mrad</span><span class="o">.</span>
+<span class="n">ebeamLTUPosX</span>                      <span class="mf">0.0</span> <span class="n">mm</span>      <span class="n">LTU</span> <span class="n">beam</span> <span class="n">position</span> <span class="p">(</span><span class="n">BPMS</span><span class="p">:</span><span class="n">LTU1</span><span class="p">:</span><span class="mi">720</span> <span class="n">through</span> <span class="mi">750</span><span class="p">)</span> <span class="ow">in</span> <span class="n">mm</span><span class="o">.</span>
+<span class="n">ebeamLTUPosY</span>                      <span class="mf">0.0</span> <span class="n">mm</span>      <span class="n">LTU</span> <span class="n">beam</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">mm</span><span class="o">.</span>
+<span class="n">ebeamPhotonEnergy</span>                 <span class="mf">0.0</span> <span class="n">eV</span>      <span class="n">computed</span> <span class="n">photon</span> <span class="n">energy</span><span class="p">,</span> <span class="ow">in</span> <span class="n">eV</span>
+<span class="n">ebeamPkCurrBC1</span>           <span class="mf">33.6605873108</span> <span class="n">Amps</span>    <span class="n">Beam</span> <span class="n">current</span> <span class="ow">in</span> <span class="n">Amps</span><span class="o">.</span>
+<span class="n">ebeamPkCurrBC2</span>              <span class="mf">6965768.0</span> <span class="n">Amps</span>    <span class="n">Beam</span> <span class="n">current</span> <span class="ow">in</span> <span class="n">Amps</span><span class="o">.</span>
+<span class="n">ebeamUndAngX</span>                      <span class="mf">0.0</span> <span class="n">mrad</span>    <span class="n">Undulator</span> <span class="n">launch</span> <span class="n">feedback</span> <span class="n">beam</span> <span class="n">x</span><span class="o">-</span><span class="n">angle</span> <span class="ow">in</span> <span class="n">mrad</span><span class="o">.</span>
+<span class="n">ebeamUndAngY</span>                      <span class="mf">0.0</span> <span class="n">mrad</span>    <span class="n">Undulator</span> <span class="n">launch</span> <span class="n">feedback</span> <span class="n">beam</span> <span class="n">y</span><span class="o">-</span><span class="n">angle</span> <span class="ow">in</span> <span class="n">mrad</span><span class="o">.</span>
+<span class="n">ebeamUndPosX</span>                      <span class="mf">0.0</span> <span class="n">mm</span>      <span class="n">Undulator</span> <span class="n">launch</span> <span class="n">feedback</span> <span class="p">(</span><span class="n">BPMs</span> <span class="n">U4</span> <span class="n">through</span> <span class="n">U10</span><span class="p">)</span> <span class="n">beam</span> <span class="n">x</span><span class="o">-</span><span class="n">position</span> <span class="ow">in</span> <span class="n">mm</span><span class="o">.</span>
+<span class="n">ebeamUndPosY</span>                      <span class="mf">0.0</span> <span class="n">mm</span>      <span class="n">Undulator</span> <span class="n">launch</span> <span class="n">feedback</span> <span class="n">beam</span> <span class="n">y</span><span class="o">-</span><span class="n">position</span> <span class="ow">in</span> <span class="n">mm</span><span class="o">.</span>
+<span class="n">ebeamXTCAVAmpl</span>                    <span class="mf">0.0</span> <span class="n">MVolt</span>   <span class="n">XTCAV</span> <span class="n">Amplitude</span> <span class="ow">in</span> <span class="n">MVolt</span><span class="o">.</span>
+<span class="n">ebeamXTCAVPhase</span>                   <span class="mf">0.0</span> <span class="n">degrees</span> <span class="n">XTCAV</span> <span class="n">Phase</span> <span class="ow">in</span> <span class="n">degrees</span><span class="o">.</span>
 
 <span class="gp">In [13]: </span><span class="n">evt</span><span class="o">.</span><span class="n">FEEGasDetEnergy</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-13-c89e9b7de566&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">FEEGasDetEnergy</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[13]: </span><span class="go"></span>
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">FEEGasDetEnergy</span> <span class="n">xpptut15</span><span class="p">,</span> <span class="n">Run</span> <span class="mi">54</span><span class="p">,</span> <span class="n">Step</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Event</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">11</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="mf">12.5019</span><span class="p">,</span> <span class="p">[</span><span class="mi">140</span><span class="p">,</span> <span class="mi">141</span><span class="p">,</span> <span class="mi">142</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">f_11_ENRC</span>                <span class="mf">3.79885288199</span> <span class="n">mJ</span>      <span class="n">First</span> <span class="n">energy</span> <span class="n">measurement</span> <span class="p">(</span><span class="n">mJ</span><span class="p">)</span> <span class="n">before</span> <span class="n">attenuation</span><span class="o">.</span> <span class="p">(</span><span class="n">pv</span> <span class="n">name</span> <span class="n">GDET</span><span class="p">:</span><span class="n">FEE1</span><span class="p">:</span><span class="mi">241</span><span class="p">:</span><span class="n">ENRC</span><span class="p">)</span>
+<span class="n">f_12_ENRC</span>                <span class="o">-</span><span class="mf">0.00265488026241</span> <span class="n">mJ</span>      <span class="n">Second</span> <span class="p">(</span><span class="n">duplicate</span><span class="o">!)</span> energy measurement <span class="o">(</span>mJ<span class="o">)</span> after attenuation. <span class="o">(</span>pv name GDET:FEE1:242:ENRC<span class="o">)</span>
+<span class="n">f_21_ENRC</span>                <span class="o">-</span><span class="mf">0.00246534077644</span> <span class="n">mJ</span>      <span class="n">First</span> <span class="n">energy</span> <span class="n">measurement</span> <span class="p">(</span><span class="n">mJ</span><span class="p">)</span> <span class="n">after</span> <span class="n">attenuation</span><span class="o">.</span> <span class="p">(</span><span class="n">pv</span> <span class="n">name</span>  <span class="n">GDET</span><span class="p">:</span><span class="n">FEE1</span><span class="p">:</span><span class="mi">361</span><span class="p">:</span><span class="n">ENRC</span><span class="p">)</span>
+<span class="n">f_22_ENRC</span>                <span class="o">-</span><span class="mf">0.0120998537358</span> <span class="n">mJ</span>      <span class="n">Second</span> <span class="p">(</span><span class="n">duplicate</span><span class="o">!)</span> energy measurement <span class="o">(</span>mJ<span class="o">)</span> after attenuation. <span class="o">(</span>pv name GDET:FEE1:362:ENRC<span class="o">)</span>
+<span class="n">f_63_ENRC</span>                <span class="mf">0.01034428803</span> <span class="n">mJ</span>      <span class="n">First</span> <span class="n">energy</span> <span class="n">measurement</span> <span class="p">(</span><span class="n">mJ</span><span class="p">)</span> <span class="k">for</span> <span class="n">small</span> <span class="n">signals</span> <span class="p">(</span><span class="o">&lt;</span><span class="mf">0.5</span> <span class="n">mJ</span><span class="p">),</span> <span class="n">after</span> <span class="n">attenuation</span><span class="o">.</span> <span class="p">(</span><span class="n">pv</span> <span class="n">name</span> <span class="n">GDET</span><span class="p">:</span><span class="n">FEE1</span><span class="p">:</span><span class="mi">363</span><span class="p">:</span><span class="n">ENRC</span><span class="p">)</span>
+<span class="n">f_64_ENRC</span>                <span class="o">-</span><span class="mf">0.00503846250696</span> <span class="n">mJ</span>      <span class="n">Second</span> <span class="p">(</span><span class="n">duplicate</span><span class="o">!)</span> energy measurement <span class="o">(</span>mJ<span class="o">)</span> <span class="k">for</span> small signals <span class="o">(</span>&lt;<span class="m">0</span>.5mJ<span class="o">)</span>, after attenutation. <span class="o">(</span>pv name GDET:FEE1:364:ENRC<span class="o">)</span>
 
 <span class="gp">In [14]: </span><span class="n">evt</span><span class="o">.</span><span class="n">PhaseCavity</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-14-319900326020&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">PhaseCavity</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[14]: </span><span class="go"></span>
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">PhaseCavity</span> <span class="n">xpptut15</span><span class="p">,</span> <span class="n">Run</span> <span class="mi">54</span><span class="p">,</span> <span class="n">Step</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Event</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">11</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="mf">12.5019</span><span class="p">,</span> <span class="p">[</span><span class="mi">140</span><span class="p">,</span> <span class="mi">141</span><span class="p">,</span> <span class="mi">142</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">charge1</span>                  <span class="mf">0.103093358139</span> <span class="n">pico</span><span class="o">-</span><span class="n">columbs</span> <span class="n">UND</span><span class="p">:</span><span class="n">R02</span><span class="p">:</span><span class="n">IOC</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="n">BAT</span><span class="p">:</span><span class="n">Charge1</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">pico</span><span class="o">-</span><span class="n">columbs</span><span class="o">.</span>
+<span class="n">charge2</span>                  <span class="mf">0.117594925378</span> <span class="n">pico</span><span class="o">-</span><span class="n">columbs</span> <span class="n">UND</span><span class="p">:</span><span class="n">R02</span><span class="p">:</span><span class="n">IOC</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="n">BAT</span><span class="p">:</span><span class="n">Charge2</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">pico</span><span class="o">-</span><span class="n">columbs</span><span class="o">.</span>
+<span class="n">fitTime1</span>                 <span class="o">-</span><span class="mf">5.900810307</span> <span class="n">pico</span><span class="o">-</span><span class="n">seconds</span> <span class="n">UND</span><span class="p">:</span><span class="n">R02</span><span class="p">:</span><span class="n">IOC</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="n">BAT</span><span class="p">:</span><span class="n">FitTime1</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">pico</span><span class="o">-</span><span class="n">seconds</span><span class="o">.</span>
+<span class="n">fitTime2</span>                 <span class="mf">63.9429369011</span> <span class="n">pico</span><span class="o">-</span><span class="n">seconds</span> <span class="n">UND</span><span class="p">:</span><span class="n">R02</span><span class="p">:</span><span class="n">IOC</span><span class="p">:</span><span class="mi">16</span><span class="p">:</span><span class="n">BAT</span><span class="p">:</span><span class="n">FitTime2</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">pico</span><span class="o">-</span><span class="n">seconds</span><span class="o">.</span>
 </pre></div>
 </div>
 </div>
@@ -374,41 +350,8 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <h2>Epics Data<a class="headerlink" href="#epics-data" title="Permalink to this headline">¶</a></h2>
 <p>The LCLS DAQ includes many slowly changing quantities (e.g. voltages, temperatures, motor positions) that are recorded with software called EPICS.  These can either be accessed by aliases or PV name.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">59</span><span class="p">)</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">RuntimeError</span><span class="g g-Whitespace">                              </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-15-8922bb09f2ce&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">59</span><span class="p">)</span>
-
-<span class="nn">/reg/neh/home4/koglin/conda/arch/x86_64-rhel7-gcc48-opt/python/PyDataSource/PyDataSource.pyc</span> in <span class="ni">__init__</span><span class="nt">(self, data_source, **kwargs)</span>
-<span class="g g-Whitespace">    </span><span class="mi">697</span>         <span class="bp">self</span><span class="o">.</span><span class="n">_default_modules</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="n">path</span><span class="p">})</span>
-<span class="g g-Whitespace">    </span><span class="mi">698</span>         <span class="c1">#self._default_modules.update({&#39;path&#39;: os.path.join(path,&#39;detectors&#39;)})</span>
-<span class="ne">--&gt; </span><span class="mi">699</span>         <span class="bp">self</span><span class="o">.</span><span class="n">load_run</span><span class="p">(</span><span class="n">data_source</span><span class="o">=</span><span class="n">data_source</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-<span class="g g-Whitespace">    </span><span class="mi">700</span>         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">smd</span><span class="p">:</span>
-<span class="g g-Whitespace">    </span><span class="mi">701</span>             <span class="bp">self</span><span class="o">.</span><span class="n">_load_smd_config</span><span class="p">()</span>
-
-<span class="nn">/reg/neh/home4/koglin/conda/arch/x86_64-rhel7-gcc48-opt/python/PyDataSource/PyDataSource.pyc</span> in <span class="ni">load_run</span><span class="nt">(self, data_source, reload, try_idx, **kwargs)</span>
-<span class="g g-Whitespace">    </span><span class="mi">791</span>         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">monshmserver</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="p">):</span>
-<span class="g g-Whitespace">    </span><span class="mi">792</span>             <span class="k">if</span> <span class="bp">True</span><span class="p">:</span>
-<span class="ne">--&gt; </span><span class="mi">793</span>                 <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span> <span class="o">=</span> <span class="n">psana</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="p">))</span>
-<span class="g g-Whitespace">    </span><span class="mi">794</span>                 <span class="n">_key_info</span><span class="p">,</span> <span class="n">_modules</span> <span class="o">=</span> <span class="n">get_keys</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">env</span><span class="p">()</span><span class="o">.</span><span class="n">configStore</span><span class="p">())</span>
-<span class="g g-Whitespace">    </span><span class="mi">795</span>                 <span class="k">if</span> <span class="s1">&#39;Partition&#39;</span> <span class="ow">in</span> <span class="n">_modules</span><span class="p">:</span>
-
-<span class="nn">/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.11/lib/python2.7/site-packages/psana/datasource.pyc</span> in <span class="ni">DataSource</span><span class="nt">(*args, **kwargs)</span>
-<span class="g g-Whitespace">     </span><span class="mi">63</span> 
-<span class="g g-Whitespace">     </span><span class="mi">64</span>     <span class="c1"># Create the PSANA datasource object</span>
-<span class="ne">---&gt; </span><span class="mi">65</span>     <span class="n">ds</span> <span class="o">=</span> <span class="n">fwk</span><span class="o">.</span><span class="n">dataSource</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
-<span class="g g-Whitespace">     </span><span class="mi">66</span> 
-<span class="g g-Whitespace">     </span><span class="mi">67</span> 
-
-<span class="ne">RuntimeError</span>: IData::Exception: dataset directory is missing: /reg/d/psdm/XPP/xpptut15/xtc/smalldata [in function files at IData/src/Dataset.cpp:367]
 
 <span class="gp">In [16]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-16-7843259d71fb&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
 
 <span class="gp">In [17]: </span><span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.&lt;</span><span class="n">TAB</span><span class="o">&gt;</span>
 <span class="gp">   ....: </span>              <span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">alias</span>        <span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">ccm</span>          <span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">CSPAD</span>        <span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">filt</span>         <span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">hrm1</span>         <span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">ipm1</span>
@@ -421,20 +364,14 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 </div>
 <p>Epics data associated with detectors (using the convention of using an alias starting with the detector name) can be accessed either from the ds.epicsData object or more conveniently from the epicsData object in the detector.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">yag2</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-18-12adf9078605&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">yag2</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
+<span class="gh">Out[18]: </span><span class="go"></span>
+<span class="go">yag2_focus                           -1.151 -- XPP:SB3:CLF:01.RBV                       </span>
+<span class="go">yag2_zoom                                65 -- XPP:SB3:CLZ:01.RBV                       </span>
 
 <span class="gp">In [19]: </span><span class="n">evt</span><span class="o">.</span><span class="n">yag2</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-19-cdc1a62cdb9b&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">yag2</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[19]: </span><span class="go"></span>
+<span class="go">yag2_focus                           -1.151 -- XPP:SB3:CLF:01.RBV                       </span>
+<span class="go">yag2_zoom                                65 -- XPP:SB3:CLZ:01.RBV                       </span>
 </pre></div>
 </div>
 </div>
@@ -558,36 +495,14 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <h2>Reloading DataSource<a class="headerlink" href="#reloading-datasource" title="Permalink to this headline">¶</a></h2>
 <p>Use the reload method to start back at the beginning of a run.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-20-ade9c3734bee&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">ds</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
 
 <span class="gp">In [21]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-21-7843259d71fb&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
 
 <span class="gp">In [22]: </span><span class="n">evt</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-22-4d0510652b08&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[22]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step 0, Event 0, 15:11:48.5600, [40] &gt;</span>
 
 <span class="gp">In [23]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-23-83bcbfe18d91&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[23]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step 0, Event 1, 15:11:48.5683, [41, 42, 40] &gt;</span>
 </pre></div>
 </div>
 </div>
@@ -596,54 +511,23 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <p>Time stamps can be used to jump to specific event in the next method.  Alternatively an interger event number can be supplied to goto event number in DataSource (although it may not be exactly same event depending on how the data_source string is corresponding keywords to define the data_source is defined and also may differ for fast feedback and offline analysis environments).</p>
 <p>This example shows jumping to event 200, saving the EventTime, going back to event 0, and then using the saved EventTime to jump back to event 200.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [24]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-24-83bcbfe18d91&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[24]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step 0, Event 2, 15:11:48.5766, [40] &gt;</span>
 
 <span class="gp">In [25]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-25-93da261b27be&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[25]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step -1, Event 200, 15:11:50.2267, [40] &gt;</span>
 
 <span class="gp">In [26]: </span><span class="n">et200</span> <span class="o">=</span> <span class="n">evt</span><span class="o">.</span><span class="n">EventId</span><span class="o">.</span><span class="n">EventTime</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-26-8813fbcf1e44&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">et200</span> <span class="o">=</span> <span class="n">evt</span><span class="o">.</span><span class="n">EventId</span><span class="o">.</span><span class="n">EventTime</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
 
 <span class="gp">In [27]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-27-f5501a1f6700&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[27]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step -1, Event 0, 15:11:48.5600, [40] &gt;</span>
 
 <span class="gp">In [28]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="n">et200</span><span class="p">)</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-28-0d64e003393d&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="n">et200</span><span class="p">)</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[28]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step -1, Event 200, 15:11:50.2267, [40] &gt;</span>
 </pre></div>
 </div>
 <p>If nothing is passed in the next method, then the next event goes to the next event before we started jumping to specific events.</p>
 <div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [29]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gt">---------------------------------------------------------------------------</span>
-<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
-<span class="nn">&lt;ipython-input-29-83bcbfe18d91&gt;</span> in <span class="ni">&lt;module&gt;</span><span class="nt">()</span>
-<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-
-<span class="ne">NameError</span>: name &#39;evt&#39; is not defined
+<span class="gh">Out[29]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step 0, Event 3, 15:11:48.5849, [41, 40] &gt;</span>
 </pre></div>
 </div>
 </div>
@@ -703,7 +587,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

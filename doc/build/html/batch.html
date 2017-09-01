@@ -191,6 +191,23 @@ a web service that allows for the easier submission of batch jobs through the ex
 <p>To use the <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing">ARP</a> for executing this command, follow the <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing">ARP</a> instructions for setting up
 the Batch Job Definition.
 Under the Experiment tab, the Batch defs tab enter the following for submitting default run summaries.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="87%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>Hash:</td>
+<td>#submit_summary</td>
+</tr>
+<tr class="row-even"><td>Executable:</td>
+<td>/reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.12/bin/submit_summary</td>
+</tr>
+<tr class="row-odd"><td>Parameters:</td>
+<td>psanaq</td>
+</tr>
+</tbody>
+</table>
 <p>For updating the experiment summary add ‘epics’ as a second parameter</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -474,7 +491,7 @@ The submit_summary summary will use the res folder when the results folder is no
       <script type="text/javascript" src="_static/jquery.js"></script>
       <script type="text/javascript" src="_static/underscore.js"></script>
       <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

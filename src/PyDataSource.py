@@ -10,7 +10,8 @@
 """
 Python implementation of psana DataSource object.
 
-Example:
+Example
+-------
 
     # Import the PyDataSource module
     In [1]: import PyDataSource
@@ -1053,22 +1054,21 @@ class DataSource(object):
     def to_xarray(self, batch=None, build_html=False, **kwargs):
         """
         Build xarray object from PyDataSource.DataSource object.
-        Now using same method as to_hdf5
-
-        Example
-        -------
-        import PyDataSource
-        ds = PyDataSource.DataSource(exp='xpptut15',run=200)
-        evt = ds.events.next()
-        evt.opal_1.add.projection('raw', axis='x', roi=((0,300),(1024,400)))
-        evt.cs140_rob.add.roi('calib',sensor=1,roi=((104,184),(255,335)))
-        evt.cs140_rob.add.count('roi')
-        x = ds.to_xarray()
-        # Takes ~30 min to create in single core.
-        # Saved file 2 GB
- 
+        Now using same method as to_hdf5. 
         """
-        from psxarray import to_xarray
+
+#        Example
+#        -------
+#        import PyDataSource
+#        ds = PyDataSource.DataSource(exp='xpptut15',run=200)
+#        evt = ds.events.next()
+#        evt.opal_1.add.projection('raw', axis='x', roi=((0,300),(1024,400)))
+#        evt.cs140_rob.add.roi('calib',sensor=1,roi=((104,184),(255,335)))
+#        evt.cs140_rob.add.count('roi')
+#        x = ds.to_xarray()
+#        # Takes ~30 min to create in single core.
+#        # Saved file 2 GB
+ 
 #        if kwargs.get('config'):
 #            if kwargs.get('config') == True or kwargs.get('config') in ['True', 'true']:
 #                self.load_config()
@@ -1093,7 +1093,6 @@ class DataSource(object):
             import h5write
             xarray_kwargs = self.xarray_kwargs.copy()
             xarray_kwargs.update(**kwargs)
-            #return to_xarray(self, **xarray_kwargs)
             x = h5write.to_hdf5(self, **xarray_kwargs)
             if build_html:
                 try:
@@ -1107,7 +1106,42 @@ class DataSource(object):
 
 
     def to_hdf5(self, build_html=False, **kwargs):
-        """Write directly to hdf5 in xarray comatable netcdf4 format.
+        """
+        Write directly to hdf5 in xarray comatable netcdf4 format.
+        
+        Parameters
+        ----------
+        build_html : bool
+            Build run summary if True
+        max_size : uint
+            Maximum array size of data objects to build into xarray.
+        ichunk: int
+            chunk index (skip ahead nevents*ichunk)
+        pvs: list
+            List of pvs to be loaded vs time
+        epics_attrs: list
+            List of epics pvs to be saved as run attributes based on inital value 
+            of first event.
+        code_flags : dict
+            Dictionary of event code flags. 
+            Default = {'XrayOff': [162], 'XrayOn': [-162]}
+        eventCodes : list
+            List of event codes 
+            Default is all event codes in DataSource
+        drop_unused_codes : bool
+            If true drop unused eventCodes [default=True]
+        default_stats : bool
+            If true include stats for waveforms and calib image data.
+        min_all_save : int
+            Min number of events where all 'calib' data saved.  Sets max_size = 1e10
+        default_stats : bool
+            If true automatically add default stats for all detectors that do not already
+            have stats added
+        auto_update : bool
+            If true automatically update xarray info for all detectors
+        auto_pvs : bool
+            If true automatically add pvs that were moved during run.
+
         """
         import h5write
         xarray_kwargs = self.xarray_kwargs.copy()
@@ -2196,14 +2230,19 @@ class PsanaSrcData(object):
                 else:
                     typ_func = objclass.get(typ, src)
 
-                module = typ_func.__module__.lstrip('psana.')
-                type_name = typ_func.__class__.__name__
-                type_alias = module+type_name+key 
-                type_data = PsanaTypeData(typ_func, nolist=nolist)
-                self._types[type_alias] = type_data 
-                self._type_attrs.update({attr: type_alias for attr in type_data._attrs})
-                #self._types[(typ,key)] = type_data 
-                #self._type_attrs.update({attr: (typ,key) for attr in type_data._attrs})
+                if hasattr(typ_func, '__module__'):
+                    module = typ_func.__module__.lstrip('psana.')
+                    type_name = typ_func.__class__.__name__
+                    type_alias = module+type_name+key 
+                    type_data = PsanaTypeData(typ_func, nolist=nolist)
+                    self._types[type_alias] = type_data 
+                    self._type_attrs.update({attr: type_alias for attr in type_data._attrs})
+                    #self._types[(typ,key)] = type_data 
+                    #self._type_attrs.update({attr: (typ,key) for attr in type_data._attrs})
+                else:
+                    pass
+                    # psana.EventId is in configStore keys after ana-1.3.10
+                    # Not necessary so do nothing for now but avoid error here
 
     @property
     def _attrs(self):
@@ -2311,9 +2350,12 @@ class ConfigData(object):
         # Build _config dictionary for each source
         self._config = {}
         for attr, keys in self._key_info.items():
-            config = PsanaSrcData(self._configStore, attr, 
-                                  key_info=self._key_info, nolist=True)
-            self._config[attr] = config
+            try:
+                config = PsanaSrcData(self._configStore, attr, 
+                                      key_info=self._key_info, nolist=True)
+                self._config[attr] = config
+            except:
+                print 'WARNING:  Cannot load PsanaSrcData config for ', attr, keys
 
         self._sources = {}
         #Setup Partition

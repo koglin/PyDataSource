@@ -171,7 +171,8 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Python implementation of psana DataSource object.</span>
 
-<span class="sd">Example:</span>
+<span class="sd">Example</span>
+<span class="sd">-------</span>
 
 <span class="sd">    # Import the PyDataSource module</span>
 <span class="sd">    In [1]: import PyDataSource</span>
@@ -1214,22 +1215,21 @@
     <span class="k">def</span> <span class="nf">to_xarray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">build_html</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Build xarray object from PyDataSource.DataSource object.</span>
-<span class="sd">        Now using same method as to_hdf5</span>
-
-<span class="sd">        Example</span>
-<span class="sd">        -------</span>
-<span class="sd">        import PyDataSource</span>
-<span class="sd">        ds = PyDataSource.DataSource(exp=&#39;xpptut15&#39;,run=200)</span>
-<span class="sd">        evt = ds.events.next()</span>
-<span class="sd">        evt.opal_1.add.projection(&#39;raw&#39;, axis=&#39;x&#39;, roi=((0,300),(1024,400)))</span>
-<span class="sd">        evt.cs140_rob.add.roi(&#39;calib&#39;,sensor=1,roi=((104,184),(255,335)))</span>
-<span class="sd">        evt.cs140_rob.add.count(&#39;roi&#39;)</span>
-<span class="sd">        x = ds.to_xarray()</span>
-<span class="sd">        # Takes ~30 min to create in single core.</span>
-<span class="sd">        # Saved file 2 GB</span>
-<span class="sd"> </span>
+<span class="sd">        Now using same method as to_hdf5. </span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">psxarray</span> <span class="k">import</span> <span class="n">to_xarray</span>
+
+<span class="c1">#        Example</span>
+<span class="c1">#        -------</span>
+<span class="c1">#        import PyDataSource</span>
+<span class="c1">#        ds = PyDataSource.DataSource(exp=&#39;xpptut15&#39;,run=200)</span>
+<span class="c1">#        evt = ds.events.next()</span>
+<span class="c1">#        evt.opal_1.add.projection(&#39;raw&#39;, axis=&#39;x&#39;, roi=((0,300),(1024,400)))</span>
+<span class="c1">#        evt.cs140_rob.add.roi(&#39;calib&#39;,sensor=1,roi=((104,184),(255,335)))</span>
+<span class="c1">#        evt.cs140_rob.add.count(&#39;roi&#39;)</span>
+<span class="c1">#        x = ds.to_xarray()</span>
+<span class="c1">#        # Takes ~30 min to create in single core.</span>
+<span class="c1">#        # Saved file 2 GB</span>
+ 
 <span class="c1">#        if kwargs.get(&#39;config&#39;):</span>
 <span class="c1">#            if kwargs.get(&#39;config&#39;) == True or kwargs.get(&#39;config&#39;) in [&#39;True&#39;, &#39;true&#39;]:</span>
 <span class="c1">#                self.load_config()</span>
@@ -1254,7 +1254,6 @@
             <span class="kn">import</span> <span class="nn">h5write</span>
             <span class="n">xarray_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xarray_kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">xarray_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="c1">#return to_xarray(self, **xarray_kwargs)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">h5write</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">xarray_kwargs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">build_html</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
@@ -1268,7 +1267,42 @@
 
 
 <div class="viewcode-block" id="DataSource.to_hdf5"><a class="viewcode-back" href="../../generated/PyDataSource.DataSource.to_hdf5.html#PyDataSource.DataSource.to_hdf5">[docs]</a>    <span class="k">def</span> <span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">build_html</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Write directly to hdf5 in xarray comatable netcdf4 format.</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write directly to hdf5 in xarray comatable netcdf4 format.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        build_html : bool</span>
+<span class="sd">            Build run summary if True</span>
+<span class="sd">        max_size : uint</span>
+<span class="sd">            Maximum array size of data objects to build into xarray.</span>
+<span class="sd">        ichunk: int</span>
+<span class="sd">            chunk index (skip ahead nevents*ichunk)</span>
+<span class="sd">        pvs: list</span>
+<span class="sd">            List of pvs to be loaded vs time</span>
+<span class="sd">        epics_attrs: list</span>
+<span class="sd">            List of epics pvs to be saved as run attributes based on inital value </span>
+<span class="sd">            of first event.</span>
+<span class="sd">        code_flags : dict</span>
+<span class="sd">            Dictionary of event code flags. </span>
+<span class="sd">            Default = {&#39;XrayOff&#39;: [162], &#39;XrayOn&#39;: [-162]}</span>
+<span class="sd">        eventCodes : list</span>
+<span class="sd">            List of event codes </span>
+<span class="sd">            Default is all event codes in DataSource</span>
+<span class="sd">        drop_unused_codes : bool</span>
+<span class="sd">            If true drop unused eventCodes [default=True]</span>
+<span class="sd">        default_stats : bool</span>
+<span class="sd">            If true include stats for waveforms and calib image data.</span>
+<span class="sd">        min_all_save : int</span>
+<span class="sd">            Min number of events where all &#39;calib&#39; data saved.  Sets max_size = 1e10</span>
+<span class="sd">        default_stats : bool</span>
+<span class="sd">            If true automatically add default stats for all detectors that do not already</span>
+<span class="sd">            have stats added</span>
+<span class="sd">        auto_update : bool</span>
+<span class="sd">            If true automatically update xarray info for all detectors</span>
+<span class="sd">        auto_pvs : bool</span>
+<span class="sd">            If true automatically add pvs that were moved during run.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">h5write</span>
         <span class="n">xarray_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xarray_kwargs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -2357,14 +2391,19 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">typ_func</span> <span class="o">=</span> <span class="n">objclass</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">typ</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
 
-                <span class="n">module</span> <span class="o">=</span> <span class="n">typ_func</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;psana.&#39;</span><span class="p">)</span>
-                <span class="n">type_name</span> <span class="o">=</span> <span class="n">typ_func</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
-                <span class="n">type_alias</span> <span class="o">=</span> <span class="n">module</span><span class="o">+</span><span class="n">type_name</span><span class="o">+</span><span class="n">key</span> 
-                <span class="n">type_data</span> <span class="o">=</span> <span class="n">PsanaTypeData</span><span class="p">(</span><span class="n">typ_func</span><span class="p">,</span> <span class="n">nolist</span><span class="o">=</span><span class="n">nolist</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">type_alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">type_data</span> 
-                <span class="bp">self</span><span class="o">.</span><span class="n">_type_attrs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">attr</span><span class="p">:</span> <span class="n">type_alias</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">type_data</span><span class="o">.</span><span class="n">_attrs</span><span class="p">})</span></div>
-                <span class="c1">#self._types[(typ,key)] = type_data </span>
-                <span class="c1">#self._type_attrs.update({attr: (typ,key) for attr in type_data._attrs})</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">typ_func</span><span class="p">,</span> <span class="s1">&#39;__module__&#39;</span><span class="p">):</span>
+                    <span class="n">module</span> <span class="o">=</span> <span class="n">typ_func</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;psana.&#39;</span><span class="p">)</span>
+                    <span class="n">type_name</span> <span class="o">=</span> <span class="n">typ_func</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+                    <span class="n">type_alias</span> <span class="o">=</span> <span class="n">module</span><span class="o">+</span><span class="n">type_name</span><span class="o">+</span><span class="n">key</span> 
+                    <span class="n">type_data</span> <span class="o">=</span> <span class="n">PsanaTypeData</span><span class="p">(</span><span class="n">typ_func</span><span class="p">,</span> <span class="n">nolist</span><span class="o">=</span><span class="n">nolist</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">type_alias</span><span class="p">]</span> <span class="o">=</span> <span class="n">type_data</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_type_attrs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">attr</span><span class="p">:</span> <span class="n">type_alias</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">type_data</span><span class="o">.</span><span class="n">_attrs</span><span class="p">})</span>
+                    <span class="c1">#self._types[(typ,key)] = type_data </span>
+                    <span class="c1">#self._type_attrs.update({attr: (typ,key) for attr in type_data._attrs})</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">pass</span></div>
+                    <span class="c1"># psana.EventId is in configStore keys after ana-1.3.10</span>
+                    <span class="c1"># Not necessary so do nothing for now but avoid error here</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2472,9 +2511,12 @@
         <span class="c1"># Build _config dictionary for each source</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_config</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">keys</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key_info</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">config</span> <span class="o">=</span> <span class="n">PsanaSrcData</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_configStore</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> 
-                                  <span class="n">key_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_key_info</span><span class="p">,</span> <span class="n">nolist</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">PsanaSrcData</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_configStore</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> 
+                                      <span class="n">key_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_key_info</span><span class="p">,</span> <span class="n">nolist</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;WARNING:  Cannot load PsanaSrcData config for &#39;</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">keys</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_sources</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="c1">#Setup Partition</span>
@@ -6677,7 +6719,7 @@
       <script type="text/javascript" src="../../_static/jquery.js"></script>
       <script type="text/javascript" src="../../_static/underscore.js"></script>
       <script type="text/javascript" src="../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 

@@ -2,12 +2,12 @@
 
 .. currentmodule:: PyDataSource
 
-.. _conda: https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System
+.. _conda_release_system: https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System
 
 Conda Release System
 ********************
 
-For more details on the LCLS conda_ release system for psana, see:
+For more details on the LCLS conda release system for psana, see:
 
 https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System
 

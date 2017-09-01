@@ -49,7 +49,7 @@ the Batch Job Definition.
 Under the Experiment tab, the Batch defs tab enter the following for submitting default run summaries.
 
 +-------------+------------------------------------------------------------------------------------+
-| Hash:       | #submit_summary                                                                |
+| Hash:       | #submit_summary                                                                    |
 +-------------+------------------------------------------------------------------------------------+
 | Executable: | /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.12/bin/submit_summary |
 +-------------+------------------------------------------------------------------------------------+
