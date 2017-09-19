@@ -1497,6 +1497,9 @@ class DataSource(object):
                     base_path = '/reg/d/psdm/{:}/{:}/res'.format(self.instrument, exp)
                 path = base_path+'/summary_config'
             
+            if not os.path.isdir(path):
+                os.mkdir(path)
+
             run = self.data_source.run
             file_name = '{:}/run{:04}.config'.format(path, int(run))
 
@@ -2727,6 +2730,17 @@ class EvtDetectors(object):
         else:
             return L3Ttrue(self._ds)
 
+    @property
+    def run(self):
+        """
+        Run number.  For shared memory when not recording will be a large int
+        
+        Returns
+        -------
+        int
+        """
+        return self._ds._current_evt.run()
+
     def next(self, *args, **kwargs):
         """
         Returns
@@ -2742,7 +2756,7 @@ class EvtDetectors(object):
 
     def __str__(self):
         return  '{:}, Run {:}, Step {:}, Event {:}, {:}, {:}'.format(self._ds.data_source.exp, 
-                self._ds.data_source.run, self._ds._istep, self._ds._ievent, 
+                self.run, self._ds._istep, self._ds._ievent, 
                 str(self.EventId), str(self.Evr))
 
     def __repr__(self):
