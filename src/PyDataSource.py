@@ -2751,6 +2751,28 @@ class EvtDetectors(object):
         evt = self._ds.events.next(*args, **kwargs)
         return evt
 
+    def monitor(self, nevents=-1, sleep=None):
+        """
+        Monitor events continuously.
+        """ 
+        ievent = nevents
+        while ievent != 0:
+            try:
+                self.next()
+                try:
+                    print self
+                except:
+                    pass
+                
+                if ievent < nevents and sleep:
+                    time.sleep(sleep)
+
+                ievent -= 1
+
+            except KeyboardInterrupt:
+                ievent = 0
+
+
     def __iter__(self):
         return self
 
