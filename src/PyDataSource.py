@@ -1510,7 +1510,7 @@ class DataSource(object):
 
     def load_config(self, run=None, exp=None, user=None, file_name=None, path=None, quiet=True, **kwargs):
         """
-        Load DataSource configuration.  Overwrites any existing config.
+        Load DataSource configuration.  Overwrites any existing config and reloads DataSource.
         
         Parameters
         ----------
@@ -1549,8 +1549,13 @@ class DataSource(object):
 
                         if module_dict:
                             # Make sure start with event when loading
-                            if self._current_evt is None:
-                                self.events.next()
+                            try:
+                                while self._current_evt is None or alias not in self.events.current._attrs:
+                                    self.events.next()
+                            except:
+                                traceback.print_exc()
+                                print 'No {:} detector object in data stream.'.format(alias)
+
                             #print alias, module_dict
                             kwargs = module_dict.get('kwargs', {})
                             kwargs.update({'alias': alias, 
@@ -1559,8 +1564,13 @@ class DataSource(object):
                                            'path': module_dict.get('path'),
                                            'desc': module_dict.get('desc')})
                             print 'add_detector', kwargs
-                            self.add_detector(**kwargs)
-                            self.reload()
+                            try:
+                                self.add_detector(**kwargs)
+                                self.reload()
+                            except:
+                                traceback.print_exc()
+                                print 'Could not add detector module.'
+                                print kwargs
 
                     det_config = self._device_sets[alias]
                     for attr, config_dict in item.items():
@@ -1592,6 +1602,7 @@ class DataSource(object):
                             print 'adding stats for', attr, name, 
                             detector.add.stats(attr, name=name)
                         self.reload()
+        self.reload()
 
     def show_info(self, **kwargs):
         """
@@ -3046,22 +3057,24 @@ class EvrData(PsanaTypeData):
     def _present(self, eventCode, strict=True):
         """Return True if the eventCode is present.
         """
-        try:
-            pres = self._typ_func.present(eventCode)
-            if pres:
-                if strict and self.timestampHigh[eventCode] != self.EventId.fiducials:
-                    return False
-                else:
-                    return True
-            else:
-                return False
-        except:
-            print 'error'
+        if hasattr(self._typ_func, 'present'):
             try:
-                return (eventCode in self.eventCodes)
+                pres = self._typ_func.present(eventCode)
+                if pres:
+                    if strict and self.timestampHigh[eventCode] != self.EventId.fiducials:
+                        return False
+                    else:
+                        return True
+                else:
+                    return False
             except:
-                pass
+                print '{:} {:}: error checking for eventCode {:}'.format(self.EventId, self, eventCode)
         
+        try:
+            return (eventCode in self.eventCodes)
+        except:
+            pass
+            
         return False
 
     def present(self, *args, **kwargs):

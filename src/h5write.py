@@ -357,7 +357,7 @@ def merge_stats(run=None, path=None, exp=None, dim='steps',
     xdata = {}
     for ifile, file_name in enumerate(files):
         if not quiet:
-            print 'Loading stats ', file 
+            print 'Loading stats {:} of {:}: {:}'.format(ifile,len(files),file_name)
         xdat = xr.open_dataset(file_name, engine=engine)
        
         steps = xdat.get(dim)
@@ -371,6 +371,12 @@ def merge_stats(run=None, path=None, exp=None, dim='steps',
                 if step not in xdata:
                     xdata[step] = x
                 else:
+                    # make sure each has the same event codes
+                    if xdata[step].codes.size < x.codes.size:
+                        xdata[step] = xdata[step].reindex_like(x)
+                    elif xdata[step].codes.size > x.codes.size:
+                        x = x.reindex_like(xdata[step])
+
                     for attr, item in xdata[step].coords.items():
                         if attr.endswith('events') and attr in x.coords:
                             item.values += x.coords[attr].values
@@ -495,7 +501,13 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
             return datachunks
 
         if xattrs:
-            x.attrs.update(**xattrs[0])
+            try:
+                x.attrs.update(**xattrs[0])
+            except:
+                traceback.print_exc()
+                print 'Cannot add run attrs'
+                print xattrs
+
     try: 
         x = x.set_coords([a for a in x.data_vars if a.endswith('present')]) 
     except:
@@ -531,7 +543,14 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
             print 'Cannot make default cuts'
 
     print '... merge stats chunks', run, path
-    xstats = merge_stats(run=run, path=path, engine=engine)
+    try:
+        xstats = merge_stats(run=run, path=path, engine=engine)
+    except:
+        xstats = None
+        traceback.print_exc()
+        print 'Cannot merge stats chunks'
+    
+    
     if xstats is not None:
         print '... merge stats with event data'
         x = x.merge(xstats)
@@ -805,7 +824,14 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 self.data_source.exp,h5folder,subfolder,run)
 
     if not os.path.isdir(path):
-        os.mkdir(path)
+        try:
+            os.mkdir(path)
+        except:
+            if not os.path.isdir(path):
+                print 'INFO: directory was already created by another thread {:}'.format(path)
+            else:
+                traceback.print_exc()
+                print 'ERROR making {:}'.format(path)
 
     if not file_base:
         if True:
@@ -823,19 +849,19 @@ def write_hdf5(self, nevents=None, max_size=10001,
 
     if no_events:
         file_name = os.path.join(path,'{:}_{:}.nc'.format(file_base,'config'))
-        xbase = h5netcdf.File(file_name, 'w')
+        xbase = h5netcdf.File(file_name, 'w', invalid_netcdf=True)
         ntime = nevents_total
     elif mpio: 
         file_name = os.path.join(path,'{:}_{:}.nc'.format(file_base,'base'))
-        xbase = h5netcdf.File(file_name, 'w', driver='mpio', comm=MPI.COMM_WORLD)
+        xbase = h5netcdf.File(file_name, 'w', invalid_netcdf=True, driver='mpio', comm=MPI.COMM_WORLD)
         ntime = nevents_total
     else:
         file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,'base'))
-        xbase = h5netcdf.File(file_name, 'w')
+        xbase = h5netcdf.File(file_name, 'w', invalid_netcdf=True)
         ntime = nevents
 
     xbase.dimensions['time'] = ntime
-    #xbase = h5netcdf.File(file_name, 'w')
+    #xbase = h5netcdf.File(file_name, 'w', invalid_netcdf=True)
 
     neventCodes = len(eventCodes)
 
@@ -974,31 +1000,25 @@ def write_hdf5(self, nevents=None, max_size=10001,
     xbase.attrs['scan_variables'] = scan_variables
   
     for srcstr, src_info in self.configData._sources.items():
-        det0 = src_info['alias']
-        det = aliases.get(det0, det0)
-        if ichunk == 0:
-            print 'configuring', det
-        nmaxevents = 100
-        ievt = 0
-        if not no_events:
-            if mpio:
-                file_name = os.path.join(path,'{:}_{:}.nc'.format(file_base,det))
-                axdat[det] = h5netcdf.File(file_name, 'w', driver='mpio', comm=MPI.COMM_WORLD)
-            else:
-                file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,det))
-                axdat[det] = h5netcdf.File(file_name, 'w')
-            
-            axdat[det].dimensions['time'] = ntime
-            
         try:
+            det0 = src_info['alias']
+            det = aliases.get(det0, det0)
+            if ichunk == 0:
+                print 'configuring', det
+            nmaxevents = 1000
+            ievt = 0
             while det not in evt._attrs and ievt < nmaxevents:
                 evt.next(publish=publish, init=publish)
                 ievt += 1
             
             detector = getattr(evt,det0)
-            if auto_update and hasattr(detector, '_update_xarray_info'):
-                detector._update_xarray_info()
-            
+            try:
+                if auto_update and hasattr(detector, '_update_xarray_info'):
+                    detector._update_xarray_info()
+            except:
+                print 'Error updating xarray info for ', det0
+                continue
+
             config_info = {}
             # make sure not objects -- should be moved into PyDataSoruce
             for config_attr, config_item in detector._xarray_info.get('attrs').items():
@@ -1020,6 +1040,16 @@ def write_hdf5(self, nevents=None, max_size=10001,
             src_info.update(**detector._source_info)
             #if 'src' in src_info:
             #    src_info['src'] = str(src_info['src'])
+ 
+            if not no_events:
+                if mpio:
+                    file_name = os.path.join(path,'{:}_{:}.nc'.format(file_base,det))
+                    axdat[det] = h5netcdf.File(file_name, 'w', invalid_netcdf=True, driver='mpio', comm=MPI.COMM_WORLD)
+                else:
+                    file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,det))
+                    axdat[det] = h5netcdf.File(file_name, 'w', invalid_netcdf=True)
+            
+            axdat[det].dimensions['time'] = ntime
             
             if not no_events:
 #                axdat[det].attrs.update(**config_info)
@@ -1154,7 +1184,13 @@ def write_hdf5(self, nevents=None, max_size=10001,
         except:
             print 'ERROR loading', srcstr, det
             traceback.print_exc()
+
+    print '********'
+    print 'detector objects: ', axdat.keys()
+    print '********'
 # Need to fix handling of detector image axis
+
+    #return xbase, axcoords, axfuncs, axdat, adat
 
     if default_stats:
         print 'Add default stats'
@@ -1244,7 +1280,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 continue
            
             dtime = evt.EventId
-            if dtime is None:
+            if dtime is None and hasattr(dtime, 'sec'):
                 continue
             
             if igood+1 == nevents:
@@ -1303,6 +1339,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
             if not no_events:
                 for det0 in evt._attrs:
                     det = aliases.get(det0, det0)
+                    if det not in axdat:
+                        continue
                     detector = evt._dets.get(det0)
                     aievt[det] += 1 
                     iwrite = aievt[det]
@@ -1310,14 +1348,25 @@ def write_hdf5(self, nevents=None, max_size=10001,
                         iwrite += ievent0
                     aievents[det].append(ievent)
                     #axdat[det][det+'_present'][iwrite] = True
+                    if 'sec' not in axdat[det]:
+                        print '********'
+                        print '********'
+                        print '********'
+                        print 'WARNING', axdat[det]
+                        print '********'
+                        print '********'
+                        print '********'
                     try:
                         for attr in ['sec', 'nsec', 'fiducials', 'ticks']:
                             axdat[det][attr][iwrite] = getattr(dtime, attr)
                     except:
                         traceback.print_exc()
+                        print 'Bad time'
                         print dtime, det, attr, iwrite
-                        print axdat
-                        return axdat, dtime, det, attr, iwrite
+                        print 'axdat keys:', axdat.keys()
+                        print 'axdat[det] keys:', axdat.get(det,{}).keys()
+                        print axdat[det][attr]
+                        continue
 
                     axdat[det]['step'][iwrite] = istep
                     axdat[det]['run'][iwrite] = run

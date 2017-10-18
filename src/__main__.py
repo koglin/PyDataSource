@@ -28,6 +28,8 @@ def initArgs():
                         help='Number of Events to analyze')
     parser.add_argument("-M", "--max_size", type=int,
                         help='Maximum data array size')
+    parser.add_argument("--keep_chunks", action="store_true", default=False,
+                        help='Keep individual chunked files after merging.')
     #parser.add_argument("--make_summary", action="store_true", default=False,
     #                    help='Make summary for array data.')
     return parser.parse_args()
@@ -76,7 +78,8 @@ if __name__ == "__main__":
             print ds.configData.ScanData.show_info()
         if attr in ['mpi']:
             from h5write import to_hdf5_mpi
-            #print 'to hdf5 with mpi {:}'.format(args)
+            print ds.configData
+            print 'to hdf5 with mpi {:}'.format(args)
             if args.config and args.config not in ['auto', 'default']:
                 print 'Loading config: {:}'.format(args.config)
                 ds.load_config(file_name=args.config)
@@ -84,7 +87,14 @@ if __name__ == "__main__":
                 print 'Auto config'
                 ds.load_config()
 
-            x = to_hdf5_mpi(ds, nevents=args.nevents, nchunks=args.nchunks, build_html='auto')
+            if not args.keep_chunks:
+                print 'Cleanup chunked files'
+                cleanup = True
+            else:
+                print 'DO NOT Cleanup chunked files after merging'
+                cleanup = False
+
+            x = to_hdf5_mpi(ds, nevents=args.nevents, nchunks=args.nchunks, build_html='auto', cleanup=cleanup)
 
         if attr in ['batch']:
             from h5write import write_hdf5

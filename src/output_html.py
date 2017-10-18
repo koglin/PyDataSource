@@ -3,6 +3,7 @@ from markup import oneliner as e
 import os, sys, re
 import shutil
 import logging
+import traceback
 
 __version__ = '00.00.06'
 
@@ -43,14 +44,18 @@ class report:
             os.mkdir( jsdir )
 
         self.logger.info('copying files...')
-        shutil.copy( os.path.join( html_ref_dir, 'css', 'bootstrap.min.css' ), os.path.join( cssdir) )
-        shutil.copy( os.path.join( html_ref_dir, 'mine.css' ), os.path.join( cssdir) )
-        shutil.copy( os.path.join( html_ref_dir, 'jumbotron-narrow.css' ), self.output_dir  )
-        shutil.copy( os.path.join( html_ref_dir, 'js', 'bootstrap.min.js' ), os.path.join(jsdir) )
-        shutil.copy( os.path.join( html_ref_dir, 'jquery.min.js' ), os.path.join(jsdir) )
-        shutil.copy( os.path.join( html_ref_dir, 'toggler.js' ), os.path.join(jsdir) )
-        shutil.copy( os.path.join( html_ref_dir, 'sticky.js' ), os.path.join(jsdir) )
-        self.logger.info('copying files... done.')
+        try:
+            shutil.copy( os.path.join( html_ref_dir, 'css', 'bootstrap.min.css' ), os.path.join( cssdir) )
+            shutil.copy( os.path.join( html_ref_dir, 'mine.css' ), os.path.join( cssdir) )
+            shutil.copy( os.path.join( html_ref_dir, 'jumbotron-narrow.css' ), self.output_dir  )
+            shutil.copy( os.path.join( html_ref_dir, 'js', 'bootstrap.min.js' ), os.path.join(jsdir) )
+            shutil.copy( os.path.join( html_ref_dir, 'jquery.min.js' ), os.path.join(jsdir) )
+            shutil.copy( os.path.join( html_ref_dir, 'toggler.js' ), os.path.join(jsdir) )
+            shutil.copy( os.path.join( html_ref_dir, 'sticky.js' ), os.path.join(jsdir) )
+            self.logger.info('copying files... done.')
+        except:
+            self.logger.info(traceback.print_exc())
+            self.logger.info('copying files... error.')
 
         self.sections = []
 
