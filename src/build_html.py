@@ -546,8 +546,16 @@ class Build_html(object):
     Class to build an html RunSummary report.
     """
 
-    def __init__(self, xdat=None, ds=None, auto=False, **kwargs):
-       
+    def __init__(self, xdat=None, ds=None, auto=False, basic=False, **kwargs):
+        """
+        Parameters
+        ----------
+        auto - bool
+            Automatic detailed report
+        basic - bool
+            Basic timing error and drop shot analysis only
+
+        """
         import psutils 
         if psutils.interactive_mode():
             plt.ioff()
@@ -618,8 +626,17 @@ class Build_html(object):
             self.ncodes = None
 
         self._init_output(**kwargs)
+        
         if auto:
             self.add_all(**kwargs)
+        
+        if basic or auto:
+            # Add Timing error and drop shot analysis 
+            try:
+                self.add_delta_beam()
+            except:
+                print 'Cannot add Timing Error and Drop Shot Detection'
+
             self.to_html()
 
     def _init_output(self, path=default_path, filename=None, **kwargs):
@@ -657,7 +674,7 @@ class Build_html(object):
 
         if not os.path.isdir(self.output_dir):
             os.mkdir(self.output_dir)
- 
+    
     def add_correlations(self, cut=None, confidence=0.4, **kwargs):
         """
         Add correlations for Photon Energy and Pulse Energy 
@@ -738,17 +755,22 @@ class Build_html(object):
                     cuts = [cuts]
         else:
             cuts = []
-        
+       
+
         # Add RunStats
         try:
             self.add_detstats()
         except:
             print 'cannot add detstats'
+        
+        # Add Config
         try:
             self.add_config()
         except:
             print 'cannot add config'
-       
+        
+
+        # Add Correlations
         if cuts:
             print cuts
             for cut in cuts:
@@ -819,6 +841,102 @@ class Build_html(object):
             self.add_event(attrs)
         plt.cla()
         plt.close('all')
+
+    def add_delta_beam(self, attrs=None, 
+                code='ec162', xattr='delta_drop', min_codes=5, 
+                nearest=5, catagory=None, cut=None, std_box=5,
+                percentiles=[0.05,0.5,0.95], make_table=True, **kwargs):
+        """
+        Add timing error and drop shot plots
+        """
+        from xarray_utils import find_beam_correlations, ttest_groupby
+        import seaborn as sns
+        x = self._xdat
+        ncode = int(x[code].sum())
+        if ncode < min_codes:
+            print 'WARNING only {:} {:} found -- not enought data to find beam correlations'.format(ncode, code) 
+            return None
+
+        xstats = find_beam_correlations(x, groupby=code, nearest=nearest, **kwargs)
+        if not attrs:
+            attrs = x.attrs.get('drop_shot_detected',[]) \
+                  + x.attrs.get('timing_error_detected',[])
+       
+        dfattrs = [a for a in x if x[a].dims == ('time',)]
+        df = x[dfattrs].to_dataframe()
+        df_nearest = df[abs(df.delta_drop) <= nearest]
+
+        setup_howto = ["from PyDataSource.xarray_utils import find_beam_correlations"]
+        setup_howto.append("import seaborn as sns")
+        setup_howto.append("xstats = find_beam_correlations(x, groupby='{:}')".format(code))
+        setup_howto.append("dfattrs = [a for a in x if x[a].dims == ('time',)]")
+        setup_howto.append("df = x[dfattrs].to_dataframe()")
+        setup_howto.append("df_nearest = df[abs(df.delta_drop) <= {:}]".format(nearest))
+        setup_added = []
+
+        for attr in attrs:
+            df_stats = xstats[attr].to_pandas()
+            aattrs = x[attr].attrs
+            alias = aattrs.get('alias', attr)
+            attr_attr = aattrs.get('attr',attr)
+            doc = ['{:} {:} [{:}]'.format(attr, aattrs.get('doc',''), aattrs.get('unit',''))]
+            delta_beam = aattrs.get('delta_beam')
+            delta_beam_pvalue = aattrs.get('delta_beam_pvalue')
+            timing_error_detected = aattrs.get('timing_error_detected')
+            if catagory:
+                attr_cat = catagory
+                plt_type = attr 
+            else:
+                if timing_error_detected:
+                    attr_cat = 'Alert Timing Errror'
+                    tbl_type = attr+' Timing'
+                    plt_type = attr+' Timing'
+                    sformat='Timing offset by {:} detected relative to {:}' 
+                    doc.append(sformat.format(delta_beam, code))
+                else:
+                    attr_cat = alias
+                    plt_type = attr_attr+' Dropped Shot'
+                    tbl_type = attr_attr+' Dropped Shot'
+                    sformat='Dropped Shot Detected on {:}' 
+                    doc.append(sformat.format(code))
+
+            if attr_cat not in setup_added:
+                self.add_setup(attr_cat, setup_howto)
+                setup_added.append(attr_cat)
+
+            df_table = df_nearest[[attr,xattr]].groupby(xattr).describe(percentiles=percentiles)
+            if make_table:
+                howto = ["df_stats = xstats['{:}'].to_pandas()".format(attr)]
+                self.add_table(df_stats, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=True)
+
+            std_ratio = df_stats['std'].max()/df_stats['std'].min()
+            
+            # Auto test if systematic ec141 bias 
+            hue = None
+            if cut:
+                hue = cut
+            elif cut is None and 'ec141' in x:
+                try:
+                    ttest = ttest_groupby(x, attr, groupby='ec141')
+                    if ttest.pvalue < 1e-5: 
+                        hue = 'ec141'
+                except:
+                    print 'error ttest_gropuby', attr, 'ec141' 
+
+            if hue:
+                sns.violinplot(x=xattr, y=attr, data=df_nearest, hue=hue, split=True,inner='quart')
+                howstr = "sns.violinplot(x='{:}', y='{:}', data=df_nearest, hue='{:}', split=True,inner='quart')"
+                howto = [ howstr.format(xattr,attr,cut) ]
+            else:
+                if std_ratio > std_box:
+                    sns.boxplot(x=xattr, y=attr, data=df_nearest)
+                    howstr = "sns.boxplot(x='{:}', y='{:}', data=df_nearest)"
+                else:
+                    sns.violinplot(x=xattr, y=attr, data=df_nearest, inner='quart')
+                    howstr = "sns.violinplot(x='{:}', y='{:}', data=df_nearest, inner='quart')"
+                howto = [ howstr.format(xattr,attr) ]
+
+            self.add_plot(attr_cat, plt_type, howto=howto)
 
     def add_counts(self, catagory='Detector Count', confidence=0.1):
         """
@@ -1747,9 +1865,9 @@ class Build_html(object):
         if not catagory:
             catagory = 'Tables'
         if not tbl_type:
-            tbl_type = ', '.join(a.columns)
+            tbl_type = ', '.join(df.columns)
         if not name:
-            name = '__'.join(a.columns)
+            name = catagory+'_'+tbl_type.replace(' ','_')
         
         self._add_catagory(catagory)
         self.results[catagory]['table'].update({tbl_type: 

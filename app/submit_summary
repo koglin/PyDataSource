@@ -58,6 +58,7 @@ RUNSTR=Run`python "$DIRNAME/get_run_from_runid.py" $EXP $RUN`
 EXPRUN="$EXP$RUNSTR"
 BATCHUSER=`whoami`
 OUTLOG="/reg/neh/home/$BATCHUSER/logs/$EXP/$RUNSTR"
+OUTFOLDER="/reg/neh/home/$BATCHUSER/logs/$EXP/"
 if [[ ! -a $OUTLOG ]];  then
     mkdir -p $OUTLOG
 fi
@@ -115,8 +116,15 @@ if [[ $PYOPT == 'mpi' ]]; then
 
     echo 'MPI'
     CHUNKS=12
-    echo '##' bsub -q "$QUEUEREQ" -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log mpirun python "$RUNFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
-    bsub -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+    if [[ $RUN == *"-"* ]]; then
+        #echo '##' bsub -n "$CHUNKS" -J "$EXP_RUN_[$RUN]" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+        #bsub -n "$CHUNKS" -J "$EXP_RUN_[$RUN]" -o $OUTLOG/Run%I/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+        echo '##' bsub -n "$CHUNKS" -J [$RUN] -o $OUTFOLDER/Run%I/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+        bsub -n "$CHUNKS" -J [$RUN] -o $OUTFOLDER/Run%I_%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+    else
+        echo '##' bsub -q "$QUEUEREQ" -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log mpirun python "$RUNFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+        bsub -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+    fi
 
 else 
     echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" >> $LOGSUM

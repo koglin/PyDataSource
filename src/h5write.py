@@ -281,7 +281,7 @@ def process_one_file(file_name, transform_func=None, engine='h5netcdf'):
         return ds
 
 def merge_datasets(file_names, engine='h5netcdf', 
-            save_file=None, cleanup=False, quiet=False):
+            save_file=None, cleanup=True, quiet=False):
     """
     """
     import xarray as xr
@@ -354,6 +354,9 @@ def merge_stats(run=None, path=None, exp=None, dim='steps',
                 exp,h5folder,subfolder,run)
     
     files = sorted(glob.glob('{:}/run{:04}_*stats.nc'.format(path, run)))
+    if files:
+        return None
+    
     xdata = {}
     for ifile, file_name in enumerate(files):
         if not quiet:
@@ -406,6 +409,9 @@ def merge_stats(run=None, path=None, exp=None, dim='steps',
                             item[istats['mean']] = (xmean/xvar+smean/svar)*sxvar
                             item[istats['std']] = np.sqrt(sxvar)
 
+    if xdata == {}:
+        return None
+
     x = xr.concat(xdata.values(), dim)
     
     return x
@@ -416,7 +422,7 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
         make_cuts=True,
         merge=False, quiet=False,
         save=True, save_path=None,
-        cleanup=False, 
+        cleanup=True, 
         transform_func=None, engine='h5netcdf', **kwargs):
     """
     Read netcdf files and return concatenated xarray Dataset object
@@ -585,7 +591,9 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
 
     return x
 
-def to_hdf5_mpi(self, build_html=None, save=True, cleanup=True, **kwargs):
+def to_hdf5_mpi(self, build_html='basic', 
+            default_stats=False,
+            save=True, cleanup=True, **kwargs):
     time0 = time.time()
     try:
         import xarray as xr
@@ -599,6 +607,10 @@ def to_hdf5_mpi(self, build_html=None, save=True, cleanup=True, **kwargs):
     size = comm.Get_size()
 
     path, file_base = write_hdf5(self, **kwargs)
+    # Free up memory for mpi DataSource objects after writing stats to h5 at end of write_hdf5
+    self.reset_stats()
+
+    print 'Rank', rank, ', mpi time', time.time()-time0
     
     files = comm.gather(file_base)
 
@@ -615,13 +627,19 @@ def to_hdf5_mpi(self, build_html=None, save=True, cleanup=True, **kwargs):
         if build_html:
             try:
                 import build_html
-                self.html = build_html.Build_html(x, auto=True) 
+                if build_html == 'auto':
+                    self.html = build_html.Build_html(x, auto=True) 
+                else: 
+                    self.html = build_html.Build_html(x, basic=True) 
             except:
                 traceback.print_exc()
                 print 'Could not build html run summary for', str(self)
 
     MPI.Finalize()
-
+    total_time = time.time()-time0
+    nevents = self.nevents
+    if rank == 0:
+        print '*** Total time {:8.1f} sec for {:} events -- {:8.1f} events/sec using {:} cores ***'.format(total_time, nevents, nevents/total_time, size)
 
 def to_hdf5(self, save=True, cleanup=True, **kwargs):
     """
@@ -713,7 +731,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
         mpio=False, 
         no_events=False,
         debug=False,
-        default_stats=True,
+        default_stats=False,
         min_all_save=10,
         auto_update=True,
         auto_pvs=True,
@@ -740,13 +758,11 @@ def write_hdf5(self, nevents=None, max_size=10001,
         Default is all event codes in DataSource
     drop_unused_codes : bool
         If true drop unused eventCodes [default=True]
-    default_stats : bool
-        If true include stats for waveforms and calib image data.
     min_all_save : int
         Min number of events where all 'calib' data saved.  Sets max_size = 1e10
     default_stats : bool
-        If true automatically add default stats for all detectors that do not already
-        have stats added
+        If true automatically add default stats for all waveforms and area detector calib 
+        image data that do not already have stats added
     auto_update : bool
         If true automatically update xarray info for all detectors
     auto_pvs : bool
@@ -794,17 +810,18 @@ def write_hdf5(self, nevents=None, max_size=10001,
     if not nevents:
         nevents_total = self.nevents
         if ichunk is not None:
+            # steps and chunks start with 0
             if chunk_steps and nsteps > 1:
-                istep = ichunk-1
+                istep = ichunk
                 ievent_start = self.configData.ScanData._scanData['ievent_start'][istep]
                 ievent_end = self.configData.ScanData._scanData['ievent_end'][istep]
                 nevents = ievent_end-ievent_start+1
                 ievent0 = ievent_start
             else:
                 nevents = int(np.ceil(self.nevents/float(nchunks)))
-                ievent0 = (ichunk-1)*nevents
+                ievent0 = ichunk*nevents
             
-            print 'Do {:} of {:} events for chunk {:}'.format(nevents, self.nevents, ichunk)
+            print 'Do {:} of {:} events startine with {:} for chunk {:}'.format(nevents, self.nevents, ievent0, ichunk)
         else:
             nevents = nevents_total
     
@@ -1225,7 +1242,8 @@ def write_hdf5(self, nevents=None, max_size=10001,
             #print 'Analyzing {:} events'.format(nevents)
             xbase.attrs['ichunk'] = ichunk
             # Need to update to jump to event.
-            if ichunk > 1 and not chunk_steps:
+            if ichunk > 0 and not chunk_steps:
+                print 'skipping ahead to event {:} for chunk {:}'.format(ievent0,ichunk)
                 for i in range(ievent0):
                     evt = self.events.next()
                 
@@ -1431,8 +1449,9 @@ def write_hdf5(self, nevents=None, max_size=10001,
  
     det = 'stats'
     file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,det))
-    print self._get_stats(aliases=aliases)
-    self.save_stats(file_name=file_name, aliases=aliases)
+    data_sets =  self._get_stats(aliases=aliases)
+    if data_sets:
+        self.save_stats(file_name=file_name, aliases=aliases)
 
     xbase.close()
 

@@ -28,7 +28,7 @@ def initArgs():
                         help='Number of Events to analyze')
     parser.add_argument("-M", "--max_size", type=int,
                         help='Maximum data array size')
-    parser.add_argument("--keep_chunks", action="store_true", default=False,
+    parser.add_argument("--keep_chunks", action="store_true", default=True,
                         help='Keep individual chunked files after merging.')
     #parser.add_argument("--make_summary", action="store_true", default=False,
     #                    help='Make summary for array data.')
@@ -55,6 +55,11 @@ if __name__ == "__main__":
     else:
         import PyDataSource
         ds = PyDataSource.DataSource(exp=exp,run=run)
+        if args.build:
+            build_html=args.build
+        else:
+            build_html='basic'
+
         if attr == 'epics':
             print ds.configData
             es = ds.exp_summary
@@ -94,7 +99,8 @@ if __name__ == "__main__":
                 print 'DO NOT Cleanup chunked files after merging'
                 cleanup = False
 
-            x = to_hdf5_mpi(ds, nevents=args.nevents, nchunks=args.nchunks, build_html='auto', cleanup=cleanup)
+            x = to_hdf5_mpi(ds, nevents=args.nevents, nchunks=args.nchunks, 
+                    build_html=build_html, cleanup=cleanup)
 
         if attr in ['batch']:
             from h5write import write_hdf5
@@ -108,7 +114,7 @@ if __name__ == "__main__":
                     ds.load_config(file_name=args.config)
             
             #write_hdf5(ds)
-            x = ds.to_hdf5(build_html='auto') 
+            x = ds.to_hdf5(build_html=build_html) 
             print x
         
         if attr in ['xarray']:

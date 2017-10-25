@@ -668,9 +668,9 @@ class DataSource(object):
     _default_modules = {
             'path': '',
             'devName': {
-#                'Imp': 'impbox',
-#                'Acqiris': 'acqiris',
-#                'Tm6740': 'yag',
+                'Imp': 'impbox',
+                'Acqiris': 'acqiris',
+                'Tm6740': 'yag',
 #                'Cspad': 'cspad',
 #                'Opal1000': 'camera',
 #                'Opal2000': 'camera',
@@ -966,6 +966,9 @@ class DataSource(object):
                         except:
                             traceback.print_exc()
                             print 'Cannot add stats for', alias, attr
+
+        if datasets == []:
+            return None
 
         try:
             x = xr.merge(datasets)
