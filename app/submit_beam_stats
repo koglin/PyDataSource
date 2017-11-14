@@ -1,0 +1,90 @@
+#!/bin/bash
+# 
+# Batch Control Submission script for auto run stats creation.
+#
+# see:  https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing
+#
+
+unset DISPLAY XAUTHORITY
+export PYTHONPATH=
+echo "$@"
+source /reg/g/psdm/bin/conda_setup ""
+
+SOURCE="${BASH_SOURCE[0]}"
+# resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do 
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" 
+  # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+cd $DIR
+
+EXP=$1
+shift
+RUN=$1
+INSTRUMENT=${EXP:0:3}
+
+shift
+if [[ $1 ]]; then
+  QUEUEREQ=$1
+  shift
+  if [[ $1 ]]; then
+    ALERT=$1
+    shift
+  fi
+fi
+
+#PYOPT='test'
+
+: ${DIRNAME:="$DIR/../lib/python2.7/site-packages/PyDataSource/"}
+if [[ ! -a $DIRNAME ]]; then
+    DIRNAME="$DIR/../python/PyDataSource/"
+fi
+
+: ${PYFILE:="__main__.py"}
+: ${MAX_SIZE:="10001"}
+: ${QUEUEREQ:="psanaq"}
+: ${ALERT:="pcds-poc-l,cpo"}
+: ${PYOPT:="beam_stats"}
+#: ${QUEUEREQ="psdebugq"}
+OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
+RUNSTR=Run`python "$DIRNAME/get_run_from_runid.py" $EXP $RUN`
+EXPRUN="$EXP$RUNSTR"
+BATCHUSER=`whoami`
+OUTLOG="/reg/neh/home/$BATCHUSER/logs/$EXP/$RUNSTR"
+OUTFOLDER="/reg/neh/home/$BATCHUSER/logs/$EXP/"
+if [[ ! -a $OUTLOG ]];  then
+    mkdir -p $OUTLOG
+fi
+
+JOBNAME="$EXPRUN"
+RUNFILE="$DIRNAME/$PYFILE"
+
+# Directories not available on psanasvc01 -- need to ssh to 
+#: ${CONFIG:=`ssh psana python "$DIRNAME/get_config_file.py" $EXP $RUN`}
+#echo 'Config: '$CONFIG 
+CONFIG='auto'
+
+echo Processing $EXP Run $RUN
+
+LOGSUM=/reg/neh/home/koglin/logs/"$EXP"/batch_jobs.log
+echo '--------------------------------' >> $LOGSUM
+date >> $LOGSUM
+echo Processing $EXP Run $RUN >> $LOGSUM
+echo `uname -a` >> $LOGSUM
+echo 'User: '$BATCHUSER >> $LOGSUM
+echo 'Run:    '$RUNSTR >> $LOGSUM
+echo $EXPRUN >> $LOGSUM
+echo 'Log Path: '$OUTLOG >> $LOGSUM
+echo 'Config: '$CONFIG >> $LOGSUM
+echo 'Run File: '$RUNFILE >> $LOGSUM
+
+echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --alert=$ALERT --max_size="$MAX_SIZE" --config="$CONFIG" --batchuser="$BATCHUSER" >> $LOGSUM
+
+bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --alert=$ALERT --max_size="$MAX_SIZE" --config="$CONFIG" --batchuser="$BATCHUSER" 
+
+
