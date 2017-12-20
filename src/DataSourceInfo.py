@@ -80,6 +80,13 @@ class DataSourceInfo(object):
     def __init__(self, data_source=None, **kwargs):
         self.data_source = self._set_data_source(data_source=data_source, **kwargs)
 
+        self.exp_dir = os.path.join('/reg/d/psdm/',self.instrument,self.exp)
+        self.xtc_dir = os.path.join(self.exp_dir,'xtc')
+        if os.path.isdir(os.path.join(self.exp_dir,'res')): 
+            self.res_dir = os.path.join(self.exp_dir,'res')
+        else:
+            self.res_dir = os.path.join(self.exp_dir,'results')
+       
     def _set_exp_defaults(self, **kwargs):
         """Sets experiment defaults based on kwargs and defaults.
         """
@@ -158,6 +165,9 @@ class DataSourceInfo(object):
 
         self._set_user_dir()
         self._set_xarray_dir()
+
+        import psutils
+        self.info = psutils.exp_info(self.exp)
 
         return data_source
 

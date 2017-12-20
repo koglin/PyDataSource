@@ -197,6 +197,8 @@ def heatmap(df, attrs=[], method='pearson', confidence=0.33, position=(0.3,0.35,
     if show:
         plt.show()   
 
+    return corr
+
 def xy_ploterr(a, attr=None, xaxis=None, title='', desc=None, 
         fmt='o', position=(.1,.2,.8,.7), **kwargs):
     """Plot summary data with error bars, e.g.,
@@ -317,8 +319,8 @@ def ttest_groupby(xo, attr, groupby='ec162', ishot=0, nearest=None, verbose=Fals
                     if a>0 and a<ntime:
                         k0.append(a)
         else:
-            k0 = [a+ishot for a in g[0] if a>0 and (a+ishot)<ntime]
-        k1 = [a+ishot for a in g[1] if a>0 and (a+ishot)<ntime]
+            k0 = [a+ishot for a in g[0] if (a+ishot)>0 and (a+ishot)<ntime]
+        k1 = [a+ishot for a in g[1] if (a+ishot)>0 and (a+ishot)<ntime]
         df1 = da[k1].to_pandas().dropna()
         df0 = da[k0].to_pandas().dropna()
         ttest = stats.ttest_ind(df1,df0)
@@ -328,12 +330,12 @@ def ttest_groupby(xo, attr, groupby='ec162', ishot=0, nearest=None, verbose=Fals
             print '{:} has only one group -- cannot compare'.format(attr)
         return None
 
-def test_correlation(x, attr0, attr1='Gasdet_post_atten', cut=None, shift=None):
+def test_correlation(x, attr0, attr1='Gasdet_post_atten', cut=None, shift=None, dim='time'):
     from scipy import stats
     import numpy as np
     xds = x[[attr0,attr1]]
-    if cut:
-        xds = xds.where(x[cut],drop=True)
+    if cut and cut in xds:
+        xds = xds.where(x[cut]).where(x[cut].shift(**{dim:-shift})).dropna(dim) 
 
     xds = xds.reset_coords()
     
@@ -342,38 +344,48 @@ def test_correlation(x, attr0, attr1='Gasdet_post_atten', cut=None, shift=None):
         df0 = df0.shift(-shift)
     df1 = xds[attr1].to_pandas()
     kind = np.isfinite(df1) & np.isfinite(df0)
-    return stats.pearsonr(df0[kind],df1[kind])
+    result = stats.pearsonr(df0[kind],df1[kind])
+    return result
 
 def set_delta_beam(x, code='ec162', attr='delta_drop'):
     """Find the number of beam codes to nearest code
+       using time stamps
     """
-    # Fix for very long runs with multiple fidicual wrappings
+    import traceback#
     import pandas as pd
     import numpy as np
-    df0 = x.reset_coords()[code].to_pandas()
-    df_beam = x.reset_coords().fiducials.to_pandas()/3
-    #vdrop = df_beam[df0].values
-    #new_vals = [val-vdrop[np.argmin(abs(vdrop-val))] for val in df_beam.values]
-    df_drop = df_beam[df0]
-    x.coords[attr] = df_beam
-    i = 0
-    for a, b in df_beam.iteritems():
-        x.coords[attr][i] = b-df_drop.values[np.argmin(abs(df_drop.index-a))]
-        i += 1
-    # Using pd.Series used to work but now looses time dim and replaces with default dim_0
-    #x.coords[attr] = pd.Series({a: b-df_drop.values[np.argmin(abs(df_drop.index-a))] \
-    #        for a,b in df_beam.iteritems()})
-    # Not robust way to get rid of outliers 
-    #dbeam_max = df_beam.diff().max()
-    #x.coords[attr][abs(x.coords[attr]) > dbeam_max] = dbeam_max
-    x.coords[attr].attrs['doc'] = "number of beam codes to nearest {:}".format(code) 
-    return x.coords[attr]
+    if code not in x:
+        return None
+    else:
+        try:
+            df0 = x.reset_coords()[code].to_pandas()
+            if df0.any():
+                df_beam = x.reset_coords().fiducials.to_pandas()/3
+                df_drop = df_beam[df0]
+                x.coords[attr] = df_beam
+                i = 0
+                for a, b in df_beam.iteritems():
+                    x.coords[attr][i] = b-df_drop.values[np.argmin(abs(df_drop.index-a))]
+                    i += 1
+                # Not robust way to get rid of outliers 
+                #dbeam_max = df_beam.diff().max()
+                #x.coords[attr][abs(x.coords[attr]) > dbeam_max] = dbeam_max
+                x.coords[attr].attrs['doc'] = "number of beam codes to nearest {:}".format(code) 
+                a_pvalue = df_stats['t_pvalue'][ishot]
+                return x.coords[attr]
+            else:
+                print('No event code {:} to drop'.format(code))
+                return None
+        except:
+            traceback.print_exc('Cannot set drop_code = '.format(code))
 
-def find_beam_correlations(xo, pvalue=0.00001, pvalue0_ratio=0.1,
+
+def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.0001,
             groupby='ec162', nearest=5, corr_coord='delta_drop',
-            pulse='Gasdet_post_atten', confidence=0.2,
+            pulse=None, confidence=0.1,
             percentiles=[0.5], 
-            conf_delta=0.02, cut=None, verbose=False, **kwargs):
+            save_file=None,
+            cut=None, verbose=False, **kwargs):
     """
     """
     import traceback
@@ -389,13 +401,29 @@ def find_beam_correlations(xo, pvalue=0.00001, pvalue0_ratio=0.1,
     if 'EBeam_damageMask' in xds:
         xds = xds.drop('EBeam_damageMask')
     if pulse not in xds:
-        pulse = 'FEEGasDetEnergy_f_21_ENRC'
+        if 'FEEGasDetEnergy_f_21_ENRC' in xds:
+            pulse = 'FEEGasDetEnergy_f_21_ENRC'
+            if xds[pulse].sum() == 0:
+                pulse = 'FEEGasDetEnergy_f_11_ENRC'
+
+        else:
+            pulse = 'GasDet_f21'
+    xo.attrs['beam_corr_attr'] = pulse
+    xo.attrs['beam_corr_confidence'] = confidence 
+    xo.attrs['drop_attr'] = groupby
+
+    print('Analyzing beam correlations for {:} Run {:}'.format(xo.experiment, xo.run))
     for attr in [a for a in xds.data_vars if xds[a].dims == ('time',)]:
         #if verbose:
         print '*****', attr, '*******'
         attrs = [attr, groupby, pulse]
         if cut:
-            attrs.append(cut)
+            if cut in xds:
+                attrs.append(cut)
+            else:
+                print('Ommitting cut: {:} not valid cut'.format(cut))
+                cut = None
+
         x = xds[attrs]
         alias = x[attr].attrs.get('alias')
         attest = {}
@@ -437,16 +465,97 @@ def find_beam_correlations(xo, pvalue=0.00001, pvalue0_ratio=0.1,
            
             ishot = df_stats['t_stat'].abs().idxmax()
             t_stat = df_stats['t_stat'].abs().max()
-            t_pvalue = df_stats['t_pvalue'][ishot]
+            try:
+                # ishot can be nan when t_stat are nan
+                t_pvalue = df_stats['t_pvalue'][ishot]
+            except:
+                t_pvalue = None
             t_pvalue0 = df_stats['t_pvalue'][0]
-            shot_corr = df_stats['beam_corr'].abs().idxmax()
-            beam_corr = df_stats['beam_corr'][shot_corr]
-            c_pvalue = df_stats['c_pvalue'][shot_corr]
-            c_pvalue0 = df_stats['c_pvalue'][0]
 
-            # Checl pvalue valid and if not timed with drop_code then
+            tag_shot_corr = False
+            # Check pvalue valid and if not timed with drop_code then
             # check ratio of found ishot pvalue is less than pvalue on drop code
-            if t_pvalue <= pvalue and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
+            if t_pvalue is not None and t_pvalue <= pvalue and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
+                tag_shot_corr = True
+            
+            try:
+                shot_corr_detected = False
+                shot_corr = df_stats['beam_corr'].abs().idxmax()
+                c_pvalue = df_stats['c_pvalue'][shot_corr]
+                beam_corr = df_stats['beam_corr'][shot_corr]
+                if shot_corr != 0:
+                    c_pvalue0 = df_stats['c_pvalue'][0]
+                    beam_corr0 = df_stats['beam_corr'][0]
+                    # default to correlated with X-rays if not clear correlation on timing error
+                    if c_pvalue < corr_pvalue and abs(beam_corr) > 0.2:
+                        shot_corr_detected = True
+                        # Make sure shot correlation is not also OK on drop shot
+                        if (beam_corr0 > beam_corr/2. or (c_pvalue>0 and c_pvalue0/c_pvalue >= pvalue0_ratio)):
+                            shot_corr = 0
+                            beam_corr = df_stats['beam_corr'][shot_corr]
+                            c_pvalue = df_stats['c_pvalue'][shot_corr]
+                else:
+                    dfs = df_stats['c_pvalue'].copy()
+                    dfs.pop(0)
+                    c_pvalue0 = dfs.min()
+                    dfs = df_stats['beam_corr'].copy()
+                    dfs.pop(0)
+                    beam_corr0 = dfs.max()
+                    #beam_corr = df_stats['beam_corr'][shot_corr]
+                    # If off-by-one make sure not beam correlated on ec162
+                    if ishot != 0 and c_pvalue < corr_pvalue and \
+                                (abs(beam_corr) > 0.2 or abs(beam_corr) > abs(beam_corr0)*2.):
+                        tag_shot_corr = False
+
+                    # Make checks to be sure beam_corr is valid 
+                    if c_pvalue0 == 0 or c_pvalue/c_pvalue0 > 1./pvalue0_ratio:
+                        shot_corr_detected = False
+                    elif c_pvalue == 0 and c_pvalue0 < pvalue**2 and beam_corr0>beam_corr/2.:
+                        shot_corr_detected = False
+                    elif c_pvalue < corr_pvalue and (abs(beam_corr) > 0.2 or abs(beam_corr) > abs(beam_corr0)*2.):
+                        shot_corr_detected = True
+
+#                try:
+#                    # beam_corr can be nan when df_stats['beam_corr'] are nan
+#                    if shot_corr_detected:
+#                        beam_corr = df_stats['beam_corr'][shot_corr]
+#                        c_pvalue = df_stats['c_pvalue'][shot_corr]
+#                        if abs(beam_corr) < confidence:
+#                            shot_corr_detected = False
+#
+#                except:
+#                    beam_corr = None 
+#                    c_pvalue = None
+#                    shot_corr_detected = False
+#
+                #if beam_corr and beam_corr >= confidence: 
+                #if c_pvalue is not None and c_pvalue <= corr_pvalue: 
+                    # Make sure beam correlation is consistent with drop shot detection
+                    # If beam_corr is on ec162 then do not tag
+                if shot_corr_detected:
+                    if tag_shot_corr and ishot != shot_corr:
+                        if shot_corr == 0:
+                            tag_shot_corr = False
+                            ishot = shot_corr
+                            t_pvalue = df_stats['t_pvalue'][ishot]
+                    
+                    xo[attr].attrs['beam_corr'] = beam_corr
+                    xo[attr].attrs['shot_corr'] = shot_corr
+                    if attr not in xo.attrs['beam_corr_detected']:
+                        xo.attrs['beam_corr_detected'].append(attr)
+                    note = 'Beam-corr  of {:5.3f}'.format(beam_corr)
+                    corr_note = '{:} on {:2} shot for {:} detector {:} (corr = {:}, c_pvalue = {:})'.format(note, shot_corr, 
+                                alias, attr, beam_corr, c_pvalue)
+                    print corr_note
+
+            except:
+                shot_corr = 0
+                c_pvalue = None
+                beam_corr = None
+                shot_corr_detected = False
+
+            # Tag shot correlation after checking beam correlation
+            if tag_shot_corr: 
                 xo[attr].attrs['delta_beam'] = ishot 
                 xo[attr].attrs['delta_beam_pvalue'] = t_pvalue
                 if ishot == 0:
@@ -463,23 +572,47 @@ def find_beam_correlations(xo, pvalue=0.00001, pvalue0_ratio=0.1,
                 shot_note = '{:} on {:2} shot for {:} detector {:} (t_pvalue={:})'.format(note, ishot, 
                         alias, attr, t_pvalue)
                 print shot_note
-            
-            if beam_corr >= confidence: 
-                xo[attr].attrs['beam_corr'] = beam_corr
-                xo[attr].attrs['shot_corr'] = shot_corr
-                if attr not in xo.attrs['beam_corr_detected']:
-                    xo.attrs['beam_corr_detected'].append(attr)
-                note = 'Beam-corr  of {:5.3f}'.format(beam_corr)
-                corr_note = '{:} on {:2} shot for {:} detector {:} (t_pvalue = {:})'.format(note, shot_corr, 
-                            alias, attr, c_pvalue)
-                print corr_note
+
 
             #xstats[attr] = ((corr_coord,'drop_stats'), df_stats)
             xstats[attr] = df_stats
 
         except:
             traceback.print_exc()
-            print 'Cannot calc stats for', attr
+            print 'Cannot calc stats for', attr, ishot
+        
+    for avar, da in xo.data_vars.items():
+        try:
+            if avar in xstats:
+                for a in ['doc', 'unit', 'alias']:
+                    val = xo[avar].attrs.get(a, '') 
+                    if isinstance(val, unicode):
+                        val = str(val)
+                    xstats[avar].attrs[a] = val 
+        except:
+            print('Cannot add attrs for {:}'.format(avar))
+    
+    for attr, val in xo.attrs.items():
+        try:
+            if isinstance(val, list) and len(val) > 0 and isinstance(val[0], unicode):
+                val = [str(v) for v in val]
+            elif isinstance(val, unicode):
+                val = str(val)
+            xstats.attrs[attr] = val
+        except:
+            print('Cannot add attrs for {:}'.format(attr))
 
-    return xstats.rename({'dim_1':'drop_stats'})
+    if 'dim_1' in xstats:
+        xstats = xstats.rename({'dim_1':'drop_stats'})
+    else:
+        print('No Drop stats')
+        return None
 
+    if save_file:
+        try:
+            xstats.to_netcdf(save_file, engine='h5netcdf')
+            print('Save drop summary file: {:}'.format(save_file))
+        except:
+            print('Cannot save file: {:}'.format(save_file))
+
+    return xstats

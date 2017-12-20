@@ -50,7 +50,7 @@ fi
 : ${MAX_SIZE:="10001"}
 : ${QUEUEREQ:="psanaq"}
 : ${ALERT:="pcds-poc-l,cpo"}
-: ${PYOPT:="beam_stats"}
+: ${PYOPT:="summary"}
 #: ${QUEUEREQ="psdebugq"}
 OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
 RUNSTR=Run`python "$DIRNAME/get_run_from_runid.py" $EXP $RUN`
@@ -62,7 +62,7 @@ if [[ ! -a $OUTLOG ]];  then
     mkdir -p $OUTLOG
 fi
 
-JOBNAME="$EXPRUN"
+JOBNAME="$EXP"Summary
 RUNFILE="$DIRNAME/$PYFILE"
 
 # Directories not available on psanasvc01 -- need to ssh to 
@@ -70,7 +70,7 @@ RUNFILE="$DIRNAME/$PYFILE"
 #echo 'Config: '$CONFIG 
 CONFIG='auto'
 
-echo Processing $EXP Run $RUN
+echo Processing $EXP Summary from Run $RUN
 
 LOGSUM=/reg/neh/home/koglin/logs/"$EXP"/batch_jobs.log
 echo '--------------------------------' >> $LOGSUM

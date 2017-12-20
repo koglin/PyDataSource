@@ -1,4 +1,4 @@
-import time
+
 import os
 import logging
 import operator
@@ -13,7 +13,6 @@ import xarray as xr
 
 import output_html
 import markup
-
 pd.set_option('precision',2)
 pd.set_option('max_colwidth', 66)
 pd.set_option('display.width', 110)
@@ -49,7 +48,7 @@ def load_DataSource(**kwargs):
     try:
         return PyDataSource.DataSource(**kwargs)
     except:
-        print 'DataSource not available'
+        print('DataSource not available')
 
 def to_html(x, **kwargs):
     """
@@ -116,6 +115,11 @@ class Build_experiment(object):
         except:
             traceback.print_exc()
 
+        try:
+            self.add_series()
+        except:
+            traceback.print_exc()
+        
         try:
             #self.add_xy_ploterr('photon_beam_energy', 'run', title='Photon Beam Energy')
             #self.add_xy_ploterr('photon_current', 'run', title='Photon Current')
@@ -204,27 +208,54 @@ class Build_experiment(object):
             alias += ' to Run {:}'.format(run_max)
 
         self.logger.info('Adding {:}'.format(alias))
+        archViewer_html = 'https://pswww.slac.stanford.edu/archiveviewer/retrieval/ui/viewer/archViewer.html'
+        ststart = '{:}-{:02}-{:02}T{:02}:{:02}:{:02}Z'.format(*es._tstart)
+        stend = '{:}-{:02}-{:02}T{:02}:{:02}:{:02}Z'.format(*es._tend)
+
         for det in dets:
             howto=['es.plot_move({:}, run_min={:}, run_max={:})'.format(det, run_min, run_max)]
-            print 'Try plot_move', det
+            print('Try plot_move', det)
             if isinstance(dets, dict):
                 attrs = dets[det]
             else:
                 attrs = det
 
+            dfattrs = pd.DataFrame({attr: es.xset[attr].attrs for attr in attrs if attr in es.xset})
+            try:
+                archstr = archViewer_html+'?'
+                for pv in dfattrs.T['pv'].values:
+                    archstr += 'pv={:}&'.format(pv)
+                archstr += 'from={:}&to={:}'.format(ststart,stend)
+            except:
+                archstr = None
+
             result = self._es.plot_move(attrs, run_min=run_min, run_max=run_max)
-            
             if result is not None:
                 self.logger.info('Adding {:} plot for {:}'.format(alias, det))
-                self.add_plot(alias, det+' Data', howto=howto)
+                self.add_plot(alias, det+' Data', howto=howto, link=archstr, table=dfattrs)
+#                self.results[alias]['table'].update({det+' Configuration': 
+#                                                       {'DataFrame': dfattrs, 
+#                                                        'name': 'attrs',
+#                                                        'howto': None, 
+#                                                        'hidden': True,
+#                                                        'doc': None}})
 
-            dfattrs = pd.DataFrame({attr: es.xset[attr].attrs for attr in attrs if attr in es.xset})
-            self.results[alias]['table'].update({det+' Configuration': 
-                                                       {'DataFrame': dfattrs, 
-                                                        'name': 'attrs',
-                                                        'howto': None, 
-                                                        'hidden': True, 
-                                                        'doc': None}})
+    def add_series(self, min_runs=5, **kwargs):
+        """
+        Add summary of sets of runs based on a change in attr setting for each run.
+        """
+        es = self._es
+        xset = self._es.xset
+        for attr in xset.data_vars:
+            asets = es.get_scan_series(attr, min_runs=min_runs)
+            for rns, df in asets.items():
+                howto=None
+                doc=None
+                doc='Set of runs where {:} was moved between runs.'.format(attr)
+                attr_cat = 'Scan Series'
+                tbl_type = '{:} Runs {:}-{:}'.format(attr, rns[0], rns[1])
+                print 'Adding', tbl_type
+                self.add_table(df, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=False)
 
     def add_scans(self, dets=None, min_steps=4, **kwargs):
         """
@@ -232,7 +263,7 @@ class Build_experiment(object):
         """
         es = self._es
         df = es.get_scans(min_steps=min_steps)
-        if df is None:
+        if df is e:
             return
 
         if dets:
@@ -276,20 +307,31 @@ class Build_experiment(object):
                 howto=['es.plot_scan({:}, attrs={:})'.format(run, attrs)]
                 self.add_plot(alias, 'Run {:03} {:}'.format(run, det), howto=howto )
 
-    def _add_catagory(self, catagory):
+    def _add_catagory(self, catagory, hidden=None):
         if catagory not in self.results:
-            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}, 'textblock': {}}
+            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}, 'textblock': {}, 'hidden': hidden}
     
-    def add_plot(self, catagory, plt_type, howto=[], show=False):
+    def add_plot(self, catagory, plt_type, howto=[], doc=[], 
+                tight=True, show=False, link=None, table=None):
         """Add a plot to RunSummary.
         """
+        if tight:
+            try:
+                plt.tight_layout()
+            except:
+                # seems like tight_layout does not work with add_detector 
+                print('cannot make tight', catagory, plt_type)
+        
         try:
             self._add_catagory(catagory)
 
             plt_file = '{:}_{:}.png'.format(catagory, plt_type).replace(' ','_') 
-            self.results[catagory]['figure'].update({plt_type: {'path': self.output_dir, 
-                                                             'png': plt_file,
-                                                             'howto': howto}})
+            self.results[catagory]['figure'].update({plt_type:  {'path': self.output_dir,
+                                                                 'png': plt_file,
+                                                                 'howto': howto,
+                                                                 'doc': doc,
+                                                                 'table': table,
+                                                                 'link': link}})
             plt.savefig(os.path.join(self.output_dir, plt_file))
             if show:
                 plt.show()
@@ -320,7 +362,7 @@ class Build_experiment(object):
         elif path == 'scratch':
             path = os.path.join(self.scratch_dir, 'RunSummary')
         
-        print 'Setting output path to', path
+        print('Setting output path to', path)
 
         self.path = path
         self.filename = filename
@@ -344,11 +386,11 @@ class Build_experiment(object):
             Output path of report
        
         """
-        self._init_html(path=path)
+        self._init_html(path=path, **kwargs)
         self._add_html()
         self._close_html()
         if not quiet:
-            print 'Writing html to: ', os.path.join(self.html.output_dir, self.html.output_file)
+            print('Writing html to: ', os.path.join(self.html.output_dir, self.html.output_file))
 
     def _init_html(self, path=None, **kwargs):
         """
@@ -361,6 +403,7 @@ class Build_experiment(object):
             Output path of report
        
         """
+        import time
         if path:
             self._init_output(path=path, **kwargs)
 
@@ -478,10 +521,24 @@ class Build_experiment(object):
             for name, data in data_items:
             #for name, data in item[datatyp].items():
                 png = data.get('png')
+                doc = data.get('doc')
+                if isinstance(doc, list):
+                    doc = '\n'.join(doc)
+                link = data.get('link')
+                subname = '{:} {:} {:}'.format(catagory, name, datatyp)
                 if png:
-                    self.html.start_subblock('{:} {:} {:}'.format(catagory, name, datatyp), hidden=True)
+                    self.html.start_subblock(subname, hidden=True)
+                    if doc:
+                        self.html.page.a('{:}'.format(doc))
+                    if link:
+                        self.html.page.a('<a href={:}>{:} archViewer Link</a>'.format(link, name))
                     self.html.page.a( markup.oneliner.img(src=png,style='width:100%;'), 
                             href=png )
+                    df = data.get('table')
+                    if df is not None:
+                        pd.set_option('display.max_rows', len(df))
+                        self.html.page.p('<pre>{:}</pre>'.format(df))
+
                     self.html.end_subblock(hidden=True)
             
                 howto = data.get('howto')
@@ -532,7 +589,7 @@ class Build_experiment(object):
         elif kwargs.get('logx'):
             plt_type+=' lin-log'
 
-        print catagory, plt_type
+        print(catagory, plt_type)
         self.add_plot(catagory, plt_type, howto=howto, tight=False)
         if table is not None:
             self.results[catagory]['table'].update({attr:{'DataFrame': table, 
@@ -546,7 +603,9 @@ class Build_html(object):
     Class to build an html RunSummary report.
     """
 
-    def __init__(self, xdat=None, ds=None, auto=False, basic=False, **kwargs):
+    def __init__(self, xdat=None, ds=None, auto=False, basic=False, 
+            title=None, 
+            logger=None, **kwargs):
         """
         Parameters
         ----------
@@ -559,10 +618,14 @@ class Build_html(object):
         import psutils 
         if psutils.interactive_mode():
             plt.ioff()
-        
-        self.logger = logging.getLogger(__name__+'.build_html')
-        self.logger.info(__name__)
        
+        if not logger:
+            self.logger = logging.getLogger(__name__+'.build_html')
+        else:
+            self.logger = logger
+        
+        self.logger.info(__name__)
+
         self.results = {}
 
         if xdat:
@@ -576,8 +639,8 @@ class Build_html(object):
                 self.logger.info('Loading PyDataSource data')
                 ds = DataSource(**kwargs)
             else:
-                print 'Require valid xdat=xarray object and/or ds=PyDataSource object'
-                print 'or alternatively exp and run kwargs'
+                print('Require valid xdat=xarray object and/or ds=PyDataSource object')
+                print('or alternatively exp and run kwargs')
                 return
 
         if xdat:
@@ -588,6 +651,7 @@ class Build_html(object):
            
         self.exp = str(self._xdat.experiment)
         self.instrument = str(self._xdat.instrument)
+        self.expNum = self._xdat.expNum
         try:
             self.run = int(self._xdat.run.values[0])
         except:
@@ -599,7 +663,9 @@ class Build_html(object):
             self.logger.info('Loading PyDataSource data')
             self._ds = load_DataSource(exp=self.exp, run=self.run)
 
-        self.title = title='{:} Run {:}'.format(self.exp ,self.run)
+        if not title:
+            title='{:} Run {:}'.format(self.exp ,self.run)
+        self.title = title
       
         self.exp_dir = os.path.join('/reg/d/psdm/',self.instrument,self.exp)
         self.xtc_dir = os.path.join(self.exp_dir,'xtc')
@@ -610,10 +676,14 @@ class Build_html(object):
         
         self.scratch_dir = os.path.join(self.exp_dir,'scratch')
         self.stats_dir = os.path.join(self.exp_dir,'stats')
-        
-        self.nc_file = '{:}/nc/run{:04}.nc'.format(self.scratch_dir, self.run)
        
-        self.aliases = list(set([item.attrs.get('alias') for attr,item in self._xdat.data_vars.items() if item.attrs.get('alias')]))
+        if 'h5file' in kwargs:
+            self.h5file = kwargs['h5file']
+        else:
+            self.h5file = '{:}/nc/run{:04}.nc'.format(self.scratch_dir, self.run)
+     
+        self.aliases = list(set([item.attrs.get('alias') for attr,item in self._xdat.data_vars.items() \
+                if item.attrs.get('alias')]))
 
         if 'steps' in self._xdat:
             self.nsteps = len(self._xdat.steps)
@@ -626,6 +696,8 @@ class Build_html(object):
             self.ncodes = None
 
         self._init_output(**kwargs)
+        webattrs = [self.instrument.upper(), self.expNum, self.exp, self.filename, 'report.html'] 
+        self.weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
         
         if auto:
             self.add_all(**kwargs)
@@ -635,9 +707,9 @@ class Build_html(object):
             try:
                 self.add_delta_beam()
             except:
-                print 'Cannot add Timing Error and Drop Shot Detection'
+                print('Cannot add Timing Error and Drop Shot Detection')
 
-            self.to_html()
+            self.to_html(**kwargs)
 
     def _init_output(self, path=default_path, filename=None, **kwargs):
         """
@@ -659,7 +731,7 @@ class Build_html(object):
         elif path == 'scratch':
             path = os.path.join(self.scratch_dir, 'RunSummary')
         
-        print 'Setting output path to', path
+        print('Setting output path to', path)
 
         self.path = path
         if not filename:
@@ -703,10 +775,10 @@ class Build_html(object):
             if 'Gasdet_post_atten' in x:
                 attrs.append('Gasdet_post_atten')
             df = x.reset_coords()[attrs].to_dataframe()
-            heatmap(df)
+            corr = heatmap(df)
             plt_type = 'correlation'
             howto = []
-            self.add_plot(catagory, plt_type, howto=howto, tight=False)
+            self.add_plot(catagory, plt_type, table=corr, howto=howto, tight=False)
 
 
         alias = 'Gasdet_post_atten'
@@ -719,10 +791,10 @@ class Build_html(object):
             if 'PhotonEnergy' in x:
                 attrs.append('PhotonEnergy')
             df = x.reset_coords()[attrs].to_dataframe()
-            heatmap(df)
+            corr = heatmap(df)
             plt_type = 'correlation'
             howto = []
-            self.add_plot(catagory, plt_type, howto=howto, tight=False)
+            self.add_plot(catagory, plt_type, howto=howto, table=corr, tight=False)
 
 
     def add_all(self, quiet=True, 
@@ -761,47 +833,47 @@ class Build_html(object):
         try:
             self.add_detstats()
         except:
-            print 'cannot add detstats'
+            print('cannot add detstats')
         
         # Add Config
         try:
             self.add_config()
         except:
-            print 'cannot add config'
+            print('cannot add config')
         
 
         # Add Correlations
         if cuts:
-            print cuts
+            print(cuts)
             for cut in cuts:
                 if cut in self._xdat and self._xdat[cut].sum() >= min_in_cut: 
-                    print 'adding', cut
+                    print('adding', cut)
                     try:
                         self.add_correlations(cut=cut)
                     except:
                         traceback.print_exc()
-                        print 'Cannot add correlelations for cut', cut
+                        print('Cannot add correlelations for cut', cut)
         else:
             try:
                 self.add_correlations()
             except:
                 traceback.print_exc()
-                print 'Cannot add correlelations'
+                print('Cannot add correlelations')
 
         nevents = len(self._xdat.time)
 
-        groupby = [group for group in self._xdat.attrs.get('scan_variables') \
+        groupby = [group for group in self._xdat.attrs.get('scan_variables', []) \
                             if group in self._xdat and len(set(self._xdat[group].data)) > min_step_data]
-        print ''
-        print '{:24} {:8}'.format('Group','points')
-        print '-'*40
+        print('')
+        print('{:24} {:8}'.format('Group','points'))
+        print('-'*40)
         for group in groupby:
-            print '{:24} {:>8}'.format(group, len(set(self._xdat[group].data)))
-        print ''
+            print('{:24} {:>8}'.format(group, len(set(self._xdat[group].data))))
+        print('')
 
         for alias in self.aliases:
             if not quiet:
-                print 'adding detector', alias
+                print('adding detector', alias)
            
             if cuts:
                 for cut in cuts:
@@ -817,13 +889,13 @@ class Build_html(object):
                     self.add_summary(attrs, groupby=False)
                 except:
                     traceback.print_exc()
-                    print 'Could not add summary', attrs
+                    print('Could not add summary', attrs)
                 if groupby:
                     try:
                         self.add_summary(attrs, groupby=groupby)
                     except:
                         traceback.print_exc()
-                        print 'Could not add summary', attrs
+                        print('Could not add summary', attrs)
         
         self.add_counts()
         self.add_axis_plots()
@@ -832,7 +904,7 @@ class Build_html(object):
         if 'codes' in xdat.coords and len(xdat['codes']) > 0:
             attrs = [a for a in self._xdat.data_vars.keys() if 'stat' in self._xdat[a].dims and len(self._xdat[a].dims) in [5,6]]
             for attr in attrs:
-                print 'adding stats for ', attr
+                print('adding stats for ', attr)
                 if nevents > 4:
                     self.add_stats(attr, **kwargs)
 
@@ -842,9 +914,19 @@ class Build_html(object):
         plt.cla()
         plt.close('all')
 
+# Multiplot boxplot
+# data=xstats.Sc1Imp_amplitudes.to_dataframe()
+# data.groupby('Sc1Imp_ch').boxplot(column='Sc1Imp_amplitudes', by='delta_drop') 
+# or 
+# sns.boxplot(x='delta_drop', y='Sc1Imp_amplitudes', hue='Sc1Imp_ch', data=data.reset_index())
     def add_delta_beam(self, attrs=None, 
-                code='ec162', xattr='delta_drop', min_codes=5, 
-                nearest=5, catagory=None, cut=None, std_box=5,
+                code='ec162', xattr='delta_drop', min_codes=3, 
+                nearest=5, catagory=None, std_box=5,
+                add_detectors=True,
+#                make_timeplot=False, make_scatter=False, 
+#                make_correlation=False, make_histplot=False, make_table=False,
+                cut=None, beam_on='XrayOn',
+                save=True,
                 percentiles=[0.05,0.5,0.95], make_table=True, **kwargs):
         """
         Add timing error and drop shot plots
@@ -854,14 +936,50 @@ class Build_html(object):
         x = self._xdat
         ncode = int(x[code].sum())
         if ncode < min_codes:
-            print 'WARNING only {:} {:} found -- not enought data to find beam correlations'.format(ncode, code) 
+            print('WARNING only {:} {:} found -- not enought data to find beam correlations'.format(ncode, code) )
             return None
 
-        xstats = find_beam_correlations(x, groupby=code, nearest=nearest, **kwargs)
+        if save:
+            save_file = os.path.join('/reg/d/psdm/',self.instrument,self.exp,'results','nc', 'run{:04}_drop_sum.nc'.format(self.run))
+
+        xstats = find_beam_correlations(x, groupby=code, nearest=nearest, 
+                    cut=beam_on, save_file=save_file, **kwargs)
         if not attrs:
             attrs = x.attrs.get('drop_shot_detected',[]) \
                   + x.attrs.get('timing_error_detected',[])
-       
+        
+        all_attrs = x.attrs.get('drop_shot_detected',[]) \
+              + x.attrs.get('beam_corr_detected',[]) \
+              + x.attrs.get('timing_error_detected',[])
+        
+        adets = list(sorted(set([str(x[a].attrs.get('alias')) for a in all_attrs]))) 
+
+        if add_detectors:
+            for alias in self.aliases:
+                if alias in adets:
+                    hidden=None
+                    make_correlation = False
+                    #make_correlation = True
+                    det_attrs = [a for a in all_attrs \
+                                if str(x[a].attrs.get('alias')) == alias ]
+                    if alias == 'EBeam':
+                        det_attrs += ['EBeam_ebeamCharge', 'EBeam_ebeamPhotonEnergy']
+                    make_scatter = False
+                    #make_scatter = [a for a in x.attrs.get('beam_corr_detected',[]) \
+                    #            if str(x[a].attrs.get('alias')) == alias ]
+                    make_histplot = True
+                else:
+                    hidden=True
+                    det_attrs = None
+                    make_correlation = False
+                    make_scatter = False
+                    make_histplot = True
+
+                self.add_detector(alias, catagory=alias, attrs=det_attrs, cut='XrayOn',
+                        make_timeplot=False, make_scatter=make_scatter, 
+                        make_correlation=make_correlation, make_histplot=make_histplot, 
+                        make_table=True, hidden=hidden)
+
         dfattrs = [a for a in x if x[a].dims == ('time',)]
         df = x[dfattrs].to_dataframe()
         df_nearest = df[abs(df.delta_drop) <= nearest]
@@ -887,8 +1005,10 @@ class Build_html(object):
                 attr_cat = catagory
                 plt_type = attr 
             else:
-                if timing_error_detected:
-                    attr_cat = 'Alert Timing Errror'
+                if timing_error_detected: 
+                    #if alias in ['EBeam']:
+                    #    continue
+                    attr_cat = ' Alert Timing Error'
                     tbl_type = attr+' Timing'
                     plt_type = attr+' Timing'
                     sformat='Timing offset by {:} detected relative to {:}' 
@@ -905,9 +1025,9 @@ class Build_html(object):
                 setup_added.append(attr_cat)
 
             df_table = df_nearest[[attr,xattr]].groupby(xattr).describe(percentiles=percentiles)
-            if make_table:
-                howto = ["df_stats = xstats['{:}'].to_pandas()".format(attr)]
-                self.add_table(df_stats, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=True)
+#            if make_table:
+#                howto = ["df_stats = xstats['{:}'].to_pandas()".format(attr)]
+#                self.add_table(df_stats, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=True)
 
             std_ratio = df_stats['std'].max()/df_stats['std'].min()
             
@@ -921,12 +1041,12 @@ class Build_html(object):
                     if ttest.pvalue < 1e-5: 
                         hue = 'ec141'
                 except:
-                    print 'error ttest_gropuby', attr, 'ec141' 
+                    print('error ttest_gropuby', attr, 'ec141' )
 
             if hue:
                 sns.violinplot(x=xattr, y=attr, data=df_nearest, hue=hue, split=True,inner='quart')
-                howstr = "sns.violinplot(x='{:}', y='{:}', data=df_nearest, hue='{:}', split=True,inner='quart')"
-                howto = [ howstr.format(xattr,attr,cut) ]
+                howstr = "sns.violinplot(x='{:}', y='{:}', data=df_nearest, hue='{:}', split=True, inner='quart')"
+                howto = [ howstr.format(xattr,attr,hue) ]
             else:
                 if std_ratio > std_box:
                     sns.boxplot(x=xattr, y=attr, data=df_nearest)
@@ -936,7 +1056,9 @@ class Build_html(object):
                     howstr = "sns.violinplot(x='{:}', y='{:}', data=df_nearest, inner='quart')"
                 howto = [ howstr.format(xattr,attr) ]
 
-            self.add_plot(attr_cat, plt_type, howto=howto)
+            self.add_plot(attr_cat, plt_type, howto=howto, doc=doc, table=df_stats)
+
+        return xstats
 
     def add_counts(self, catagory='Detector Count', confidence=0.1):
         """
@@ -1011,7 +1133,7 @@ class Build_html(object):
             self._xdat = h5write.make_default_cuts(self._xdat)
         except:
             traceback.print_exc()
-            print 'Cannot make default cuts'
+            print('Cannot make default cuts')
 
     def make_summary(self):
         """Make summary
@@ -1094,7 +1216,8 @@ class Build_html(object):
                            max_steps=20,
                            plt_style='.',
                            cut=None, 
-                           show=False, 
+                           show=False,
+                           hidden=None,
                            **kwargs):
         """
         Add a detector based on alias
@@ -1199,7 +1322,7 @@ class Build_html(object):
 
         if groupby is None:
             groupby = []
-            for gattr in x.attrs.get('scan_variables'):
+            for gattr in x.attrs.get('scan_variables', []):
                 if gattr in x.reset_coords().data_vars and len(set(x[gattr].data)) > min_step_data:
                     groupby.append(gattr)
 
@@ -1231,7 +1354,7 @@ class Build_html(object):
             attrs0 = [attr for attr in attrs]
        
         if not attrs0:
-            print 'No scalar data for ', alias
+            print('No scalar data for ', alias)
             return
 
         if groupby:
@@ -1242,18 +1365,24 @@ class Build_html(object):
         if not attr_names:
             attr_names = {attr: attr.replace(alias+'_','') for attr in attrs if attr in x}
 
-        if not catagory:
-            catagory = alias
+        if cut:
+            if catagory:
+                typ_pre = cut
+            else:
+                catagory = catagory+' '+cut
+        else: 
+            if catagory:
+                typ_pre = ''
+            else:
+                catagory = alias
+
 #        if cut is None:
 #            if 'Damage_cut' not in x:
 #                self.make_damage_cut()
 #            cut = 'Damage_cut'
         
-        if cut:
-            catagory = catagory+' '+cut
-
         if attrs:
-            self._add_catagory(catagory)
+            self._add_catagory(catagory, hidden=hidden)
             nattrs = len(attrs)
             if nattrs == 4:
                 nrows = 2
@@ -1319,12 +1448,12 @@ class Build_html(object):
                     df.plot(subplots=True, sharex=True, style=plt_style, layout=layout, figsize=figsize)
                     #plt.tight_layout()
                     howto = ["df.plot(subplots=True, sharex=True, style='{:}', layout={:}, figsize={:})".format(plt_style, layout, figsize)]
-                    self.add_plot(catagory, plt_type, howto=howto)
+                    self.add_plot(catagory, typ_pre+plt_type, howto=howto)
 
             except:
                 traceback.print_exc()
-                print 'Could not build df to describe ', attrs
-                print xselect
+                print('Could not build df to describe ', attrs)
+                print(xselect)
 
             # Make groupby plots
             if groupby:
@@ -1371,7 +1500,7 @@ class Build_html(object):
                                 howto.append("plt.errorbar(xaxis,yaxis,yerr=yerr)")
                                 howto.append("plt.xlabel('{:}')".format(xlab))
                                 howto.append("plt.ylabel('{:}')".format(ylab))
-                                self.add_plot(catagory, plt_type, howto=howto)
+                                self.add_plot(catagory, typ_pre+plt_type, howto=howto)
 
                         else: 
                             # Switch to something like 
@@ -1388,7 +1517,7 @@ class Build_html(object):
                             howto = ["x_group = xselect.groupby('{:}').mean(dim={:})".format(group,tselect)]
                             howto.append("df_group = x_group.to_array().to_pandas().T")
                             howto.append("df_group.plot(subplots=True, sharex=True, layout={:}, figsize={:})".format(layout, figsize))
-                            self.add_plot(catagory, plt_type, howto=howto)
+                            self.add_plot(catagory, typ_pre+plt_type, howto=howto)
                         
                         #grp_values = set(xselect[grp].values)
                         #if len(grp_values) < 9:
@@ -1406,7 +1535,7 @@ class Build_html(object):
                     except:
                     #except:
                         traceback.print_exc()
-                        print 'Failed adding:', group
+                        print('Failed adding:', group)
                         plt.cla()
                         plt.close()
 
@@ -1425,24 +1554,24 @@ class Build_html(object):
                     df.hist(bins=bins, alpha=0.2, layout=layout, figsize=figsize)
                     #plt.tight_layout()
                     howto.append("df.hist(alpha=0.2, layout={:}, figsize={:})".format(layout, figsize))
-                    self.add_plot(catagory, plt_type, howto=howto)
+                    self.add_plot(catagory, typ_pre+plt_type, howto=howto)
                 except:
                     plt.cla()
                     plt.close()
-                    print 'make_histplot failed'
-                    print howto
-                    print dfcut.keys()
+                    print('make_histplot failed')
+                    print(howto)
+                    print(dfcut.keys())
 
             if make_correlation:
                 try:
                     from xarray_utils import heatmap
-                    heatmap(df, confidence=confidence)
+                    corr = heatmap(df, confidence=confidence)
                     plt_type = 'correlation'
                     howto = ['from PyDataSource.xarray_utils import heatmap']
                     howto.append('heatmap(df, confidence={:})'.format(confidence))
-                    self.add_plot(catagory, plt_type, howto=howto, tight=False)
+                    self.add_plot(catagory, typ_pre+plt_type, howto=howto, table=corr, tight=False)
                 except:
-                    print 'Could not make correlation'
+                    print('Could not make correlation')
 
 
             # make scatter matrix using pandas -- cut outliers
@@ -1479,14 +1608,14 @@ class Build_html(object):
                             scat_attrs.append(attr)
 
                     if len(scat_attrs) > 8:
-                        print 'Too many parameters to make scatter plots:', scat_attrs
+                        print('Too many parameters to make scatter plots:', scat_attrs)
                     elif len(scat_attrs)-len(groupby) > 1:
                         try:
                             dfscat = dfcut[scat_attrs]
                         except:
                             plt.cla()
                             plt.close()
-                            print scat_group, 'make_scatter failed'
+                            print(scat_group, 'make_scatter failed')
                             return dfcut
 
                         try:
@@ -1524,7 +1653,7 @@ class Build_html(object):
                                 #g = g.map_offdiag(plt.scatter)
                                 #g = g.add_legend()
                                 #plt.tight_layout()
-                                self.add_plot(catagory, plt_type, howto=howto)
+                                self.add_plot(catagory, typ_pre+plt_type, howto=howto)
         #df = x[attrs].to_dataframe()
         #sns.pairplot(df, hue="LaserOn", vars=attrs0)
                             else:
@@ -1543,7 +1672,7 @@ class Build_html(object):
                                 howto.append('g.map_upper(plt.scatter)')
                                 howto.append('g.map_diag(sns.kdeplot, lw=3)')
                                 
-                                self.add_plot(catagory, plt_type, howto=howto)
+                                self.add_plot(catagory, typ_pre+plt_type, howto=howto)
             
             #                    #y ticklabels
             #                    [plt.setp(item.yaxis.get_majorticklabels(), 'size', 15) for item in Axes.ravel()]
@@ -1561,7 +1690,7 @@ class Build_html(object):
                         except:
                             plt.cla()
                             plt.close()
-                            print dfscat
+                            print(dfscat)
                             traceback.print_exc()
                             return dfscat
 
@@ -1631,7 +1760,7 @@ class Build_html(object):
         elif kwargs.get('logx'):
             plt_type+=' lin-log'
 
-        print catagory, plt_type
+        print(catagory, plt_type)
         self.add_plot(catagory, plt_type, howto=howto, tight=False)
         if table is not None:
             self.results[catagory]['table'].update({attr:{'DataFrame': table, 
@@ -1686,7 +1815,7 @@ class Build_html(object):
             group = 'XrayOn'
         
         if group not in x:
-            print group, 'is not a valid group -- ignoring group keyword'
+            print(group, 'is not a valid group -- ignoring group keyword')
             group = None
 
         if not howto:
@@ -1724,7 +1853,7 @@ class Build_html(object):
             for attr in grp_attrs:
                 gattrs.append(attr)
             ghowto = howto
-            print catagory, gattrs, group, ghowto
+            print(catagory, gattrs, group, ghowto)
             self.add_scatter(df, catagory=catagory, attrs=gattrs, howto=ghowto, group=group)
 
     def make_damage_cut(self, charge_min=1., 
@@ -1791,11 +1920,12 @@ class Build_html(object):
         self._add_catagory(catagory)
         self.results[catagory]['text'].update({'setup':{'howto': howto}})
 
-    def _add_catagory(self, catagory):
+    def _add_catagory(self, catagory, hidden=None):
         if catagory not in self.results:
-            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}, 'textblock': {}}
+            self.results[catagory] = {'figure': {}, 'table': {}, 'text': {}, 'textblock': {}, 'hidden': hidden}
     
-    def add_plot(self, catagory, plt_type, howto=[], tight=True, show=False):
+    def add_plot(self, catagory, plt_type, howto=[], doc=[], 
+                tight=True, show=False, link=None, table=None):
         """
         Add a plot to the report. 
         After making using matplotlib or higher level methods for making matplotlib plots 
@@ -1823,12 +1953,15 @@ class Build_html(object):
                 plt.tight_layout()
             except:
                 # seems like tight_layout does not work with add_detector 
-                print 'cannot make tight', catagory, plt_type
+                print('cannot make tight', catagory, plt_type)
         self._add_catagory(catagory)
         plt_file = '{:}_{:}.png'.format(catagory, plt_type).replace(' ','_') 
-        self.results[catagory]['figure'].update({plt_type: {'path': self.output_dir, 
-                                                         'png': plt_file,
-                                                         'howto': howto}})
+        self.results[catagory]['figure'].update({plt_type:  {'path': self.output_dir, 
+                                                             'png': plt_file,
+                                                             'howto': howto, 
+                                                             'doc': doc,
+                                                             'table': table,
+                                                             'link': link}})
         plt.savefig(os.path.join(self.output_dir, plt_file))
         if show:
             plt.show()
@@ -1930,17 +2063,14 @@ class Build_html(object):
         """
         import seaborn as sns
         if not variables:
-            if 'scan_variables' in self._xdat.attrs:
-                variables = self._xdat.scan_variables
-            else:
-                variables = []
+            variables = self._xdat.attrs.get('scan_variables', [])
 
         plt.close()
         plt.cla()
         variables = [v for v in variables if v in self._xdat.variables.keys()]
 
         if groupby is None:
-            groupby = [group for group in self._xdat.attrs.get('scan_variables') \
+            groupby = [group for group in self._xdat.attrs.get('scan_variables', []) \
                             if group in self._xdat and len(set(self._xdat[group].data)) > 1]
 
         if groupby and not variables:
@@ -1960,7 +2090,7 @@ class Build_html(object):
                 if not isinstance(groupby, list) and not hasattr(groupby, 'shape'):
                     groupby = [groupby]
                 for group in groupby:
-                    print 'Make groupby plots for', group
+                    print('Make groupby plots for', group)
                     xdat = self._xdat[attr]
                     x_group = xdat.groupby(group).mean(dim='time')
                     howto = ["plt.rcParams['axes.labelsize'] = {:}".format(24)]
@@ -2024,7 +2154,7 @@ class Build_html(object):
             
             else:
                 nax = len(self._xdat[attr].shape)
-                print nax, attr
+                print(nax, attr)
                 if nax == 2:
     #                self._xdat[attr].mean(axis=0).plot()
     #                plt_type = '{:} summary'.format(attr.lstrip(alias+'_')) 
@@ -2059,7 +2189,7 @@ class Build_html(object):
                             self.add_plot(alias, plt_type, howto=howto)
                         except:
                             traceback.print_exc()
-                            print 'scatter matrix plot failed for', alias
+                            print('scatter matrix plot failed for', alias)
 
                     else:
                         self._xdat[attr].plot()
@@ -2316,14 +2446,15 @@ class Build_html(object):
             Optionally show plot instead of default of it being minimized
 
         """
+        import time
         plt.close('all')
         if attr in self._xdat:
             xdat = self._xdat[attr]
             if len(xdat.shape) not in [5,6]:
-                print "add_stats only valid for objects with dimensions ('stat','step','codes', xdim, ydim)"
+                print("add_stats only valid for objects with dimensions ('stat','step','codes', xdim, ydim)")
                 return
         else:
-            print 'No stats available for', attr
+            print('No stats available for', attr)
             return
 
         if 'alias' in xdat.attrs:
@@ -2344,7 +2475,7 @@ class Build_html(object):
                 if tbl is not None:
                     attr_codes = [c for c,n in tbl.to_dict().items() if n > 0]
             except:
-                print 'WARNING: Need to fix auto getting attr_codes'
+                print('WARNING: Need to fix auto getting attr_codes')
         
         if not attr_codes:
             if 'codes' in xdat:
@@ -2382,7 +2513,7 @@ class Build_html(object):
                     if 'codes' not in xstat.coords:
                         xstat.coords['codes'] = xcodes
                 except:
-                    print 'Cannot make image', attr, stat
+                    print('Cannot make image', attr, stat)
                     continue
 
            #print 'det_summary', attr, attr_codes, stat
@@ -2419,7 +2550,7 @@ class Build_html(object):
                 
             else:
                 if xstat.shape[1] > nlines:
-                    print 'doing image', stat
+                    print('doing image', stat)
                     for code in attr_codes:
                         plt.cla()
                         #plt.figure(figsize=(16,14))
@@ -2437,7 +2568,7 @@ class Build_html(object):
                             self.add_plot(catagory, plt_type, howto=howto)
                         except:
                             traceback.print_exc()
-                            print xstat
+                            print(xstat)
                         plt.close()
                 elif stat == 'mean':
                     for code in attr_codes:
@@ -2452,7 +2583,7 @@ class Build_html(object):
                     if len(attr_codes) > 1:
                         plt_dim = xstat.dims[1]
                         for ich, ch in enumerate(xstat[plt_dim]):
-                            print ich, ch
+                            print(ich, ch)
                             plt.cla()
                             xstat[:,ich,:].to_pandas().T.plot()
                             howto = []
@@ -2462,7 +2593,7 @@ class Build_html(object):
                             self.add_plot(catagory, plt_type, howto=howto)
 
         if self.nsteps > 1 and xdat.shape[3] <= nlines:
-            print 'Smart waveforms'
+            print('Smart waveforms')
 
         elif self.nsteps > 1:
             if self.nsteps < max_columns**2:
@@ -2487,7 +2618,7 @@ class Build_html(object):
             
             plt.cla()
             # plot mean of image vs steps for each event code
-            print xdat
+            print(xdat)
             sumaxes = tuple(range(2,len(xdat.shape)-1))
             df = xdat.sel(stat='mean').sum(axis=sumaxes).to_pandas()
             df.plot()
@@ -2537,7 +2668,7 @@ class Build_html(object):
                         plt.close()
                     except:
                         traceback.print_exc()
-                        print 'Cannot squeeze codes for plot over steps' 
+                        print('Cannot squeeze codes for plot over steps' )
 
             if make_images and len(xdat.shape) <= 5:
                 plt.rcParams['axes.labelsize'] = labelsize
@@ -2613,7 +2744,7 @@ class Build_html(object):
 
                     except:
                         traceback.print_exc()
-                        print 'cannot add ', catagory, plt_type
+                        print('cannot add ', catagory, plt_type)
     #
 #                da.squeeze('codes').to_pandas().plot()
 #                howto.append("da.squeeze('codes').plot()")
@@ -2734,14 +2865,14 @@ class Build_html(object):
             Suppress stdout comments
 
         """
-        self._init_html(path=path)
+        self._init_html(path=path, **kwargs)
         self._add_html()
         self._close_html()
         if not quiet:
-            print 'Writing html to: ', os.path.join(self.html.output_dir, self.html.output_file)
+            print('Writing html to: ', os.path.join(self.html.output_dir, self.html.output_file))
 
 
-    def _init_html(self, path=None, **kwargs):
+    def _init_html(self, path=None, subtitle=None, **kwargs):
         """
         Initialize html page.
         
@@ -2752,46 +2883,88 @@ class Build_html(object):
             Output path of report
        
         """
+        import time
         if path:
             self._init_output(path=path, **kwargs)
 
-        self.html = output_html.report(self.exp, 'Run {:}'.format(self.run), 
+        if not subtitle:
+            subtitle = 'Run {:}'.format(self.run)
+        self.html = output_html.report(self.exp, subtitle, 
                  title=self.title,
                  css=('css/bootstrap.min.css','jumbotron-narrow.css','css/mine.css'),
                  script=('js/ie-emulation-modes-warning.js','js/jquery.min.js','js/toggler.js','js/sticky.js'),
                  output_dir=self.output_dir)
 
         self.html.start_block('Data Summary', id="metadata")
-        self.html.start_subblock('Data Information',id='datatime')
+        #self.html.start_subblock('Data Information',id='datatime')
         
         try:
             event_times = pd.to_datetime(self._xdat.time.values)
-            run_time = (event_times.max()-event_times.min()).seconds
+            begin_time = event_times.min()
+            end_time = event_times.max()
+            run_time = (end_time-begin_time).seconds
             minutes,fracseconds = divmod(run_time,60)
 
             sformat = 'Start Time: {:}<br/>End Time: {:}<br/>Duration: {:} seconds ({:02.0f}:{:02.0f})'
             self.html.page.p('Total events: {:}'.format(len(event_times) ) )
-            self.html.page.p(sformat.format(event_times.min(), event_times.max(), run_time, minutes,fracseconds) )
-            self.html.page.p('Total files: {:}<br/>Total bytes: {:} ({:0.1f} GB)<br/>'.format(
-                    self._nfile,self._nbytes,self._nbytes/(1000.**3)))
+            self.html.page.p(sformat.format(begin_time.ctime(), end_time.ctime(), run_time, minutes,fracseconds) )
+            if hasattr(self, '_nfile'):
+                self.html.page.p('Total files: {:}<br/>Total bytes: {:} ({:0.1f} GB)<br/>'.format(
+                        self._nfile,self._nbytes,self._nbytes/(1000.**3)))
         except:
             pass
             
         self.html.page.p('Report time: {:}'.format(time.ctime()))
         self.html.end_subblock()
 
-        self._make_PyDataSource_html()
+        if 'h5file' in kwargs:
+            self._make_h5file_html(kwargs['h5file'], report_notes=kwargs.get('report_notes'))
+        else:
+            self._make_PyDataSource_html()
 
         self.html.end_block()         
  
-    def _make_PyDataSource_html(self, **kwargs):
+    def _make_h5file_html(self, h5file, report_notes=None, engine='h5netcdf', **kwargs):
+        """Make html notes for accessing hdf5 file (using netCDF format) in xarray.
+        """
+        if report_notes:
+            if isinstance(report_notes, list):
+                report_notes = '\n'.join(report_notes)
+            print report_notes
+            self.html.start_subblock('Report Notes')
+            self.html.add_textblock(report_notes)
+            self.html.end_subblock()
+        self.html.start_subblock('Access the Data', hidden=True)
+        self.html.page.p('Analyze run summary data on a psana node using pylab, pandas and xarray:')
+        conda_setup = 'source /reg/g/psdm/bin/conda_setup'
+        self.html.add_textblock('\n'.join([conda_setup, 
+                                           'ipython --pylab',
+                                           '...',
+                                           'import xarray as xr', 
+                                           'x = xr.open_dataset("{:}", engine="{:}")'.format(h5file, engine)]))
+        self.html.add_textblock(str(self._xdat), 
+                subblock='View of RunSummary data with xarray python package ', hidden=True)
+
+        weblink='http://xarray.pydata.org'
+        self.html.page.p('See <a href="{:}">{:}</a> for details on how to use data using xarray.'.format(weblink,weblink))
+#        weblink='http://pswww.slac.stanford.edu/swdoc/ana/PyDataSource'
+#        self.html.page.p('See <a href="{:}">{:}</a> for details on how to use PyDataSource.'.format(weblink,weblink))
+        self.html.page.p('For questions and feedback contact koglin@slac.stanford.edu')
+        self.html.end_subblock()
+ 
+    def _make_PyDataSource_html(self, report_notes=None, **kwargs):
         """Make html notes for accessing data with PyDataSource.
         """
         import PyDataSource
 
+        if report_notes:
+            if isinstance(report_notes, list):
+                report_notes = '\n'.join(report_notes)
+            self.html.start_subblock('Report Notes')
+            self.html.add_textblock(report_notes)
+            self.html.end_subblock()
         self.html.start_subblock('Access the Data')
         self.html.page.p('Access event data with PyDataSource python module on a psana node:')
-        #ana_env = '.  /reg/g/psdm/etc/ana_env.sh'
         conda_setup = 'source /reg/g/psdm/bin/conda_setup'
         idatasource = 'idatasource --exp {:} --run {:}'.format(self.exp, self.run) 
         #self.html.add_textblock('\n'.join([ana_env, idatasource]))
@@ -2828,7 +3001,7 @@ class Build_html(object):
         weblink='http://xarray.pydata.org'
         self.html.page.p('See <a href="{:}">{:}</a> for details on how to use data using xarray.'.format(weblink,weblink))
         self.html.page.p('HDF5 summary file (using netCDF format) located at:')
-        self.html.add_textblock('{:}'.format(self.nc_file))
+        self.html.add_textblock('{:}'.format(self.h5file))
         self.html.page.p('For questions and feedback contact koglin@slac.stanford.edu')
  
     def _add_html(self, table_caption='Hover to highlight.', show_attrs=['attrs'], **kwargs):
@@ -2836,7 +3009,8 @@ class Build_html(object):
         """
         cat_items = sorted(self.results.items(), key=operator.itemgetter(0))
         for catagory, item in cat_items:
-            self.html.start_block('{:} Data'.format(catagory), id='{:}_data'.format(catagory))
+            hidden = item.get('hidden')
+            self.html.start_block('{:} Data'.format(catagory), id='{:}_data'.format(catagory), hidden=hidden)
             ahowto = []
             
             if item['figure']:
@@ -2920,10 +3094,24 @@ class Build_html(object):
             for name, data in data_items:
             #for name, data in item[datatyp].items():
                 png = data.get('png')
+                doc = data.get('doc')
+                if isinstance(doc, list):
+                    doc = '\n'.join(doc)
+                link = data.get('link')
+                subname = '{:} {:} {:}'.format(catagory, name, datatyp)
                 if png:
-                    self.html.start_subblock('{:} {:} {:}'.format(catagory, name, datatyp), hidden=True)
+                    self.html.start_subblock(subname, hidden=True)
+                    if doc:
+                        self.html.page.a('{:}'.format(doc))
+                    if link:
+                        self.html.page.a('<a href={:}>{:}</a>'.format(link, name))
                     self.html.page.a( markup.oneliner.img(src=png,style='width:100%;'), 
                             href=png )
+                    df = data.get('table')
+                    if df is not None:
+                        pd.set_option('display.max_rows', len(df))
+                        self.html.page.p('<pre>{:}</pre>'.format(df))
+                   
                     self.html.end_subblock(hidden=True)
             
                 howto = data.get('howto')

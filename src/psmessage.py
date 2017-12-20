@@ -1,9 +1,7 @@
-import elog
 
 class Message(object):
     """Message class for printing messages and posting messages to the elog.
     """
-
     _message = []
     _message_history = []
     _max_messages = 100
@@ -28,6 +26,7 @@ class Message(object):
            
            Message will be printed unless show=False
         """
+        import elog
         if show:
             self.__repr__()
         
@@ -38,10 +37,67 @@ class Message(object):
            Message will be printed unless show=False
            Equivalent to post function with name='instrument'
         """        
+        import elog
         if show:
             self.__repr__()
         
         elog.instrument_post(self.__repr__(), **kwargs)
+    
+    def send_mail(self, subject=None, from_name=None, to_name=None, **kwargs):
+        """
+        Send mail
+
+        Parameters
+        ----------
+        subject : str
+            Subject of e-mail -- first line of message by default
+
+        from_name : str
+            name of message sender, os.getlogin() by default
+
+        to_name : str or list
+            name(s) of message recepients, from_name by default
+
+        """
+        from email.mime.text import MIMEText
+        from subprocess import Popen, PIPE
+       
+        if not self._message:
+            print('No message to send')
+            return None
+
+        if not subject:
+            subject = self._message[0]
+
+        if not from_name:
+            import os
+            from_name = os.getlogin()
+
+        if not to_name:
+            #mailmsg["To"] = getpass.getuser()+"@slac.stanford.edu"
+            to_name = from_name
+        else:
+            if isinstance(to_name, list):
+                to_names = []
+                for name in to_name:
+                    if name not in to_names:
+                        to_names.append(name)
+                to_name = ','.join(to_names)
+
+        if not isinstance(to_name, str):
+            print('Not valid to_name:', to_name)
+            return None
+
+        try:
+            mailmsg = MIMEText(str(self))
+            mailmsg["To"] = to_name
+            mailmsg["From"] = from_name
+            mailmsg["Subject"] = subject
+            p = Popen(["/usr/sbin/sendmail", "-t"], stdin=PIPE)
+            p.communicate(mailmsg.as_string())
+        except:
+            traceback.print_exc('Error with from {:} to {:} message -- {:}'.format(from_name, to_name, subject))
+            return from_name, to_name, subject, message
 
     def add(self, *args, **kwargs):
         """Add a line to the message.

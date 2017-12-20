@@ -1,6 +1,4 @@
 
-from RegDB import experiment_info
-from glob import glob
 import re
 import operator
 import sys
@@ -36,7 +34,7 @@ def write_exp_summary(self, file_name=None, path=None, **kwargs):
             pickle.dump(pickle.dumps(self, protocol=-1), pickle_file, protocol=-1)
     except:
         traceback.print_exc()
-        print 'Failes writing pickle file', path+'/'+file_name
+        print('Failes writing pickle file', path+'/'+file_name)
 
 def open_epics_data(exp=None, file_name=None, path=None, run=None, **kwargs):
     import glob
@@ -45,7 +43,7 @@ def open_epics_data(exp=None, file_name=None, path=None, run=None, **kwargs):
         file_name = 'xpvs.nc'
     
     if exp is None:
-        print 'Must supply exp Name'
+        print('Must supply exp Name')
         return 
 
     instrument = exp[0:3]
@@ -63,11 +61,11 @@ def open_epics_data(exp=None, file_name=None, path=None, run=None, **kwargs):
             xdata = xr.open_dataset(full_file, engine='h5netcdf')
         except:
             traceback.print_exc()
-            print 'Failes reading file', full_file
+            print('Failes reading file', full_file)
             return None
 
     else:
-        print 'Failes finding file', full_file
+        print('Failes finding file', full_file)
         return None
     
     return xdata
@@ -88,7 +86,7 @@ def get_pv_attrs(exp, auto_load=False):
     try:
         xpvs = open_epics_data(exp, 'xpvs.nc')
     except:
-        print 'Failed open_epics_data for', exp
+        print('Failed open_epics_data for', exp)
         xpvs = {}
 
     if not xpvs:
@@ -153,7 +151,7 @@ def read_exp_summary(exp=None, file_name=None, path=None, **kwargs):
         file_name = 'experiment_summary.pkl'
     
     if exp is None:
-        print 'Must supply exp Name'
+        print('Must supply exp Name')
         return 
 
     instrument = exp[0:3]
@@ -171,12 +169,12 @@ def read_exp_summary(exp=None, file_name=None, path=None, **kwargs):
             with open(full_file, 'rb') as pickle_file:
                 data = pickle.load(pickle_file)
 
-            print 'pickle OK', path, file_name, full_file
+            print('pickle OK', path, file_name, full_file)
             return pickle.loads(data)
         except:
-            print 'WHY'
+            print('WHY')
             traceback.print_exc()
-            print 'Failes reading pickle file', full_file
+            print('Failes reading pickle file', full_file)
             return None
 
     else:
@@ -224,7 +222,7 @@ def epicsArch_dict(archfile_name,file_dir):
                 pvbase = pvname.split('.')[0]
                 if pvalias:
                     if pvalias in arch_dict:
-                        print 'Warning: duplicate alias {:}'.format(pvalias)
+                        print('Warning: duplicate alias {:}'.format(pvalias))
                 else:
                     pvalias = re.sub(':|\.','_',pvname) 
 
@@ -240,7 +238,7 @@ def epicsArch_dict(archfile_name,file_dir):
     
     except:
         traceback.print_exc()
-        print 'Error loading {:} from {:}'.format(archfile_name,file_dir)
+        print('Error loading {:} from {:}'.format(archfile_name,file_dir))
 
     return arch_dict
 
@@ -272,7 +270,12 @@ class ExperimentSummary(object):
             }
 
     def __init__(self, exp=None, instrument=None, station=0, exper_id=None,
-                exp_dir=None, xtc_dir=None, h5_dir=None, save=True, init=True, **kwargs):
+                exp_dir=None, xtc_dir=None, h5_dir=None, scratch_dir=None, 
+                save=True, init=True, **kwargs):
+        """
+        Experiment Summary
+        """
+        from RegDB import experiment_info
         if exp:
             self.exp = exp
             self.exper_id = experiment_info.name2id(exp)
@@ -299,7 +302,10 @@ class ExperimentSummary(object):
 
         if not h5_dir:
             h5_dir =  "{:}/hdf5".format(exp_dir, self.exp)
-        
+       
+        if not scratch_dir:
+            scratch_dir =  "{:}/scratch".format(exp_dir)
+
         self.exp_dir = exp_dir
         self.h5_dir = h5_dir
         self.xtc_dir = xtc_dir
@@ -314,20 +320,22 @@ class ExperimentSummary(object):
             self._init(**kwargs)
 
     def _init(self, **kwargs):
-        self._load_run_info(self.exp)
-        self._init_arch(**kwargs)
+        self._load_run_info()
+        try:
+            self._init_arch(**kwargs)
+        except:
+            traceback.print_exc('Could not load epics Archive')
+        
         try:
             self._load_exp_runs(**kwargs)
         except:
-            traceback.print_exc()
-            print 'could not load exp_runs'
+            traceback.print_exc('Could not load exp_runs')
             
         if save:
             try:
                 self.save(**kwargs)
             except:
-                traceback.print_exc()
-                print 'could not write summary'
+                traceback.print_exc('Could not write summary')
 
     def save(self, file_name=None, path=None, **kwargs):
         """Save to pickle file.
@@ -347,7 +355,7 @@ class ExperimentSummary(object):
             self._user_tables = self._RunTables.usertables(exper_name=self.exp)
             #self.add_user_run_table(RunSummary='Run Summary')
         except:
-            print 'currently does not work in conda env.'
+            print('currently does not work in conda env.')
 
     def add_user_run_table(self, **kwargs):
         """Add a user User RunTable from pswww elog server.
@@ -366,15 +374,29 @@ class ExperimentSummary(object):
         return build_html.Build_experiment(self, **kwargs)
 
     def detectors(self, run):
-        """Return a list of detector names configured in the DAQ system for the input run number.
         """
+        Return a list of detector names configured in the DAQ system for the input run number.
+        """
+        from RegDB import experiment_info
         return experiment_info.detectors(self.instrument, self.exp, run)
 
     @property
     def calibration_runs(self):
+        """
+        List of calibration runs for the experiment.
+        """
+        from RegDB import experiment_info
         return experiment_info.calibration_runs(self.instrument, self.exp)
 
     def show_moved(self, attrs=None):
+        """
+        Show motors that have moved (or devices that have changed state).
+
+        Parameters
+        ----------
+        attrs : list
+            List of motor aliases.
+        """
         if attrs:
             if not isinstance(attrs, list):
                 attrs = [attrs]
@@ -383,12 +405,12 @@ class ExperimentSummary(object):
 
         for attr in attrs:
             xvar = self.xset.reset_coords().set_coords(['begin_time','prep_time'])[attr].dropna(dim='run')
-            print ''
-            print '** {:} **'.format(attr)
+            print('')
+            print('** {:} **'.format(attr))
             for a,val in xvar.attrs.items():
                 if a not in ['PREC']:
-                    print '{:10} {:10}'.format(a,val)
-            print xvar.to_dataframe()
+                    print('{:10} {:10}'.format(a,val))
+            print(xvar.to_dataframe())
 
     def get_run_sets(self, delta_time=60*60*24, run_min=None, run_max=None, **kwargs):
         xscan = self.xscan
@@ -432,7 +454,7 @@ class ExperimentSummary(object):
         ax = fig.gca()
         x = self.get_scan_data(run, attrs=attrs, min_steps=min_steps, device=device, min_motors=min_motors)
         if not x:
-            print 'Run {:} scan for attrs={:} device={:} not valid'.format(run, attrs, device)
+            print('Run {:} scan for attrs={:} device={:} not valid'.format(run, attrs, device))
         else:
             attrs = x.data_vars.keys()
             if len(attrs) == 1:
@@ -488,9 +510,10 @@ class ExperimentSummary(object):
                 aout.append(a)
         return aout
 
-    def get_moved(self, attrs=None, run_min=None, run_max=None, group=None):
+    def get_moved(self, attrs=None, run_min=None, run_max=None, group=None, min_count=2):
         """Get devices that moved (between run_min and run_max if specified)
         """
+        import numpy as np
         if attrs:
             group = False
 
@@ -500,16 +523,25 @@ class ExperimentSummary(object):
                     attrs.append(attr+'_set')
         
         xepics = self.get_epics(attrs=attrs, run_min=run_min, run_max=run_max)
-        df = xepics.to_dataframe()
-
         attrs = []
-        for a in df.keys()[df.count() > 1]:
-            #if a not in xepics.coords and (a in self.xset.data_vars or a in self.xscan.data_vars):
-            if a not in xepics.coords:
-                if False and a.endswith('_set'):
-                    attrs.append(a.split('_set')[0])
-                else:
-                    attrs.append(a)
+        df = xepics.to_dataframe()[xepics.data_vars.keys()]
+        for attr, item in df.iteritems():
+            if len(set(item.astype(np.float32).dropna().drop_duplicates().values)) >= min_count:
+                attrs.append(attr)
+        
+        if attrs:
+            df = xepics[attrs].to_dataframe()
+        else:
+            return attrs
+
+#        attrs = []
+#        for a in df.keys()[df.count() > min_count]:
+#            #if a not in xepics.coords and (a in self.xset.data_vars or a in self.xscan.data_vars):
+#            if a not in xepics.coords:
+#                if False and a.endswith('_set'):
+#                    attrs.append(a.split('_set')[0])
+#                else:
+#                    attrs.append(a)
         
         attrs = list(set(attrs))
 
@@ -546,7 +578,7 @@ class ExperimentSummary(object):
             xepics = self.get_epics(run_min=run_min, run_max=run_max)
             if attrs not in xepics.data_vars:
                 ylabel = attrs
-                print attrs
+                print(attrs)
                 attrs = self.get_moved(attrs, run_min=run_min, run_max=run_max, group=False)
                 #attrs = [a for a in xepics.data_vars if a.startswith(attrs)]
             else:
@@ -561,6 +593,7 @@ class ExperimentSummary(object):
             return None
 
         xepics = self.get_epics(attrs=attrs, run_min=run_min, run_max=run_max)
+        
         fig = plt.figure(figsize=figsize, **kwargs)
         ax = fig.gca()
         b = xepics['begin_run'].dropna(dim='time').to_pandas()
@@ -583,7 +616,7 @@ class ExperimentSummary(object):
             lab = attr
             if aunits.get(attr):
                 lab += ' [{:}]'.format(aunits[attr])
-            print attr
+            print(attr)
             try:
                 df = xepics[attr].dropna(dim='time').to_pandas()
                 if df.size > max_points:
@@ -598,13 +631,13 @@ class ExperimentSummary(object):
                     df.plot(drawstyle='steps', linewidth=linewidth, label=lab, ax=ax)
             except:
                 traceback.print_exc()
-                print 'cannot plot', attr
+                print('cannot plot', attr)
 
-            if xepics.get(attr+'_set'):
-                try:
+            try:
+                if isinstance(attr, str) and attr in xepics and xepics.get(attr+'_set'):
                     xepics[attr+'_set'].dropna(dim='time')[1:].to_pandas().plot(style='+',label=attr+'_set')
-                except:
-                    print 'cannot plot', attr+'_set'
+            except:
+                print('cannot plot', attr+'_set')
 
         ax2 = ax.twiny()
         ax2.set_xlabel('Run')
@@ -656,6 +689,54 @@ class ExperimentSummary(object):
                 
         return pd.DataFrame(avals).T[attrs]
 
+    def _submit_summary(self, run, batchqueue='psanaq', option='beam_stats'):
+        """
+        Make beam_stats to check for timing error and drop shots
+        """
+        import subprocess
+        bsubproc = 'submit_summary {:} {:} {:} {:}'.format(self.exp, run, batchqueue, option)
+        print('-> ',bsubproc)
+
+        subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
+
+    def submit_beam_stats(self, runs, batchqueue='psanaq', alert='None'):
+        """
+        Make beam_stats to check for timing error and drop shots
+
+        Parameters
+        ----------
+        runs : list of ints or int or 'all'
+            Runs to submit -- if 'all' then submit all that have not already been created
+        """
+        import subprocess
+        if runs == 'all':
+            drop_stats_files = self.dfruns.T['drop_stats_files']
+            runs = [run for run in self.runs_with_xtc if not drop_stats_files.get(run, [])]
+
+        if not isinstance(runs, list):
+            runs = [runs]
+        for run in runs:
+            bsubproc = 'submit_beam_stats {:} {:} {:} {:}'.format(self.exp, run, batchqueue, alert)
+            print('-> ',bsubproc)
+            subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
+
+    def get_beam_summary(self):
+        """
+        Load drop stats summary for all runs
+        """
+        import beam_stats
+        return beam_stats.load_exp_sum(self.exp) 
+
+    def build_beam_stats(self, alert=True, **kwargs):
+        """
+        Build beam statistics summary including off-by-one.
+
+        First run submit_beam_stats('all')
+        """
+        import beam_stats
+        b = beam_stats.build_drop_stats(self.exp, alert=alert, **kwargs)
+        return b
+
     def _load_run_data(self, summary=False, no_create=True):
         ax = {}
         for i in self.xruns.run.values:                         
@@ -664,31 +745,34 @@ class ExperimentSummary(object):
                 if x:
                     ax[i] = x
             except:     
-                print 'cannot load run', i
+                print('cannot load run', i)
 
         self.xdata = ax
         return self.xdata
 
-    def _load_run_info(self, exp, instrument=None):
+    def _load_run_info(self):
         """
         Load run info from experiment_info database
         """
+        from RegDB import experiment_info
         import pandas as pd
         import xarray as xr
-        if not instrument:
-            instrument = exp[0:3]
 
-        rns = pd.DataFrame(experiment_info.experiment_runs(instrument.upper(),exp))
-        xruns = xr.Dataset()
-        xruns.coords['run'] = (['run'], rns['num'])
-        xruns.coords['run_id'] = (['run'], rns['id'])
-        xruns['begin_time'] = (['run'], pd.to_datetime(rns['begin_time']))
-        xruns['end_time'] = (['run'], pd.to_datetime(rns['end_time']))
-        xruns['duration'] = (['run'], (rns['end_time']/1.e9 - rns['begin_time']/1.e9))
-        xruns['duration'].attrs['units'] = 'sec'
-        xruns['prep_time'] = (['run'], (rns['begin_time']/1.e9)-(rns['end_time'].shift(1)/1.e9)) 
-        xruns['prep_time'].attrs['units'] = 'sec'
-        self.xruns = xruns
+        rns = pd.DataFrame(experiment_info.experiment_runs(self.instrument.upper(),self.exp))
+        if not rns.empty:
+            xruns = xr.Dataset()
+            xruns.coords['run'] = (['run'], rns['num'])
+            xruns.coords['run_id'] = (['run'], rns['id'])
+            xruns['begin_time'] = (['run'], pd.to_datetime(rns['begin_time']))
+            xruns['end_time'] = (['run'], pd.to_datetime(rns['end_time']))
+            xruns['duration'] = (['run'], (rns['end_time']/1.e9 - rns['begin_time']/1.e9))
+            xruns['duration'].attrs['units'] = 'sec'
+            xruns['prep_time'] = (['run'], (rns['begin_time']/1.e9)-(rns['end_time'].shift(1)/1.e9)) 
+            xruns['prep_time'].attrs['units'] = 'sec'
+            self.xruns = xruns
+        
+        else:
+            self.xruns = None
 
         return self.xruns
 
@@ -744,11 +828,13 @@ class ExperimentSummary(object):
 #        self._data_codes = data_codes
 #
     def _load_epics(self, pvs=None, quiet=False, 
-                    omit=['ABSE', 'SIOC', 'USEG', 'VGBA', 'GATT', 
-                          'MIRR:EE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],
+                    omit=['ABSE', 'BEAM', 'SIOC', 'USEG', 'VGBA', 'GATT'],
+                    #      'MIRR:EE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],
+                    omit_rbv=['XRT:M2H','MIRR:FEE1','MIRR:XRT','STEP:M1H','STEP:M2H','MOVR:DMP1'],
+                    omit_endswith=['CNT'],
                     run=None,
                     set_only=True,
-                    max_size=20000,
+                    max_size=50000,
                     **kwargs):
         """
         Make xarray and pandas objects to describe which epics variables were set before
@@ -767,7 +853,9 @@ class ExperimentSummary(object):
 
         if not pvs:
             import PyDataSource
+            autorun=False
             if not run:
+                autorun=True
                 if self.runs_with_xtc:
                     run = max(self.runs_with_xtc)
                 #run=rns['num'].max()
@@ -775,7 +863,16 @@ class ExperimentSummary(object):
             #pvnames = {pv:ds.epicsData.alias(pv) for pv in ds.epicsData.pvNames()}
             pvnames = {}
             if run:
-                ds = PyDataSource.DataSource(exp=self.exp, run=run)
+                try:
+                    ds = PyDataSource.DataSource(exp=self.exp, run=run)
+                except:
+                    if autorun:
+                        # go to next to last if last run fails
+                        run = self.runs_with_xtc[-2]
+                        ds = PyDataSource.DataSource(exp=self.exp, run=run)
+                    else:
+                        pass
+
                 for pv in ds.epicsData.pvNames():
                     pvalias = ds.epicsData.alias(pv)
                     if not pvalias:
@@ -787,10 +884,27 @@ class ExperimentSummary(object):
                     pvalias = pvalias.lstrip(self.instrument.upper()+'_')
                     pvnames[pv] = pvalias
 
-            for a in omit or a.split(':')[0] in omit:
+            self._pvnames0 = pvnames.copy()
+
+            for a in omit or a.split(':')[0] in omit: 
                 for pv in pvnames.copy():
                     if pv.startswith(a):
                         pvnames.pop(pv)
+
+            for pv in pvnames.copy():
+                for omit_pv in omit_endswith:
+                    if pv.endswith(omit_pv):
+                        try:
+                            pvnames.pop(pv)
+                        except:
+                            print('Cannot pop ',pv,'ending with',omit_pv)
+                for omit_pv in omit_rbv:
+                    if  omit_pv in pv and pv.endswith('RBV'):
+                        try:
+                            pvnames.pop(pv)
+                        except:
+                            print('Cannot pop ',pv, omit_rbv)
+
         else:
             pvnames = pvs
 
@@ -807,7 +921,7 @@ class ExperimentSummary(object):
                 pvnames[pv.rstrip('.RBV')] = alias+'_set'
                 if set_only:
                     del pvnames[pv]
-            elif not pv.endswith('STATE'):
+            elif set_only and not pv.endswith('STATE'):
                 del pvnames[pv]
 
         machine_pvs = []
@@ -822,6 +936,7 @@ class ExperimentSummary(object):
             pvnames[pv] = alias
             machine_pvs.append(alias)
 
+        self._pvnames = pvnames
         #pvmots = {pv.rstrip('.RBV'): alias+'_set' for pv, alias in pvnames.items() if pv.endswith('RBV')}
         #pvnames.update(**pvmots)
         #pvs = {pv: alias for pv, alias in pvnames.items() if arch.search_pvs(pv, do_print=False) != []} 
@@ -868,25 +983,18 @@ class ExperimentSummary(object):
              
                         except:
                             traceback.print_exc()
-                            print 'cannot get meta for', alias, attr
+                            print('cannot get meta for', alias, attr)
                             pass
                     vals = [item['val'] for item in dat['data']]
                     doc = attrs.get('description','')
                     units = attrs.get('units', '')
                     time_next = time.time()
-                    if not quiet:
-                        try:
-                            print '{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}'.format(time_next-time_last, \
-                                            alias, len(vals), np.array(vals).mean(), units, doc, pv)
-                        except:
-                            print '{:8.3f} {:28} {:8} {:>10} {:4} {:20} {:}'.format(time_next-time_last, \
-                                            alias, len(vals), vals[0], units, doc, pv)
-                   
+                  
                     try:
                         if vals:
                             if isinstance(vals[0],str):
                                 if not quiet:
-                                    print alias, 'string'
+                                    print(alias, 'string')
                                 vals = np.array(vals, dtype=str)
                             else:
                                 times = [np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns') for item in dat['data']]
@@ -911,6 +1019,8 @@ class ExperimentSummary(object):
                                 if alias in machine_pvs:
                                     dfs = pd.Series(vals, times).sort_index()
                                     dfs = dfs[~dfs.index.duplicated()]
+                                    dfs = dfs[~(dfs.diff()==0)]
+                                    vals = dfs.values
                                     dfs = dfs.to_xarray().rename({'index': 'time'})
                                     data_machine[alias] = dfs 
                                     data_machine[alias].name = alias
@@ -918,10 +1028,12 @@ class ExperimentSummary(object):
                                     #data_machine[alias] = xr.DataArray(vals, coords=[times], dims=['time'], name=alias, attrs=attrs)
                                 elif len(vals) > max_size:
                                     if not quiet:
-                                        print 'Skipping {:} due to too many data points {:}'.format(alias, len(vals))
+                                        print('Skipping {:} due to too many data points {:}'.format(alias, len(vals)))
                                 elif len(vals) > 1:
                                     dfs = pd.Series(vals, times).sort_index()
                                     dfs = dfs[~dfs.index.duplicated()]
+                                    dfs = dfs[~(dfs.diff()==0)]
+                                    vals = dfs.values
                                     dfs = dfs.to_xarray().rename({'index': 'time'})
                                     data_arrays[alias] = dfs 
                                     data_arrays[alias].name = alias
@@ -930,17 +1042,27 @@ class ExperimentSummary(object):
                                 else:
                                     data_points[alias] = {'value': vals[0], 'time': times[0], 
                                                           'pv': attrs['pv'], 'units': attrs.get('units','')}
+                    
                     except:
                         traceback.print_exc()
                         if not quiet:
-                            print 'Error loadinig', alias
+                            print('Error loadinig', alias)
+
+                    if not quiet:
+                        try:
+                            print('{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}'.format(time_next-time_last, \
+                                            alias, len(vals), np.array(vals).mean(), units, doc, pv))
+                        except:
+                            print('{:8.3f} {:28} {:8} {:>10} {:4} {:20} {:}'.format(time_next-time_last, \
+                                            alias, len(vals), vals[0], units, doc, pv))
+                
                 except:
                     traceback.print_exc()
                     if not quiet:
-                        print 'Error loading', alias
+                        print('Error loading', alias)
 
         if not quiet:
-            print '... Merging'
+            print('... Merging')
        
         self._data_machine = data_machine
         self._data_arrays = data_arrays
@@ -972,7 +1094,7 @@ class ExperimentSummary(object):
 
         except:
             traceback.print_exc()
-            print 'Could not merge run begin_time'
+            print('Could not merge run begin_time')
             return xepics, dfend, dfbegin
 
         try:
@@ -993,7 +1115,7 @@ class ExperimentSummary(object):
 
         except:
             traceback.print_exc()
-            print 'Could not merge run begin_time'
+            print('Could not merge run begin_time')
             return xmachine, dfend, dfbegin
 
         # add in machine info
@@ -1010,8 +1132,8 @@ class ExperimentSummary(object):
         self.xmachine = xmachine
         time_next = time_next = time.time()
         if not quiet:
-            print '{:8.3f} To merge epics data'.format(time_next-time_last)
-            print '{:8.3f} Total Time to load epics data'.format(time_next-time0)
+            print('{:8.3f} To merge epics data'.format(time_next-time_last))
+            print('{:8.3f} Total Time to load epics data'.format(time_next-time0))
        
 #        if save:
 #            if not path:
@@ -1051,8 +1173,8 @@ class ExperimentSummary(object):
 
         if epics_dir:
             if not quiet:
-                print 'instrument: {:}'.format(instrument)
-                print 'loading epics pvs from', epics_file, ' in', epics_dir
+                print('instrument: {:}'.format(instrument))
+                print('loading epics pvs from', epics_file, ' in', epics_dir)
             
             self._epics_dict.update(epicsArch_dict(epics_file,epics_dir))
             for item in self._epics_dict.values():
@@ -1081,7 +1203,8 @@ class ExperimentSummary(object):
             self._load_epics(**kwargs)
 
         if not quiet:
-            print '... processing {:} epics data'.format(self.exp)
+            print('... processing {:} epics data'.format(self.exp))
+        coords = ['begin_time','end_time','duration','run_id','prep_time']
         attrs = [a for a,b in self.xepics.data_vars.items() \
                  if b.attrs.get('pv','').endswith('STATE') or a.endswith('_set')]
         #attrs = [a for a in self.xepics.data_vars.keys() \
@@ -1091,7 +1214,6 @@ class ExperimentSummary(object):
         xcut = xpvs.where(xpvs.prep == False, drop=True)
         ca = xcut.count().to_array()
         xcut = xcut.drop(ca['variable'][ca == 0].values)
-        coords = ['begin_time','end_time','duration','run_id','prep_time']
         recoords = list(set(self._machine_coords) & set(xcut.coords.keys()))
         if recoords:
             xcut = xcut.reset_coords(recoords) 
@@ -1156,10 +1278,10 @@ class ExperimentSummary(object):
 
         if not quiet:
             time_next = time.time()
-            print '{:8.3f} Total Time to load and process epics data'.format(time_next-time0)
-            print '... Done loading {:} epics data'.format(self.exp)
+            print('{:8.3f} Total Time to load and process epics data'.format(time_next-time0))
+            print('... Done loading {:} epics data'.format(self.exp))
       
-    def get_scan_series(self, attr, quiet=True):
+    def get_scan_series(self, attr, quiet=True, min_runs=5):
         """Infer sets or runs that are parametric series based on change in attr setting for each run.
         """
         df = self.xset.to_dataframe()[attr].dropna(how='all')
@@ -1170,20 +1292,26 @@ class ExperimentSummary(object):
         rn0 = 0
         rn_last = 0
         for run,val in dfp.iteritems():
-            if abs(dfpp[run]) > 0.1 or run-rn_last > 2:
-                if nrns > 4:
-                    asets[rn0] = (rn0, rn_last)
-                rn0 = run
+            if abs(dfpp[run]) > 0.1 or run-rn_last > 2 or run == df.index.values[-1]:
+                if run == df.index.values[-1]:
+                    nrns += 1
+                    rn_last = run
+                if nrns >= min_runs:
+                    da = self.xset[attr]
+                    da = da.where((da.run>=rn0) & (da.run<=rn_last), drop=True).dropna(dim='run').to_dataset('val')
+                    da = da.to_dataframe()[['begin_time','duration','val']]
+                    asets[(rn0,rn_last)] = da
+                rn0 = run-1
                 rn_last = run
-                nrns = 0
+                nrns = 2
                 if not quiet:
-                    print '- {:4} {:8.3f} {:8.3f} {:8.3f}'.format(run, df[run], dfp[run], dfpp[run])
+                    print('- {:4} {:8.3f} {:8.3f} {:8.3f}'.format(run, df[run], dfp[run], dfpp[run]))
             else:
                 nrns += 1
                 rn_last = run
                 if not quiet:
-                    print '  {:4} {:8.3f} {:8.3f} {:8.3f}'.format(run, df[run], dfp[run], dfpp[run])
-                
+                    print('  {:4} {:8.3f} {:8.3f} {:8.3f}'.format(run, df[run], dfp[run], dfpp[run]))
+        
         return asets
 
     def get_scans(self, min_steps=4, attrs=None, device=None, min_motors=1, **kwargs):
@@ -1249,14 +1377,61 @@ class ExperimentSummary(object):
     def runs(self):
         """Experiment run information from MySQL database and xtc directory.
         """
+        import glob
+        from RegDB import experiment_info
         if experiment_info.name2id(self.exp):
             runs_list =  experiment_info.experiment_runs(self.instrument.upper(),self.exp)
+            xtc_files = glob.glob(self.xtc_dir+'/*.xtc')
+            h5_files = glob.glob(self.h5_dir+'/*.h5')
+            stats_files = glob.glob(self.res_dir+'/nc/*_stats.nc')
+            drop_stats_files = glob.glob(self.res_dir+'/nc/*_drop_stats.nc')
+            runs_dict = {}
             for item in runs_list:
-                runnum = item['num']
-                item['xtc_files'] = glob('{:}/*-r{:04d}*.xtc'.format(
-                                        self.xtc_dir,runnum))
-                item['h5_files'] = glob('{:}/*-r{:04d}*.h5'.format(
-                                        self.h5_dir,runnum))
+                run = item['num']
+                runs_dict[run] = item
+                runs_dict[run].update({'xtc_files': [], 'h5_files': [], 
+                        'stats_files': [], 'drop_stats_files': [], 'scratch_nc_files': []})
+            for f in xtc_files:
+                try:
+                    run = int(f.split('-r')[1].split('-s')[0])
+                    runs_dict[run]['xtc_files'].append(f)
+                except:
+                    pass
+            for f in stats_files:
+                try:
+                    run = int(f.split('run')[1].split('_stats')[0])
+                    runs_dict[run]['stats_files'].append(f)
+                except:
+                    pass
+            for f in stats_files:
+                try:
+                    run = int(f.split('run')[1].split('_drop_stats')[0])
+                    runs_dict[run]['drop_stats_files'].append(f)
+                except:
+                    pass
+            for f in stats_files:
+                try:
+                    run = int(f.split('run')[1].split('.nc')[0])
+                    runs_dict[run]['scratch_nc_files'].append(f)
+                except:
+                    pass
+            for f in h5_files:
+                try:
+                    run = int(f.split('-r')[1].split('-s')[0])
+                    if run in runs_dict:
+                        runs_dict[run]['h5_files'].append(f)
+                except:
+                    pass
+            runs_list = runs_dict.values()
+
+#  Slower to glob for individual runs than glob all files in folder and then sort python list. 
+#            for item in runs_list:
+#                runnum = item['num']
+#                item['xtc_files'] = glob('{:}/*-r{:04d}*.xtc'.format(
+#                                        self.xtc_dir,runnum))
+#                item['h5_files'] = glob('{:}/*-r{:04d}*.h5'.format(
+#                                        self.h5_dir,runnum))
+#
         else:
             runs_list = []
 
@@ -1267,6 +1442,7 @@ class ExperimentSummary(object):
         """Return a list of files created (by the DAQ system).  
            Current run if no run is specified.
         """
+        from RegDB import experiment_info
         return experiment_info.get_open_files(self.exper_id,run)
 
     def load_run_summary(self):
@@ -1276,10 +1452,11 @@ class ExperimentSummary(object):
         Slow process.  Generally better information is available from epics 
         information gathered in load_exp_runs method.
         """
+        from RegDB import experiment_info
         vrun_attrs = {}
-        print 'Loading summary of {:} runs for {:} from SQL database'.format( \
-                len(self.runs),self.exp)
-        print 'Estimate loading time ~{:} sec'.format(len(self.runs)/4)
+        print('Loading summary of {:} runs for {:} from SQL database'.format( \
+                len(self.runs),self.exp))
+        print('Estimate loading time ~{:} sec'.format(len(self.runs)/4))
         for run in range(1,self.runs[-1]['num']+1):
             run_attr = experiment_info.run_attributes(self.instrument,self.exp,run)
             for a in run_attr:
@@ -1295,18 +1472,18 @@ class ExperimentSummary(object):
         """Show run summary for current experiment.
         """
         if csv:
-            print '{:>7}, {:>10}, {:>8}, {:>10}, {:3}, {:2}'.format('Run',
-                                'Day', 'Time', 'Length', 'xtc', 'h5')
+            print('{:>7}, {:>10}, {:>8}, {:>10}, {:3}, {:2}'.format('Run',
+                                'Day', 'Time', 'Length', 'xtc', 'h5'))
 
         else:
-            print '='*72
-            print 'Experiment {:}'.format(self.exp)
-            print '  xtc dir {:}'.format(self.xtc_dir)
-            print '  hdf5 dir {:}'.format(self.h5_dir)
-            print '-'*72
-            print '{:>7} {:>10} {:>8} {:>10} {:3} {:2}'.format('Run', 'Day', 'Time',
-                                                  'Length', 'xtc', 'h5')
-            print '-'*72
+            print('='*72)
+            print('Experiment {:}'.format(self.exp))
+            print('  xtc dir {:}'.format(self.xtc_dir))
+            print('  hdf5 dir {:}'.format(self.h5_dir))
+            print('-'*72)
+            print('{:>7} {:>10} {:>8} {:>10} {:3} {:2}'.format('Run', 'Day', 'Time',
+                                                  'Length', 'xtc', 'h5'))
+            print('-'*72)
 
         for item in self.runs:
             run = item['num']
@@ -1342,13 +1519,20 @@ class ExperimentSummary(object):
                     dtstr = '{:02}s'.format(dsec)
 
                 if csv:
-                    print '{:7}, {:10}, {:8}, {:>10}, {:3}, {:2}'.format(run,
-                                        datestr, timestr, dtstr, xtc, h5)
+                    print('{:7}, {:10}, {:8}, {:>10}, {:3}, {:2}'.format(run,
+                                        datestr, timestr, dtstr, xtc, h5))
                 else:
-                    print '{:7} {:10} {:8} {:>10} {:3} {:2}'.format(run,
-                                        datestr, timestr, dtstr, xtc, h5)
+                    print('{:7} {:10} {:8} {:>10} {:3} {:2}'.format(run,
+                                        datestr, timestr, dtstr, xtc, h5))
 
                 if flag in '*':
-                    print '* Currently Acquiring Data for Run {:}'.format(run)
+                    print('* Currently Acquiring Data for Run {:}'.format(run))
+
+    def __repr__(self):
+        repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
+        return '< '+repr_str+' >'
+    
+    def __str__(self):
+        return  str('{:}'.format(self.exp))
 
 

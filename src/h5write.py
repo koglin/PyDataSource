@@ -1319,17 +1319,20 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 xbase[attr][iwrite] = getattr(dtime, attr)
             
             #for ec in evt.Evr.eventCodes:
-            for iec, ec in enumerate(evt.Evr.fifoEvents.eventCode):
+            #for iec, ec in enumerate(evt.Evr.fifoEvents.eventCode):
+            for iec, ec in enumerate(evt.Evr.eventCodes_strict):
                 if ec in eventCodes:
                     xbase['ec{:}'.format(ec)][iwrite] = True 
 
-            fevr = evt.Evr.fifoEvents
-            thigh = dict(zip(fevr.eventCode, fevr.timestampHigh))
-            tshigh = [thigh.get(ec,0) for ec in eventCodes]
-            tlow = dict(zip(fevr.eventCode, fevr.timestampLow))
-            tslow = [tlow.get(ec,0) for ec in eventCodes]
-            xbase['timestampLow'][iwrite] = tslow
-            xbase['timestampHigh'][iwrite] = tshigh
+            xbase['timestampLow'][iwrite] = [evt.Evr.timestampLow.get(ec,0) for ec in eventCodes]
+            xbase['timestampHigh'][iwrite] = [evt.Evr.timestampHigh.get(ec,0) for ec in eventCodes]
+#            fevr = evt.Evr.fifoEvents
+#            thigh = dict(zip(fevr.eventCode, fevr.timestampHigh))
+#            tshigh = [thigh.get(ec,0) for ec in eventCodes]
+#            tlow = dict(zip(fevr.eventCode, fevr.timestampLow))
+#            tslow = [tlow.get(ec,0) for ec in eventCodes]
+#            xbase['timestampLow'][iwrite] = tslow
+#            xbase['timestampHigh'][iwrite] = tshigh
             
             for attr, codes in code_flags.items():
                 if evt.Evr.present(codes):

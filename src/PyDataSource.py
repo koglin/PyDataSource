@@ -110,8 +110,7 @@ from psana_doc_info import *
 from psmessage import Message
 from build_html import Build_html
 from exp_summary import ExperimentSummary
-
-
+from exp_summary import get_exp_summary 
 
 _eventCodes_rate = {
         40: '120 Hz',
@@ -169,8 +168,8 @@ def import_module(module_name, module_path):
         globals()[module_name] = imp.load_module(module_name, file, filename, desc)
         return
     except Exception as err:
-        print 'import_module error', err
-        print 'ERROR loading {:} from {:}'.format(module_name, module_path)
+        print('import_module error', err)
+        print('ERROR loading {:} from {:}'.format(module_name, module_path))
         traceback.print_exc()
 
     sys.exit()
@@ -388,7 +387,7 @@ def psmon_publish(evt, quiet=True):
                     continue
 
                 if not quiet:
-                    print eventCode, name, psmon_args
+                    print(eventCode, name, psmon_args)
                 
                 if eventCode is None or eventCode in eventCodes:
                     psplot_func = psmon_args['plot_function']
@@ -396,7 +395,7 @@ def psmon_publish(evt, quiet=True):
                     if psplot_func is 'Image':
                         image = getattr_complete(detector, psmon_args['attr'][0])
                         if not quiet:
-                            print name, image
+                            print(name, image)
                         if image is not None:
                             psmon_fnc = Image(
                                         event_info,
@@ -410,10 +409,10 @@ def psmon_publish(evt, quiet=True):
                                 for attr in psmon_args['attr']], dtype='f').squeeze()
                         if ydata is not None:
                             if not quiet:
-                                print event_info
-                                print psmon_args['title']
-                                print psmon_args['xdata'].shape
-                                print np.array(ydata, dtype='f')
+                                print(event_info)
+                                print(psmon_args['title'])
+                                print(psmon_args['xdata'].shape)
+                                print(np.array(ydata, dtype='f'))
                             
                             psmon_fnc = XYPlot(
                                         event_info,
@@ -471,7 +470,7 @@ class ScanData(object):
                 ttup = (evt.EventId.sec, evt.EventId.nsec, evt.EventId.fiducials)
                 okevt = ttup in ds._idx_times_tuple
                 if not quiet:
-                    print istep, evt
+                    print(istep, evt)
 
             ievent = ds._idx_times_tuple.index(ttup)
             ievent_start.append(ievent)
@@ -619,7 +618,7 @@ class ScanData(object):
 
     def __repr__(self):
         repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
-        print '< '+repr_str+' >'
+        print('< '+repr_str+' >')
         self.show_info()
         return '< '+repr_str+' >'
 
@@ -686,7 +685,7 @@ class DataSource(object):
             }
 
 
-    def __init__(self, data_source=None, **kwargs):
+    def __init__(self, data_source=None, default_modules=None, **kwargs):
         #self._device_sets = {'DataSource': {}}
         self._exp_summary = None
         self._device_sets = {}
@@ -695,9 +694,15 @@ class DataSource(object):
         if not path:
             path = '.'
 
+        if default_modules is not None:
+            self._default_modules = default_modules
+
         self._default_modules.update({'path': path})
         #self._default_modules.update({'path': os.path.join(path,'detectors')})
-        self.load_run(data_source=data_source, **kwargs)
+        loaded = self.load_run(data_source=data_source, **kwargs)
+        if not loaded:
+            return None
+
         if self.data_source.smd:
             self._load_smd_config()
 
@@ -711,7 +716,7 @@ class DataSource(object):
                 self.reload()
             except:
                 traceback.print_exc()
-                print 'Could not load first step in smd data.' 
+                print('Could not load first step in smd data.' )
 
     # not robust -- orig alias used in other places
 #    def rename(self, **kwargs):
@@ -730,7 +735,6 @@ class DataSource(object):
         """
         Load experiment summary
         """
-        from exp_summary import get_exp_summary 
         if reload and build_html is None:
             build_html = True
         self._exp_summary = get_exp_summary(self.data_source.exp, reload=reload, build_html=build_html, **kwargs)
@@ -775,8 +779,14 @@ class DataSource(object):
         else:
             return None
 
-    def load_run(self, data_source=None, reload=False, try_idx=None, **kwargs):
-        """Load a run with psana.
+    def load_run(self, data_source=None, reload=False, try_idx=None, wait=True, timeout=20., **kwargs):
+        """
+        Load a run with psana.
+
+        Parameters
+        ----------
+        wait : bool
+            Wait until files are available
         """
         self._evtData = None
         self._current_evt = None
@@ -790,8 +800,33 @@ class DataSource(object):
 
         # do not reload shared memory
         if not (self.data_source.monshmserver and self._ds):
+            # do not wait for monshmserver
+            if wait and not self.data_source.monshmserver:
+                import time
+                import psutils
+                time0 = time.time()
+                while not psutils.run_available(self.data_source.exp, self.data_source.run):
+                    time.sleep(5.)
+                    print('Waiting for {:} to become available...'.format(self.data_source))
+                    if timeout and timeout > time.time()-time0:
+                        print('Timeout loading {:}'.format(self.data_source))
+                        return None
+
             if True:
-                self._ds = psana.DataSource(str(self.data_source))
+                if wait and not self.data_source.monshmserver:
+                    time0 = time.time()
+                    while True:
+                        try:
+                            self._ds = psana.DataSource(str(self.data_source))
+                            break
+                        except:
+                            time.sleep(5.)
+                            print('Waiting for {:} to become available...'.format(self.data_source))
+                            if timeout and timeout > time.time()-time0:
+                                print('Timeout loading {:}'.format(self.data_source))
+                                return None
+                else:
+                    self._ds = psana.DataSource(str(self.data_source))
                 _key_info, _modules = get_keys(self._ds.env().configStore())
                 if 'Partition' in _modules:
                     try_idx = False
@@ -799,33 +834,33 @@ class DataSource(object):
                 else:
                     #if not self.data_source.smd:
                     if False:
-                        print 'Exp {:}, run {:} is has no Partition data.'.format( \
-                            self.data_source.exp, self.data_source.run)
-                        print 'PyDataSource requires Partition data.'
-                        print 'Returning psana.DataSource({:})'.format(str(self.data_source))
+                        print('Exp {:}, run {:} is has no Partition data.'.format( \
+                            self.data_source.exp, self.data_source.run))
+                        print('PyDataSource requires Partition data.')
+                        print('Returning psana.DataSource({:})'.format(str(self.data_source)))
                         return self._ds
                     elif try_idx is None:
                         try_idx = True
-                        print 'Exp {:}, run {:} smd data has no Partition data -- loading idx data instead.'.format( \
-                            self.data_source.exp, self.data_source.run)
+                        print('Exp {:}, run {:} smd data has no Partition data -- loading idx data instead.'.format( \
+                            self.data_source.exp, self.data_source.run))
             else:
                 if try_idx is None:
                     try_idx = True
-                    print 'Exp {:}, run {:} smd data file not available -- loading idx data instead.'.format( \
-                                self.data_source.exp, self.data_source.run)
+                    print('Exp {:}, run {:} smd data file not available -- loading idx data instead.'.format( \
+                                self.data_source.exp, self.data_source.run))
 
         if try_idx:
             if self.data_source.smd:
                 try:
-                    print 'Use smldata executable to convert idx data to smd data.'
+                    print('Use smldata executable to convert idx data to smd data.')
                     data_source_smd = self.data_source
                     data_source_idx = str(data_source_smd).replace('smd','idx')
                     self.data_source = DataSourceInfo(data_source=data_source_idx)
                     self._ds = psana.DataSource(str(self.data_source))
                 except:
-                    print 'Failed to load either smd or idx data for exp {:}, run {:}'.format( \
-                            self.data_source.exp, self.data_source.run)
-                    print 'Data can be restored from experiment data portal:  https://pswww.slac.stanford.edu'
+                    print('Failed to load either smd or idx data for exp {:}, run {:}'.format( \
+                            self.data_source.exp, self.data_source.run))
+                    print('Data can be restored from experiment data portal:  https://pswww.slac.stanford.edu')
                     return False
 
         self.epicsData = EpicsData(self._ds) 
@@ -853,9 +888,34 @@ class DataSource(object):
             # SmdEvents automatically goes to next step if no events in current step.
             self.events = SmdEvents(self)
             if not reload:
+                if wait:
+                    import time
+                    import psutils
+                    time0 = time.time()
+                    while not psutils.run_available(self.data_source.exp, self.data_source.run, idx=True):
+                        time.sleep(5.)
+                        print('Waiting for {:} run{:} idx to become available...'.format(self.data_source.exp, self.data_source.run))
+                        if timeout and timeout > time.time()-time0:
+                            print('Timeout loading {:}'.format(self.data_source))
+                            return None
+
                 self._scanData = None
                 data_source_idx = str(self.data_source).replace('smd','idx')
-                self._idx_ds = psana.DataSource(data_source_idx)
+                if wait:
+                    time0 = time.time()
+                    while True:
+                        try:
+                            self._idx_ds = psana.DataSource(data_source_idx)
+                            break
+                        except:
+                            time.sleep(5.)
+                            print('Waiting for {:} to become available...'.format(data_source_idx))
+                            if timeout and timeout > time.time()-time0:
+                                print('Timeout loading {:}'.format(self.data_source))
+                            return None
+                else:
+                    self._idx_ds = psana.DataSource(data_source_idx)
+                
                 self._idx_run = self._idx_ds.runs().next()
                 self._idx_nsteps = self._idx_run.nsteps()
                 self._idx_times = self._idx_run.times()
@@ -869,6 +929,9 @@ class DataSource(object):
             # For live data or data_source without idx or smd
             self.events = Events(self)
             self.nevents = None
+
+        if not reload:
+            self._init_evr()
 
         return str(self.data_source)
 
@@ -917,10 +980,10 @@ class DataSource(object):
                             OKadd = det.add.stats('corr', **kwargs)
                         except:
                             OKadd = False
-                        print attr, OKadd
+                        print(attr, OKadd)
                         if not OKadd:
                             det.next()
-                            print det
+                            print(det)
                             OKadd = det.add.stats('corr', **kwargs)
                     else:
                         OKadd = False
@@ -929,12 +992,12 @@ class DataSource(object):
                     #    # currently just zyla
                     #    det.add.stats('data', **kwargs)
                     if OKadd:
-                        print 'Added default stats for ', attr, str(det)
-                        print det._det_config['stats']
+                        print('Added default stats for ', attr, str(det))
+                        print(det._det_config['stats'])
 
             except:
                 traceback.print_exc()
-                print 'Cannot add stats for', attr
+                print('Cannot add stats for', attr)
 
     @property
     def stats(self):
@@ -965,7 +1028,7 @@ class DataSource(object):
                             datasets.append(self._detectors[alias]._get_stats(attr, alias=aliases.get(alias)))
                         except:
                             traceback.print_exc()
-                            print 'Cannot add stats for', alias, attr
+                            print('Cannot add stats for', alias, attr)
 
         if datasets == []:
             return None
@@ -973,7 +1036,7 @@ class DataSource(object):
         try:
             x = xr.merge(datasets)
         except:
-            print 'merge failed'
+            print('merge failed')
             return datasets
             
         try:
@@ -983,7 +1046,7 @@ class DataSource(object):
                     alias = self.configData.ScanData.pvAliases[pv]
                     x.coords[alias+'_steps'] =  (('steps'), vals[xsteps]) 
         except:
-            print 'could not add steps'
+            print('could not add steps')
 
         return x
 
@@ -1003,10 +1066,10 @@ class DataSource(object):
         data_sets = self._get_stats(attrs=attrs, aliases=aliases)
         try:
             if not data_sets:
-                print 'No stats to save'
+                print('No stats to save')
                 return
             elif isinstance(data_sets, list):
-                print 'Cannot save stats'
+                print('Cannot save stats')
                 return
         except:
             traceback.print_exc()
@@ -1085,10 +1148,10 @@ class DataSource(object):
                 self.save_config()
 
             bsubproc = 'make_summary -e {:} -r {:}'.format(self.data_source.exp, self.data_source.run)
-            print 'Submit from ipython not yet available'
-            print 'Setup conda environment the same was as for ipython then:'
-            print '-> kinit'
-            print '-> ',bsubproc
+            print('Submit from ipython not yet available')
+            print('Setup conda environment the same was as for ipython then:')
+            print('-> kinit')
+            print('-> ',bsubproc)
 
             #subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
 
@@ -1103,10 +1166,9 @@ class DataSource(object):
                     self.html = build_html.Build_html(x, auto=True) 
                 except:
                     traceback.print_exc()
-                    print 'Could not build html run summary for', str(self)
+                    print('Could not build html run summary for', str(self))
 
             return x
-
 
     def to_hdf5(self, build_html=False, **kwargs):
         """
@@ -1156,7 +1218,7 @@ class DataSource(object):
                 self.html = build_html.Build_html(x, auto=True) 
             except:
                 traceback.print_exc()
-                print 'Could not build html run summary for', str(self)
+                print('Could not build html run summary for', str(self))
 
         return x
 
@@ -1232,18 +1294,18 @@ class DataSource(object):
         if not os.path.isdir(smd_dir):
             os.mkdir(smd_dir)
         
-        print 'WARNING:  Need to have priviledge to do this...'
-        print '  ask for help from CDS'
-        print 'Execute the following commands from psana:'
-        print '------------------------------------------'
+        print('WARNING:  Need to have priviledge to do this...')
+        print('  ask for help from CDS')
+        print('Execute the following commands from psana:')
+        print('------------------------------------------')
         for file_in in xtc_files:
             file_out = file_in.replace('/xtc/','/xtc/smalldata/').rstrip('xtc')+'smd.xtc'
             if not glob.glob(file_out):
                 cmd = '{:}smldata -f {:} -o {:}'.format(script_path, file_in, file_out)
-                print cmd
+                print(cmd)
                 #subproc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
             else:
-                print '# Small data file already exists: {:}'.format(file_out)
+                print('# Small data file already exists: {:}'.format(file_out))
 
 
     def _init_detectors(self):
@@ -1252,9 +1314,43 @@ class DataSource(object):
         self._detectors = {}
         self._load_ConfigData()
         self._aliases = self.configData._aliases
+
         for srcstr, item in self.configData._sources.items():
             alias = item.get('alias')
             self._add_dets(**{alias: srcstr})
+
+    def _init_evr(self):
+        """
+        Initialize evr. 
+        Requires first event to know which evr when more than one present.
+        """
+        while 'EvrData' not in self._evt_modules and self._ievent < 400:
+            evt = self.events.next()
+        
+        if 'EvrData' in self._evt_modules:
+            evr_typ, evr_src, evr_key = self._evt_modules['EvrData'].values()[0][0]
+            srcstr = str(evr_src) 
+            srcname = srcstr.split('(')[1].split(')')[0]
+            devName = srcname.split(':')[1].split('.')[0]
+            ievr = srcname.split(':')[1].split('.')[1]
+            self._evr = psana.Detector(srcstr)
+            #self._evr = psana.Detector('evr{:}'.format(ievr))
+            self._evr_alias = 'evr{:}'.format(ievr)
+        else:
+            # if no EvrData in event then try using first Evr
+            ievr = 0
+            while ievr is not False:
+                try:
+                    self._evr = psana.Detector('evr{:}'.format(ievr))
+                    self._evr_alias = 'evr{:}'.format(ievr)
+                    ievr = False
+                except:
+                    ievr += 1
+                    if ievr > 10:
+                        print(self.configData.keys())
+                        traceback.print_exc('Erro. -- no evr present')
+        
+        self.reload()
 
     def add_detector(self, srcstr=None, alias=None, module=None, path=None, 
                      #pvs=None, desc=None, parameters={}, 
@@ -1288,7 +1384,7 @@ class DataSource(object):
         initialized = False
         if not alias:
             if not srcstr:
-                print 'Source string name or alias must be supplied'
+                print('Source string name or alias must be supplied')
             elif srcstr in self._aliases:
                 alias = srcstr
                 srcstr = self._aliases[alias]
@@ -1367,9 +1463,8 @@ class DataSource(object):
             if module:
                 if module_name:
                     if not quiet:
-                        print 'Changing {alias} detector module from \
-                              {module_name} to {module}'.format(
-                               alias=alias,module=module,module_name=module_name)
+                        print('Changing {alias} detector module from {module_name} to {module}'.format( \
+                               alias=alias,module=module,module_name=module_name))
                 else:
                     det_dict['module'] = {}
                 
@@ -1378,12 +1473,12 @@ class DataSource(object):
 
             # Use defaults if not set by keyword or in device config
             if not module_name: 
-                if srcname in self._default_modules['srcname']:
+                if srcname in self._default_modules.get('srcname', {}):
                     module_name = self._default_modules['srcname'][srcname]
-                    module_path = ''
-                elif devName and devName in self._default_modules['devName']:
+                    module_path = self._default_modules.get('path','')
+                elif devName and devName in self._default_modules.get('devName', {}):
                     module_name = self._default_modules['devName'][devName]
-                    module_path = ''
+                    module_path = self._default_modules.get('path','')
 
             if module_name:
                 is_default_class = False
@@ -1396,8 +1491,8 @@ class DataSource(object):
         
                 if module_path:
                     if not quiet:
-                        print 'Using the path {module_path} for {module_name}'.format( \
-                               module_path=module_path, module_name=module_name)
+                        print('Using the path {module_path} for {module_name}'.format( \
+                               module_path=module_path, module_name=module_name))
                 else:
                     module_path = self._default_modules['path']
                     
@@ -1415,8 +1510,8 @@ class DataSource(object):
                                               if not attr.startswith('_')]
 
                 if not quiet:
-                    print 'Loading {alias} as {new_class} from {module_path}'.format(
-                           alias=alias,new_class=new_class,module_path=module_path)
+                    print('Loading {alias} as {new_class} from {module_path}'.format( \
+                           alias=alias,new_class=new_class,module_path=module_path))
                 
                 nomodule = False
                 self._detectors[alias] = new_class(self, alias, **kwargs)
@@ -1424,7 +1519,7 @@ class DataSource(object):
 
             if is_default_class:
                 if not quiet:
-                    print 'Loading {alias} as standard Detector class'.format(alias=alias)
+                    print('Loading {alias} as standard Detector class'.format(alias=alias))
                 
                 self._detectors[alias] = Detector(self, alias)
                 initialized = True
@@ -1440,7 +1535,7 @@ class DataSource(object):
             try:
                 self.add_detector(srcstr, alias=alias, quiet=True)
             except Exception as err:
-                print 'Cannot add {:}:  {:}'.format(alias, srcstr) 
+                print('Cannot add {:}:  {:}'.format(alias, srcstr) )
                 traceback.print_exc()
 
     def _get_config_file(self, run=None, exp=None, instrument=None, user=None, 
@@ -1476,7 +1571,7 @@ class DataSource(object):
                 return file_name
             
         err_message = 'No valid config file found for {:} Run {:}'.format(exp, run)
-        print err_message
+        print(err_message)
         return None
             
 
@@ -1509,7 +1604,7 @@ class DataSource(object):
         if file_name:
             pd.DataFrame.from_dict(self._device_sets).to_json(file_name)
         else:
-            print 'No valid file_name to save config'
+            print('No valid file_name to save config')
 
     def load_config(self, run=None, exp=None, user=None, file_name=None, path=None, quiet=True, **kwargs):
         """
@@ -1535,14 +1630,14 @@ class DataSource(object):
 #                 'roi', 'projection', 'xarray']
     
         if not file_name:
-            print 'No config file to load'
+            print('No config file to load')
         elif not os.path.isfile(file_name): 
-            print 'Config file not present: {:}'.format(file_name)
+            print('Config file not present: {:}'.format(file_name))
         else:
             try:
                 config = pd.read_json(file_name).to_dict()
             except:
-                print 'Config file not present: {:}'.format(file_name)
+                print('Config file not present: {:}'.format(file_name))
                 return
 
             for alias, item in config.items():
@@ -1557,7 +1652,7 @@ class DataSource(object):
                                     self.events.next()
                             except:
                                 traceback.print_exc()
-                                print 'No {:} detector object in data stream.'.format(alias)
+                                print('No {:} detector object in data stream.'.format(alias))
 
                             #print alias, module_dict
                             kwargs = module_dict.get('kwargs', {})
@@ -1566,14 +1661,14 @@ class DataSource(object):
                                            'module': module_dict.get('name'),
                                            'path': module_dict.get('path'),
                                            'desc': module_dict.get('desc')})
-                            print 'add_detector', kwargs
+                            print('add_detector', kwargs)
                             try:
                                 self.add_detector(**kwargs)
                                 self.reload()
                             except:
                                 traceback.print_exc()
-                                print 'Could not add detector module.'
-                                print kwargs
+                                print('Could not add detector module.')
+                                print(kwargs)
 
                     det_config = self._device_sets[alias]
                     for attr, config_dict in item.items():
@@ -1589,7 +1684,7 @@ class DataSource(object):
                                     if a not in det_config[attr]:
                                         det_config[attr][a] = val
                                     else:
-                                        print alias, attr, 'No overwrite', a, val
+                                        print(alias, attr, 'No overwrite', a, val)
                         elif attr != 'stats':
                             det_config[attr] = config_dict
 
@@ -1602,10 +1697,20 @@ class DataSource(object):
                         detector = getattr(evt, alias)
                         for name, stat_item in stats_config.items():
                             attr = stat_item['attr']
-                            print 'adding stats for', attr, name, 
+                            print('adding stats for', attr, name, )
                             detector.add.stats(attr, name=name)
                         self.reload()
         self.reload()
+
+    def _load_small_xarray(self, path=None, filename=None, refresh=False, 
+            engine='h5netcdf', **kwargs):
+        """Load small xarray Dataset. 
+        
+        """
+        import beam_stats
+        self.x = beam_stats.load_small_xarray(self, path=path, filename=filename, 
+                refresh=refresh, engine=engine, **kwargs) 
+        return self.x
 
     def show_info(self, **kwargs):
         """
@@ -1620,7 +1725,7 @@ class DataSource(object):
         repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self))
         if self.nevents:
             repr_str += ' {:} events'.format(self.nevents)
-        print '< '+repr_str+' >'
+        print('< '+repr_str+' >')
         self.show_info()
         return '< '+repr_str+' >'
 
@@ -1977,7 +2082,7 @@ class StepEvents(object):
                 self._ds._current_evtData = {}
             
             except:
-                print evt_time, 'is not a valid event time'
+                print(evt_time, 'is not a valid event time')
         
         else:
             try:
@@ -2372,7 +2477,7 @@ class ConfigData(object):
                                       key_info=self._key_info, nolist=True)
                 self._config[attr] = config
             except:
-                print 'WARNING:  Cannot load PsanaSrcData config for ', attr, keys
+                print('WARNING:  Cannot load PsanaSrcData config for ', attr, keys)
 
         self._sources = {}
         #Setup Partition
@@ -2397,7 +2502,7 @@ class ConfigData(object):
                 self._readoutGroup = {0: {'eventCodes': [], 'srcs': []}}
 
         elif len(self._modules['Partition']) != 1:
-            print 'ERROR:  More than one Partition config type in configStore data.'
+            print('ERROR:  More than one Partition config type in configStore data.')
             return
         else:
             #Build _partition _srcAlias _readoutGroup dictionaries based on Partition configStore data. 
@@ -2408,8 +2513,8 @@ class ConfigData(object):
                 config = self._config[srcstr]
                 self.Partition = config
             else:
-                print 'ERROR:  More that one Partition module in configStore data.'
-                print '       ', self._modules['Partition'][type_name]
+                print('ERROR:  More that one Partition module in configStore data.')
+                print('       ', self._modules['Partition'][type_name])
                 return
 
     # to convert ipAddr int to address 
@@ -2543,7 +2648,7 @@ class ConfigData(object):
 
             # Assign evr info to the appropriate sources
             if len(self._modules['EvrData'][IOCconfig_type]) > 1:
-                print 'WARNING: More than one EvrData.{:} objects'.format(IOCconfig_type)
+                print('WARNING: More than one EvrData.{:} objects'.format(IOCconfig_type))
 
             IOCconfig_type = self._IOCconfig_type
             typ, src, key = self._modules['EvrData'][IOCconfig_type][0]
@@ -2643,8 +2748,8 @@ class ConfigData(object):
 
     def __repr__(self):
         repr_str = '{:}: {:}'.format(self.__class__.__name__,str(self._ds.data_source))
-        print '< '+repr_str+' >'
-        print self.Sources.show_info()
+        print('< '+repr_str+' >')
+        print(self.Sources.show_info())
         return '< '+repr_str+' >'
     
     def __getattr__(self, attr):
@@ -2721,7 +2826,8 @@ class EvtDetectors(object):
         """
         Master evr from psana evt data.
         
-        Returns
+o       Returns
+        self.eventCodes = []
         -------
         EvrData object
         """
@@ -2774,7 +2880,7 @@ class EvtDetectors(object):
             try:
                 self.next()
                 try:
-                    print self
+                    print(self)
                 except:
                     pass
                 
@@ -3039,8 +3145,81 @@ class SourceData(object):
         
         return list(sorted(all_attrs))
 
+class EvrData(object):
 
-class EvrData(PsanaTypeData):
+    _detail_attrs  = ['present', 'timestampHigh', 'timestampLow',
+                      '_attr_info', '_src', '_typ', '_info', '_typ_func',
+                      'show_info', 'show_table', '_present', '_values', '_all_values']
+
+    def __init__(self, ds):
+        self._ds = ds
+        self._evr = None
+    
+    @property
+    def eventCodes_strict(self):
+        """
+        eventcodes that were sent on precisely the fiducial corresponding to the evt.
+        """
+        attr = 'eventCodes'
+        return getattr(self._ds._evr, attr)(self._ds._current_evt, this_fiducial_only=True)
+
+    @property
+    def eventCodes(self):
+        """
+        All event codes in current event
+        """
+        attr = 'eventCodes'
+        return getattr(self._ds._evr, attr)(self._ds._current_evt)
+
+    @property
+    def _ddls(self):
+        attr = '_fetch_ddls'
+        return getattr(self._ds._evr, attr)(self._ds._current_evt)
+
+    @property
+    def _types(self):
+        attr = '_find_types'
+        return getattr(self._ds._evr, attr)(self._ds._current_evt)
+
+    @ property
+    def name(self):
+        return self._ds._evr.name
+
+    @ property
+    def source(self):
+        return self._ds._evr.source
+
+    @property
+    def EventId(self):
+        """
+        EventId object
+        """
+        return EventId(self._ds._current_evt)
+    
+    def __str__(self):
+        try:
+            eventCodeStr = '{:}'.format(self.eventCodes)
+        except:
+            eventCodeStr = ''
+        
+        return eventCodeStr
+
+    def __repr__(self):
+        return '< {:}: {:} >'.format(self.__class__.__name__, str(self))
+
+    def __getattr__(self, attr):
+        if attr in self._detail_attrs:
+            if self._evr is None:
+                self._evr = EvrDataDetails(self._ds)
+            return getattr(self._evr, attr)
+    
+    def __dir__(self):
+        all_attrs =  set(self._detail_attrs +
+                         self.__dict__.keys() + dir(EvrData) + dir(EvrDataDetails))
+        
+        return list(sorted(all_attrs))
+
+class EvrDataDetails(PsanaTypeData):
     """
     Evr eventCode information for current event in DataSource 
 
@@ -3057,9 +3236,24 @@ class EvrData(PsanaTypeData):
         self.eventCodes = self.fifoEvents.eventCode
         self._ds = ds
 
+    @property
+    def _strict_codes(self):
+        """
+        """
+        fiducials = self.EventId.fiducials
+        return [code for code, tsh in self.timestampHigh.items() if tsh == fiducials]
+
     def _present(self, eventCode, strict=True):
         """Return True if the eventCode is present.
         """
+        try:
+            if strict:
+                return self.timestampHigh[eventCode] == self.EventId.fiducials
+            else:
+                return eventCode in self.eventCodes
+        except:
+            pass
+
         if hasattr(self._typ_func, 'present'):
             try:
                 pres = self._typ_func.present(eventCode)
@@ -3071,7 +3265,7 @@ class EvrData(PsanaTypeData):
                 else:
                     return False
             except:
-                print '{:} {:}: error checking for eventCode {:}'.format(self.EventId, self, eventCode)
+                print('{:} {:}: error checking for eventCode {:}'.format(self.EventId, self, eventCode))
         
         try:
             return (eventCode in self.eventCodes)
@@ -3181,6 +3375,7 @@ class EvrNullData(object):
 
     def __init__(self, ds):
         self.eventCodes = []
+        self.eventCodes_strict = []
 
     def __str__(self):
         return ''
@@ -3317,10 +3512,10 @@ class Detector(object):
 
         if self.src:
             if verbose:
-                print 'Adding Detector: {:20} {:40}'.format(alias, psana.Source(self.src))
+                print('Adding Detector: {:20} {:40}'.format(alias, psana.Source(self.src)))
         
         else:
-            print 'ERROR No Detector with alias {:20}'.format(alias)
+            print('ERROR No Detector with alias {:20}'.format(alias))
             return
 
         self._srcstr = str(self.src)
@@ -3348,9 +3543,12 @@ class Detector(object):
             self._calib_class = item.get('calib_class')
             self._tabclass = 'detector'
 
-        self._on_init(**kwargs)
+        try:
+            self._on_init(**kwargs)
+            self._init = True
+        except:
+            pass
 
-        self._init = True
 
 #    # Does not quite work.  Need to invesigate how to rename robustly
 #    def rename(self, alias):
@@ -3436,10 +3634,11 @@ class Detector(object):
                         }
 
         elif self._det_class == IpimbData:
+            attr_info = self.detector._attr_info
             dims_dict = {
-                    'sum':      ([], ()),
-                    'xpos':     ([], ()),
-                    'ypos':     ([], ()),
+                    'sum':      ([], (), attr_info.get('sum',{})),
+                    'xpos':     ([], (), attr_info.get('xpos',{})),
+                    'ypos':     ([], (), attr_info.get('ypos',{})),
                     'channel':  (['ch'], (4,)),
                     }
 
@@ -3501,7 +3700,7 @@ class Detector(object):
                                 self.next()
                                 dims_dict = {'raw': (['X', 'Y'], self.raw.shape)}
                             except:
-                                print 'Error adding dims for ', str(self)
+                                print('Error adding dims for ', str(self))
 
         # temporary fix for Quartz camera not in PyDetector class
         elif self._pydet is not None and hasattr(self._pydet, 'dettype') \
@@ -3509,20 +3708,20 @@ class Detector(object):
             try:
                 dims_dict = {'data8': (['X', 'Y'], self.data8.shape)}
             except:
-                print str(self), 'Not valid data8'
+                print(str(self), 'Not valid data8')
         
         else:
             dims_dict = {}
             for attr, val in self.evtData._all_values.items():
                 npval = np.array(val)
-                if npval.size > 1:
-                    dims_dict[attr] = (['d{:}_{:}'.format(i,a) for i,a in enumerate(npval.shape)], npval.shape)
+                info = self.evtData._attr_info.get(attr)
+                if info:
+                    xattrs = {a: b for a, b in info.items() if a in ['doc','unit']}
                 else:
-                    info = self.evtData._attr_info.get(attr)
-                    if info:
-                        xattrs = {a: b for a, b in info.items() if a in ['doc','unit']}
-                    else:
-                        xattrs = {}
+                    xattrs = {}
+                if npval.size > 1:
+                    dims_dict[attr] = (['d{:}_{:}'.format(i,a) for i,a in enumerate(npval.shape)], npval.shape, xattrs)
+                else:
                     dims_dict[attr] = ([], (), xattrs)
 
 #            dims_dict = {attr: ([], ()) for attr in self.evtData._all_values}
@@ -3643,7 +3842,7 @@ class Detector(object):
             try:
                 self.next()
                 try:
-                    print self.show_info()
+                    print(self.show_info())
                 except:
                     pass
                 
@@ -4442,31 +4641,31 @@ class AddOn(object):
             img = img[sensor]
             if not roi:
                 roi = ((0,img.shape[0]), (0,img.shape[1]))
-            print sensor, roi
+            print(sensor, roi)
 
         if axis in _polar_axes:
             if not method:
                 method = 'norm'
             elif method not in ['norm']:
-                print 'ERROR: {:} is not a valid method'.format(method)
-                print ' - only norm method is valid for radial projections'
+                print('ERROR: {:} is not a valid method'.format(method))
+                print(' - only norm method is valid for radial projections')
 
         elif axis in _cartesian_axes:
             if not method:
                 method = 'sum'
 
             elif method not in _methods:
-                print 'ERROR: {:} is not a valid method'.format(method)
-                print ' - method must be in {:}'.format(_methods)
+                print('ERROR: {:} is not a valid method'.format(method))
+                print(' - method must be in {:}'.format(_methods))
             
             if len(img.shape) != 2:
-                print '{:} is not a 2D image -- cannot make projection'.format(attr)
+                print('{:} is not a 2D image -- cannot make projection'.format(attr))
                 return
         
         else:
-            print 'ERROR:  {:} is not a valid axis'.format(axis)
-            print ' - Valid Cartesian Options = {:}'.format(_cartesian_axes)
-            print ' - Valid Polar Options = {:}'.format(_polar_axes)
+            print('ERROR:  {:} is not a valid axis'.format(axis))
+            print(' - Valid Cartesian Options = {:}'.format(_cartesian_axes))
+            print(' - Valid Polar Options = {:}'.format(_polar_axes))
             return 
 
         if roi:
@@ -4540,7 +4739,7 @@ class AddOn(object):
             else:
                 if rmin and rmax and np.array(rmin).size > 1 and np.array(rmax).size > 1:
                     # in future
-                    print 'Vectors for rmin and rmax not yet supported'
+                    print('Vectors for rmin and rmax not yet supported')
                     return
 
                 else:
@@ -4662,7 +4861,7 @@ class AddOn(object):
             img = self._getattr(attr)
         except:
             if not quiet:
-                print 'Not valid roi {:} {:}'.format(self._alias, attr)
+                print('Not valid roi {:} {:}'.format(self._alias, attr))
             return
         
         if sensor is not None:
@@ -4672,18 +4871,18 @@ class AddOn(object):
             try:
                 plotMax = np.percentile(img, 99.5)
                 plotMin = np.percentile(img, 5)
-                print 'using the 5/99.5% as plot min/max: (',plotMin,',',plotMax,')'
+                print('using the 5/99.5% as plot min/max: (',plotMin,',',plotMax,')')
                 fig=plt.figure(figsize=(20,10))
                 gs=plt.matplotlib.gridspec.GridSpec(1,2,width_ratios=[2,1])
                 plt.subplot(gs[0]).imshow(img,clim=[plotMin,plotMax],interpolation='None')
 
-                print 'Select two points to form ROI to zoom in on target location.'
+                print('Select two points to form ROI to zoom in on target location.')
                 p = np.array(ginput(2))
                 roi = ([int(p[:,1].min()),int(p[:,1].max())],
                        [int(p[:,0].min()),int(p[:,0].max())])
-                print 'Selected ROI [y, x] =', roi
+                print('Selected ROI [y, x] =', roi)
             except:
-                print 'Cannot get roi'
+                print('Cannot get roi')
                 return None
 
         #if len(roi) == 3:
@@ -4822,7 +5021,7 @@ class AddOn(object):
         try:
             img = self._getattr(attr)
         except:
-            print 'Stats add Not valid for {:} {:}'.format(self._alias, attr)
+            print('Stats add Not valid for {:} {:}'.format(self._alias, attr))
             return False
 
         if not eventCodes:
@@ -4854,10 +5053,10 @@ class AddOn(object):
             dims = self._det_config['xarray'].get('dims', {}).get('raw', {})
         try:
             if dims[1] != img.shape:
-                print 'Fixing stat dims for ', attr, img.shape, dims
+                print('Fixing stat dims for ', attr, img.shape, dims)
                 dims[1] = img.shape
         except:
-            print 'Cannot update stat dims for ', attr, dims
+            print('Cannot update stat dims for ', attr, dims)
 
         all_coords = self._det_config['xarray'].get('coords', {})
         #coords = {dim: coord for dim, coord in all_coords.items() if dim in dims[0]}
@@ -5132,7 +5331,7 @@ class AddOn(object):
                 attr = 'waveform'
                 if ichannel is None and not name:
                     for i in range(self._det.waveform.shape[0]):
-                        print 'adding ichannel', i
+                        print('adding ichannel', i)
                         self.peak(ichannel=i, xaxis=xaxis, roi=roi, scale=scale, 
                                   theshold=threshold, baseline=baseline, methods=None,
                                   docs=docs,units=units)
@@ -5362,7 +5561,7 @@ class AddOn(object):
         alias = self._alias
 
         if len(attrs) == 0:
-            print 'A string value specifying the plot object must be suppied'
+            print('A string value specifying the plot object must be suppied')
             return
 
         if isinstance(attrs[0], list):
@@ -5496,14 +5695,14 @@ class AddOn(object):
                 plot_error = 'Unknown plot type {:} \n'.format(plot_type)
 
         if plot_error:
-            print 'Error adding psplot:' 
-            print plot_error
+            print('Error adding psplot:' )
+            print(plot_error)
             return None
         else:
-            print 'psmon plot added -- use the following to view: '
-            print '--> psplot -s {:} -p 12301 {:}'.format(os.uname()[1], name)
-            print 'WARNING -- see notice when adding for -p PORT specification'
-            print '           if default PORT=12301 not available'
+            print('psmon plot added -- use the following to view: ')
+            print('--> psplot -s {:} -p 12301 {:}'.format(os.uname()[1], name))
+            print('WARNING -- see notice when adding for -p PORT specification')
+            print('           if default PORT=12301 not available')
             if 'psplot' not in self._det_config:
                 self._det_config['psplot'] = {}
 
@@ -5972,9 +6171,20 @@ class ImageData(object):
             if attr not in self._data:
 #                opts = self._opts.get(attr, {})
 #                self._data.update({attr: getattr(self._det, attr)(self._evt, **opts)})
-                self._data.update({attr: getattr(self._det, attr)(self._evt)})
-             
-            return self._data.get(attr)
+                try:
+                    val = getattr(self._det, attr)(self._evt)
+                except:
+                    if attr == 'size':
+                        val =  self.raw.size
+                    if attr == 'shape':
+                        val = self.raw.shape
+
+                self._data.update({attr: val})
+            
+            else:
+                val = self._data.get(attr)
+
+            return val
 
     def __dir__(self):
         all_attrs =  set(self._attrs +
@@ -6557,9 +6767,9 @@ def _update_stats(evt):
                             if not fec.shape or fec.shape == vals.shape:
                                 fec(vals)
                             else:
-                                print 'stats update error', det._alias, name, attr, ec, istep, vals
+                                print('stats update error', det._alias, name, attr, ec, istep, vals)
                         except:
-                            print 'stats update error', det._alias, name, attr, ec, istep, vals
+                            print('stats update error', det._alias, name, attr, ec, istep, vals)
 #            else:
 #                print alias, name, attr, vals
 

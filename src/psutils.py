@@ -54,6 +54,66 @@ def getattr_complete(base, args):
 
     return base
 
+def send_mail(subject, message='', from_name=None, to_name=None, **kwargs):
+    """
+    Send mail
+
+    Parameters
+    ----------
+    subject : str
+        Subject of e-mail -- Required
+
+    message : str
+        e-mail message
+
+    from_name : str
+        name of message sender, os.getlogin() by default
+
+    to_name : str or list
+        name(s) of message recepients, from_name by default
+
+    """
+    from email.mime.text import MIMEText
+    from subprocess import Popen, PIPE
+    import getpass
+    
+    if not subject:
+        print("Message subject required")
+        return None
+
+    if not from_name:
+        from_name = os.getlogin()
+
+    if not to_name:
+        #mailmsg["To"] = getpass.getuser()+"@slac.stanford.edu"
+        to_name = from_name
+    else:
+        if isinstance(to_name, list):
+            to_names = []
+            for name in to_name:
+                if name not in to_names:
+                    to_names.append(name)
+            to_name = ','.join(to_names)
+
+    if not isinstance(to_name, str):
+        print('Not valid to_name:', to_name)
+        return None
+
+    if not isinstance(message, str):
+        message = str(message)
+
+    try:
+        mailmsg = MIMEText(message)
+        mailmsg["To"] = to_name
+        mailmsg["From"] = from_name
+        mailmsg["Subject"] = subject
+        p = Popen(["/usr/sbin/sendmail", "-t"], stdin=PIPE)
+        p.communicate(mailmsg.as_string())
+    except:
+        traceback.print_exc('Error with from {:} to {:} message -- {:}'.format(from_name, to_name, subject))
+        return from_name, to_name, subject, message
+
+
 def group_members(*args, **kwargs):
     """Return dictionary of members in group.
     """
@@ -77,6 +137,21 @@ def group_members(*args, **kwargs):
             members[group] = []
 
     return members
+
+def exp_info(exp):
+    """
+    Get experiment information
+    """
+    from RegDB import experiment_info
+    if isinstance(exp, str):
+        expNum = experiment_info.name2id(exp)
+    else:
+        expNum = exp
+    info = experiment_info.getexp(expNum)
+    grp = info.get('posix_gid')
+    members = group_member_dict(grp)
+    info['members'] = members[grp]['members']
+    return info
 
 def group_member_dict(*args):
     """Dictionary of members in groups.
@@ -150,7 +225,61 @@ def get_run_from_id(run_id, exp):
         run = None
 
     return run
+
+def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=None, path=None):
+    """
+    Check if run is available
+
+    Parameters
+    ---------
+    offline : bool
+        Check if offline if True 
+    """
+    import glob, os
+    from RegDB import experiment_info
+    if not instrument:
+        instrument = exp[0:3]
+    if not run:
+        run = experiment_info.experiment_runs(instrument.upper(),exp)[-1]['num']
+    if isinstance(exp, str):
+        expNum = experiment_info.name2id(exp)
+    else:
+        expNum = exp
+    file_list = experiment_info.get_open_files(expNum,run)
+    if not file_list:
+        return False
     
+    if not path:
+        if ffb:
+            path = os.path.join('/reg/d/ffb',instrument,exp,'xtc')
+        else:
+            path = os.path.join(experiment_info.getexp_datapath(expNum),instrument,exp,'xtc')
+
+    if idx:
+        xtc_files = glob.glob(path+'/index/*.xtc.idx')
+    else:
+        xtc_files = glob.glob(path+'/*.xtc')
+
+    for item in file_list:
+        if idx:
+            name = '{:}/index/e{:}-r{:04}-s{:02}-c{:02}.xtc.idx'.format(path,expNum,item['run'],item['stream'],item['chunk'])
+        else:
+            name = '{:}/e{:}-r{:04}-s{:02}-c{:02}.xtc'.format(path,expNum,item['run'],item['stream'],item['chunk'])
+        if name not in xtc_files:
+            return False
+
+    return True
+
+def get_runs(exp, instrument=None):
+    """
+    Return DataFrame of runs form RegDB database
+    """
+    import pandas as pd
+    from RegDB import experiment_info
+    if not instrument:
+        instrument = exp[0:3]
+    runs_list = experiment_info.experiment_runs(instrument.upper(),exp)
+    return pd.DataFrame(runs_list)
 
 def get_experiments(*args, **kwargs):
     """Return dictionary of experiments for list of users.

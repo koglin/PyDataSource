@@ -147,6 +147,14 @@ psana_doc_info['CsPad']['ConfigV3QuadReg']['rowColShiftPer']['doc'] = '(should b
 psana_doc_info['CsPad']['ConfigV3QuadReg']['digCount']['doc'] = '(max = 0x3ff)'
 psana_doc_info['CsPad']['CsPadReadOnlyCfg']['version']['func_method'] = hex
 
+try:
+    psana_doc_info['Jungfrau']['ConfigV3']['moduleConfig']['func_shape'] = 'moduleConfig_shape'
+    psana_doc_info['Jungfrau']['ModuleConfigV1']['firmwareVersion']['func_method'] = hex 
+    psana_doc_info['Jungfrau']['ModuleConfigV1']['moduleVersion']['func_method'] = hex
+    psana_doc_info['Jungfrau']['ModuleConfigV1']['serialNumber']['func_method'] = hex
+except:
+    pass
+
 psana_doc_info['CsPad2x2']['ConfigV2']['concentratorVersion']['func_method'] = hex
 psana_doc_info['CsPad2x2']['ConfigV2']['asicMask']['func_method'] = hex
 psana_doc_info['CsPad2x2']['ConfigV2']['badAsicMask']['func_method'] = hex
@@ -172,6 +180,9 @@ psana_doc_info['CsPad2x2']['CsPad2x2ReadOnlyCfg']['shiftTest']['func_method'] = 
 psana_doc_info['CsPad2x2']['ElementV1']['common_mode']['func_shape'] = 2
 
 psana_doc_info['UsdUsb']['FexConfigV1']['name']['func_shape'] = 4
+
+psana_doc_info['Gsc16ai']['DataV1']['channelValue']['doc'] = 'Triggered analog input values'
+psana_doc_info['Gsc16ai']['DataV1']['channelValue']['unit'] = 'V'
 
 psana_doc_info['Ipimb']['ConfigV1']['capacitorValue']['func_index'] = 'capacitorValues'
 psana_doc_info['Ipimb']['ConfigV2']['capacitorValue']['func_index'] = 'capacitorValues'

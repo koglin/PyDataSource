@@ -4,7 +4,8 @@
 #
 # see:  https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing
 #
-
+unset PYTHONPATH
+unset LD_LIBRARY_PATH
 unset DISPLAY XAUTHORITY
 export PYTHONPATH=
 echo "$@"
@@ -74,6 +75,9 @@ elif [[ $PYOPT == 'mpi' ]]; then
 elif [[ $PYOPT == 'build' ]]; then 
     JOBNAME="$EXPRUN"
     : ${RUNFILE:="$DIRNAME/$PYFILE"}
+elif [[ $PYOPT == 'beam_stats' ]]; then 
+    JOBNAME="$EXPRUN"
+    RUNFILE="$DIRNAME/$PYFILE"
 elif [[ $PYOPT == 'batch' ]]; then 
     JOBNAME="$EXPRUN"
     : ${RUNFILE:="$DIRNAME/$PYFILE"}
@@ -119,8 +123,8 @@ if [[ $PYOPT == 'mpi' ]]; then
     if [[ $RUN == *"-"* ]]; then
         #echo '##' bsub -n "$CHUNKS" -J "$EXP_RUN_[$RUN]" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
         #bsub -n "$CHUNKS" -J "$EXP_RUN_[$RUN]" -o $OUTLOG/Run%I/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
-        echo '##' bsub -n "$CHUNKS" -J [$RUN] -o $OUTFOLDER/Run%I/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
-        bsub -n "$CHUNKS" -J [$RUN] -o $OUTFOLDER/Run%I_%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
+        echo '##' bsub -n "$CHUNKS" -J [$RUN] -o $OUTFOLDER/Run%I/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" --build="auto"
+        bsub -n "$CHUNKS" -J [$RUN] -o $OUTFOLDER/Run%I_%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" --build="auto" 
     else
         echo '##' bsub -q "$QUEUEREQ" -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log mpirun python "$RUNFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
         bsub -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
@@ -129,7 +133,7 @@ if [[ $PYOPT == 'mpi' ]]; then
 else 
     echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" >> $LOGSUM
 
-    bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" 
+    bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG" --batchuser="$BATCHUSER" 
 
 fi
 

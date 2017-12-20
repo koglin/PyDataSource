@@ -20,6 +20,10 @@ def initArgs():
                         help='total number of chunks')
     parser.add_argument("--ichunk", type=int,  
                         help='chunk index')
+    parser.add_argument("--batchuser", type=str,
+                        help='Batch job user name')
+    parser.add_argument("--alert", type=str,
+                        help='Alert emails (comma separated no spaces)')
     parser.add_argument("-c", "--config", type=str,
                         help='Config File')
     parser.add_argument("-s", "--station", type=int,
@@ -46,19 +50,46 @@ if __name__ == "__main__":
     run = int(args.run.split('-')[0])
     #print '{:} Run {:}'.format(exp, run)
     if attr in ['build']:
-        import build_html
+        from build_html import Build_html
         import h5write
         x = h5write.open_h5netcdf(exp=exp,run=run)
         print x
-        b = build_html.Build_html(x, auto=True)
+        b = Build_html(x, auto=True)
    
+    elif attr in ['beam_stats']:
+        # Build beam stats to check for dropped shots and off-by-one
+        from beam_stats import get_beam_stats
+        if run > 100000:
+            import psutils
+            run = psutils.get_run_from_id(run, exp) 
+        print("get_beam_stats(exp={:},run={:}, from_name={:}, to_name={:}, wait=True, timeout=False".format(exp, \
+                    run,args.batchuser,args.alert))
+        xdrop = get_beam_stats(exp=exp,run=run, from_name=args.batchuser, to_name=args.alert, wait=True, timeout=False)
+
     else:
         import PyDataSource
         ds = PyDataSource.DataSource(exp=exp,run=run)
         if args.build:
             build_html=args.build
         else:
-            build_html='basic'
+            build_html='auto'
+
+        if attr == 'summary':
+            print ds.configData
+            es = ds.exp_summary
+            if es:
+                try:
+                    b = es.to_html()
+                except:
+                    print('Cannot build epics run summary report')
+               
+                try:
+                    b = es.build_drop_stats()
+                except:
+                    print('Cannot build beam ststs run summary report')
+
+            else:
+                print 'Failed to load or generate exp_summary'
 
         if attr == 'epics':
             print ds.configData
@@ -81,6 +112,7 @@ if __name__ == "__main__":
             print ds.nevents        
         if attr in ['scan']:
             print ds.configData.ScanData.show_info()
+
         if attr in ['mpi']:
             from h5write import to_hdf5_mpi
             print ds.configData

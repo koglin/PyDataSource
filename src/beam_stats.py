@@ -5,18 +5,260 @@ import logging
 import traceback
 from IPython.core.debugger import Tracer
 
+def load_exp_sum(exp, instrument=None, path=None, nctype='drop_sum', save=True):
+    """
+    Load drop stats summary for all runs
+    
+    Arguments
+    ---------
+    exp : str
+        experiment name
+
+    Parameters
+    ----------
+    instrument : str
+        instrument name.  default = exp[:3] 
+    
+    path : str
+        path of run summary files
+
+    save : bool
+        Save drop_summary file 
+
+    """
+    import xarray_utils
+    import os
+    import glob
+    import xarray as xr
+    import numpy as np
+    import pandas as pd
+    if not instrument:
+        instrument = exp[0:3]
+    if not path:
+        path = os.path.join('/reg/d/psdm/',instrument,exp,'results','nc')
+
+    files = sorted(glob.glob('{:}/run*_{:}.nc'.format(path,nctype)))
+
+    axstats = {}
+    dvars = []
+    for f in files:                                      
+        x = xr.open_dataset(f, engine='h5netcdf')
+        try:
+            if x.data_vars:
+                axstats[x.run] = x
+                dvars += x.data_vars
+                print('Loading Run {:}: {:}'.format(x.run, f))
+            else:
+                print('Skipping Run {:}: {:}'.format(x.run, f))
+        except:
+            print('cannot do ', f)
+
+    dvars = sorted(list(set(dvars)))
+    ax = []
+    aattrs = {}
+    for attr in dvars:
+        adf = {}
+        for run, x in axstats.items():
+            if attr in x.data_vars:
+                if attr not in aattrs:
+                    aattrs[attr] = {}
+                adf[run] = x[attr].to_pandas()
+                for a, val in x[attr].attrs.items():
+                    if val:
+                        aattrs[attr][a] = val 
+
+        ax.append(xr.Dataset(adf).to_array().to_dataset(name=attr))
+
+    x = xr.merge(ax)
+    del(ax)
+    x = xarray_utils.resort(x).rename({'variable': 'run'})
+    x.attrs['experiment'] = exp
+    x.attrs['instrument'] = instrument
+    x.attrs['expNum'] = axstats.values()[0].attrs['expNum']
+    x.coords['dvar'] = dvars
+    dattrs = {a.replace('_detected',''): str(a) for a in axstats.values()[0].attrs.keys() if a.endswith('detected')}
+    advar = {}
+    for attr in dattrs:
+        advar[attr] = {}
+        for dvar in dvars:
+            advar[attr][dvar] = np.zeros((len(x.run)), dtype='bool')
+    
+    rinds = dict(zip(x.run.values, range(x.run.size)))
+    for run, xo in axstats.items():
+        irun = rinds[run]
+        for attr in dattrs:
+            for dvar in xo.attrs.get(attr+'_detected',[]):
+                advar[attr][dvar][irun] = True
+    
+    for attr in aattrs:
+        try:
+            if attr in x:
+                for a in ['doc', 'unit', 'alias']:
+                    x[attr].attrs[a] = aattrs[attr].get(a, '')
+        except:
+            print('cannot add attrs for {:}'.format(attr))
+
+    for attr in dattrs:
+        data = np.array([advar[attr][a] for a in dvars]).T
+        x[attr] = (('run', 'dvar'), data)
+    
+    if save:
+        sum_file = '{:}/drop_summary.nc'.format(path)
+        x.attrs['file_name'] = sum_file
+        print('Saving drop_summary file: {:}'.format(sum_file))
+        x.to_netcdf(sum_file, engine='h5netcdf')
+
+    return x
+
+def build_drop_stats(x, min_detected=2,  
+        alert=True, to_name=None, from_name=None, html_path=None,
+        report_name='drop_summary', path=None, engine='h5netcdf'):
+    """
+    """
+    import os
+
+    if isinstance(x, str):
+        x = load_exp_sum(x)
+   
+    exp = x.experiment
+    instrument = x.instrument
+
+    if not path:
+        path = os.path.join('/reg/d/psdm/',instrument,exp,'results','nc')
+
+    if not os.path.isdir(path):
+        os.mkdir(path)
+    
+    filename = '{:}'.format(report_name)
+    h5file = os.path.join(path,report_name+'.nc')
+     
+    report_notes = ['Report includes:']
+    print report_notes
+
+    try:
+        from build_html import Build_html
+        from h5write import runlist_to_str
+        b = Build_html(x, h5file=h5file, filename=report_name, path=html_path,
+                title=exp+' Drop Summary', subtitle='Drop Summary')
+        dattrs = [attr for attr, a in x.data_vars.items() if 'dvar' in a.dims]
+        for attr in dattrs:
+            inds = (x[attr].to_pandas().sum() >= min_detected)
+            attrs = [a for a, val in inds.iteritems() if val]
+            gattrs = {}
+            for a in attrs:
+                dattr = a.split('_')[0]
+                if dattr not in gattrs:
+                    gattrs[dattr] = []
+                gattrs[dattr].append(a)
+                
+            if attr == 'timing_error':
+                if attrs:
+                    report_notes.append(' - ALERT:  off-by-one timing errors detected \n {:}'.format([str(a) for a in sorted(gattrs)]))
+                #    for a in attrs:
+                #        report_notes.append('      {:}'.format(a))
+                else:
+                    report_notes.append(' - No off-by-one timing errors detected')
+            else:
+                if attrs:
+                    report_notes.append(' - {:} detected \n {:}'.format(attr.replace('_',' '), [str(a) for a in sorted(gattrs)]))
+                #    for a in attrs:
+                #        report_notes.append('      {:}'.format(a))
+                else:
+                    report_notes.append(' - No {:} detected'.format(attr.replace('_',' ')))
+
+            for alias, attrs in gattrs.items():
+                if attr == 'timing_error':
+                    tbl_type = alias+'_'+attr
+                    attr_cat = 'Alert Off-by-one Error'
+                else:
+                    tbl_type = attr
+                    attr_cat = alias
+                doc = ['Runs with {:} for {:} attributes'.format(attr.replace('_',' '), alias)]
+                df = x[attr].to_pandas()[attrs]
+                for a in attrs:
+                    if a in x:
+                        da = df[a]
+                        name = '_'.join(a.split('_')[1:])
+                        aattrs = x[a].attrs
+                        runstr = runlist_to_str(da.index[da.values])
+                        doc.append(' - {:} runs with {:}: {:} [{:}] \n       [{:}]'.format(df[a].sum(), name, 
+                                    aattrs.get('doc',''), aattrs.get('unit',''), runstr))
+                howto = ['x["{:}"].to_pandas()[{:}]'.format(attr, attrs)]
+                df = df.T.rename({a: '_'.join(a.split('_')[1:]) for a in attrs}).T
+                b.add_table(df, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=True)
+
+        b.to_html(h5file=h5file, report_notes=report_notes)
+
+        if not to_name:
+            if isinstance(alert, list) or isinstance(alert, str):
+                to_name = alert
+            else:
+                to_name = from_name
+            
+        if alert and to_name is not None:
+            try:
+                alert_items = {name.lstrip('Alert').lstrip(' '): item for name, item in b.results.items() \
+                        if name.startswith('Alert')}
+                if alert_items:
+                    from psmessage import Message
+
+                    message = Message('Alert {:} Off-by-one Errors'.format(exp))
+                    message('')
+                    for alert_type, item in alert_items.items():
+                        message(alert_type)
+                        message('='*len(message._message[-1]))
+                        for name, tbl in item.get('table',{}).items():
+                            df = tbl.get('DataFrame')
+                            message('')
+                            message('* '+name)
+                            for a in df:
+                                da = df[a]
+                                message('  -{:} -- {:} Errors:'.format(a,da.sum()))
+                                message('       [{:}]'.format(runlist_to_str(da.index[da.values])))
+                    
+                    message('')
+                    message('See report:')
+                    message(b.weblink)
+                    print('Sending message to {:} from {:}'.format(to_name, from_name))
+                    print(str(message))
+                    
+                    if to_name:
+                        message.send_mail(to_name=to_name, from_name=from_name)
+
+                    return message
+            
+            except:
+                traceback.print_exc('Cannot send alerts: \n {:}'.format(str(message)))
+
+        return b
+    
+    except:
+        traceback.print_exc('Cannot build beam drop stats')
+
 def get_beam_stats(exp, run, default_modules={}, 
         flatten=True, refresh=True,
-        alert=True, to_name=None, from_name=None, html_path=None,
-        drop_code='ec162', drop_attr='delta_drop', nearest=5,  
+        drop_code='ec162', drop_attr='delta_drop', nearest=5, drop_min=3,  
         report_name=None, path=None, engine='h5netcdf', 
-        pulse=None, 
+        wait=None, timeout=False,
         **kwargs):
     """
     Get drop shot statistics to detected dropped shots and beam correlated detectors.
 
     Parameters
     ----------
+    drop_code : str
+        Event code that indicates a dropped shot with no X-rays
+    
+    drop_attr: str
+        Name for number of shots off from dropped shot.
+    
+    nearest : int
+        Number of nearest events to dropped shot to analayze
+
+    drop_min : int
+        Minumum number of dropped shots to perform analysis
+
+
     """
     from xarray_utils import set_delta_beam
     import PyDataSource
@@ -25,15 +267,44 @@ def get_beam_stats(exp, run, default_modules={},
     import pandas as pd
     import time
     import os
+    from requests import post
+    from os import environ
+    update_url = environ.get('BATCH_UPDATE_URL')
+    
     time0 = time.time() 
     logger = logging.getLogger(__name__)
     logger.info(__name__)
     
-    ds = PyDataSource.DataSource(exp=exp, run=run, default_modules=default_modules)
+    ds = PyDataSource.DataSource(exp=exp, run=run, default_modules=default_modules, wait=wait, timeout=timeout)
     x = load_small_xarray(ds, refresh=refresh, path=path)
+    if drop_code not in x or not x[drop_code].values.any():
+        logger.info('Skipping beam stats analysis for {:}'.format(ds))
+        logger.info('  -- No {:} present in data'.format(drop_code))
+        try:
+            batch_counters = {'Result': ['No dropped shots present', 'red']}
+            print('Setting batch job counter output: {:}'.format(batch_counters))
+            if update_url:
+                post(update_url, json={'counters' : {'Result': batch_counters}})
+        except:
+            traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
+
+        return x
+
     set_delta_beam(x, code=drop_code, attr=drop_attr)
     xdrop = x.where(abs(x[drop_attr]) <= nearest, drop=True)
     ntimes = xdrop.time.size
+    if ntimes < drop_min:
+        logger.info('Skipping beam stats analysis for {:}'.format(ds))
+        logger.info('  -- only {:} events with {:}'.format(ntimes, drop_code))
+        try:
+            batch_counters = {'Result': ['Only {:} dropped shots present'.format(drop_code), 'red']}
+            print('Setting batch job counter output: {:}'.format(batch_counters))
+            if update_url:
+                post(update_url, json={'counters' : {'Result': batch_counters}})
+        except:
+            traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
+        return x
+
     dets = {}
     flatten_list = []
     for det, detector in ds._detectors.items():
@@ -46,7 +317,9 @@ def get_beam_stats(exp, run, default_modules={},
                 srcstr = detector._srcstr 
                 srcname = srcstr.split('(')[1].split(')')[0]
                 devName = srcname.split(':')[1].split('.')[0]
-                if devName.startswith('Opal'):
+                # for not just use rawsum for 'Epix10ka' and  'Jungfrau' until full
+                # development of gain switching in Detector module
+                if devName.startswith('Opal') or devName in ['Epix10ka','Jungfrau']:
                     method = 'rawsum'
                     name = '_'.join([det, method])
                     methods[name] = method
@@ -164,25 +437,156 @@ def get_beam_stats(exp, run, default_modules={},
 
     if not os.path.isdir(path):
         os.mkdir(path)
-    
+
     if not report_name:
         report_name = 'run{:04}_drop_stats'.format(ds.data_source.run)
 
-    filename = '{:}'.format(report_name)
     h5file = os.path.join(path,report_name+'.nc')
-      
+   
+    print('Build {:} {:} {:}'.format(exp,run, xdrop))
+    b = build_beam_stats(exp=exp, run=run, xdrop=xdrop, 
+            report_name=report_name, h5file=h5file, path=path, **kwargs)
+    
+    try:
+        xdrop.to_netcdf(h5file, engine=engine)
+        logger.info('Saving file to {:}'.format(h5file))
+        print('Saving file to {:}'.format(h5file))
+    except:
+        traceback.print_exc('Cannot save to {:}'.format(h5file))
+   
+    return xdrop
+
+def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
+        report_name=None, h5file=None, path=None, 
+        alert=True, to_name=None, from_name=None, html_path=None,
+        make_scatter=False,
+        pulse=None, **kwargs):
+    """
+    """
+    import os
+    import numpy as np
+    import pandas as pd
+    import xarray as xr
+    from requests import post
+    from os import environ
+    update_url = environ.get('BATCH_UPDATE_URL')
+
+    if not path:
+        if not exp:
+            exp = str(xdrop.attrs.experiment)
+        if not instrument:
+            if xdrop is None:
+                instrument = exp[:3]
+            else:
+                instrument = str(xdrop.attrs.instrument)
+
+        path = os.path.join('/reg/d/psdm/',instrument,exp,'results','nc')
+
+    if not run:
+        run = xdrop.attrs.run
+
+    if not report_name:
+        report_name = 'run{:04}_drop_stats'.format(run)
+    
+    if not h5file:
+        h5file = os.path.join(path,report_name+'.nc')
+ 
+    if not xdrop:
+        import xarray as xr
+        xdrop = xr.open_dataset(h5file, engine='h5netcdf')
+   
     try:
         from build_html import Build_html
+   
         b = Build_html(xdrop, h5file=h5file, filename=report_name, path=html_path)
-        b.add_delta_beam(pulse=pulse)
-        b.to_html(h5file=h5file)
-        #xdrop = b._xdat
+        drop_attr = xdrop.attrs.get('drop_attr', 'ec162')
+        if 'XrayOff' not in xdrop and drop_attr in xdrop:
+            xdrop.coords['XrayOff'] = (xdrop[drop_attr] == True)
+            xdrop.coords['XrayOff'].attrs['doc'] = 'Xray Off for events with {:}'.format(drop_attr)
+            xdrop.coords['XrayOn'] = (xdrop[drop_attr] == False)
+            xdrop.coords['XrayOn'].attrs['doc'] = 'Xray On for events without {:}'.format(drop_attr)
+
+        report_notes = []
+        try:
+            energy_mean= xdrop.EBeam_ebeamPhotonEnergy.where(xdrop.XrayOn, drop=True).values.mean()
+            energy_std= xdrop.EBeam_ebeamPhotonEnergy.where(xdrop.XrayOn, drop=True).values.std()
+            report_notes.append('Energy = {:5.0f}+={:4.0f} eV'.format(energy_mean, energy_std))
+            charge_mean= xdrop.EBeam_ebeamCharge.where(xdrop.XrayOn, drop=True).values.mean()
+            charge_std= xdrop.EBeam_ebeamCharge.where(xdrop.XrayOn, drop=True).values.std()
+            report_notes.append('Charge = {:5.2f}+={:4.2f} mA'.format(charge_mean, charge_std))
+        except:
+            pass
+
+        report_notes.append('Report includes:')
+        
+        b._xstats = b.add_delta_beam(pulse=pulse)
+        corr_attrs = xdrop.attrs.get('beam_corr_detected')
+        print('Beam Correlations Detected {:}'.format(corr_attrs))
+        if corr_attrs:
+            pulse = xdrop.attrs.get('beam_corr_attr')
+            if not pulse:
+                pulse = 'FEEGasDetEnergy_f_21_ENRC'
+                if pulse not in xdrop or xdrop[pulse].sum() == 0:
+                    pulse = 'FEEGasDetEnergy_f_11_ENRC'
+                if pulse not in xdrop or xdrop[pulse].sum() == 0:
+                    pulse = None
+            
+            if pulse:
+                corr_attrs = [a for a in corr_attrs if a == pulse or not a.startswith('FEEGasDetEnergy')]
+                corr_attrs.append(pulse)
+                if 'PhaseCavity_charge1' in corr_attrs and 'PhaseCavity_charge2' in corr_attrs:
+                    corr_attrs.remove('PhaseCavity_charge2')
+                print('Adding Detector Beam Correlations {:}'.format(corr_attrs))
+                try:
+                    b.add_detector(attrs=corr_attrs, catagory=' Beam Correlations', confidence=0.3,
+                        cut='XrayOn',
+                        make_timeplot=False, make_histplot=False, make_table=False, 
+                        make_scatter=make_scatter)
+                except:
+                    traceback.print_exc('Cannot make beam correlations {;}'.format(attrs))
+
+        batch_counters = {}
+        
+        try:
+            offbyone_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.timing_error_detected])))
+            if offbyone_detectors:
+                batch_counters['Off-by-one detected'] = [str(offbyone_detectors), 'red']
+                report_notes.append(' - Off-by-one detected: '+ str(offbyone_detectors))
+                for a in sorted(xdrop.timing_error_detected):
+                    report_notes.append('    + '+a)
+        except:
+            drop_detectors = []
 
         try:
-            xdrop.to_netcdf(h5file, engine=engine)
-            logger.info('Saving file to {:}'.format(h5file))
+            drop_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.drop_shot_detected])))
+            if drop_detectors:
+                batch_counters['Dropped shot detected'] = [str(drop_detectors), 'green']
+                report_notes.append(' - Dropped shot detected: '+str(drop_detectors))
+                for a in sorted(xdrop.drop_shot_detected):
+                    report_notes.append('    + '+a)
         except:
-            traceback.print_exc('Cannot save to {:}/{:}'.format(path,filename))
+            drop_detectors = []
+
+        try:
+            beam_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.beam_corr_detected])))
+            if beam_detectors:
+                batch_counters['Beam correlated detected'] = [str(beam_detectors), 'green']
+                report_notes.append(' - Beam correlated detected: '+str(beam_detectors))
+                for a in sorted(xdrop.beam_corr_detected):
+                    report_notes.append('    + '+a)
+        except:
+            beam_detectors = []
+
+        if b.results:
+            # only make reports if not empty
+            b.to_html(h5file=h5file, report_notes=report_notes)
+
+        if update_url:
+            try:
+                print('Setting batch job counter output: {:}'.format(batch_counters))
+                post(update_url, json={'counters' : batch_counters})
+            except:
+                traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
 
         if not to_name:
             if isinstance(alert, list) or isinstance(alert, str):
@@ -190,18 +594,32 @@ def get_beam_stats(exp, run, default_modules={},
             else:
                 to_name = from_name
             
-        if alert and to_name is not 'None':
-            try:
-                alert_items = {name.lstrip('Alert').lstrip(' '): item for name, item in b.results.items() \
-                        if name.startswith('Alert')}
-                if alert_items:
+        alert_items = {name.lstrip(' ').lstrip('Alert').lstrip(' '): item for name, item in b.results.items() \
+                if name.lstrip(' ').startswith('Alert')}
+       
+        if alert_items and offbyone_detectors != ['EBeam']:
+            if alert and to_name is not 'None':
+                message = None
+                try:
                     from psmessage import Message
-                    message = Message('Alert {:} Run {:}: {:}'.format(exp,ds.data_source.run, ','.join(alert_items.keys())))
+                    import pandas as pd
+                    message = Message('Alert {:} Run {:}: {:}'.format(exp,run, ','.join(alert_items.keys())))
+                    event_times = pd.to_datetime(b._xdat.time.values)
+                    begin_time = event_times.min()
+                    end_time = event_times.max()
+                    run_time = (end_time-begin_time).seconds
+                    minutes,fracseconds = divmod(run_time,60)
+
+                    message('- Run Start:  {:}'.format(begin_time.ctime()))
+                    message('- Run End:    {:}'.format(end_time.ctime()))
+                    message('- Duration:   {:} seconds ({:02.0f}:{:02.0f})'.format(run_time, minutes, fracseconds))
+                    message('- Total events: {:}'.format(len(event_times) ) )
                     message('')
+ 
                     for alert_type, item in alert_items.items():
                         message(alert_type)
                         message('='*len(message._message[-1]))
-                        for name, tbl in item.get('table',{}).items():
+                        for name, tbl in item.get('figure',{}).items():
                             doc = tbl.get('doc')
                             message('* '+doc[0])
                             message('   - '+doc[1])
@@ -209,24 +627,23 @@ def get_beam_stats(exp, run, default_modules={},
                     message('')
                     message('See report:')
                     message(b.weblink)
-                    logger.info('Sending message to {:} from {:}'.format(to_name, from_name))
-                    logger.info(str(message))
                     
-                    if to_name:
+                    print(str(message))
+                    try:
+                        print('Sending message to {:} from {:}'.format(to_name, from_name))
+                        print(str(message))
                         message.send_mail(to_name=to_name, from_name=from_name)
+                    except:
+                        traceback.print_exc('ERROR Sending message to {:} from {:}'.format(to_name, from_name))
 
-            except:
-                traceback.print_exc('Cannot save to {:}/{:}'.format(path,filename))
-
-        return message
+                except:
+                    traceback.print_exc('Cannot send alerts: \n {:}'.format(str(message)))
 
     except:
-        try:
-            xdrop.to_netcdf(h5file, engine=engine)
-            logger.info('Saving file to {:}'.format(h5file))
-        except:
-            traceback.print_exc('Cannot save to {:}/{:}'.format(path,filename))
-        return xdrop
+        traceback.print_exc('Cannot build drop report')
+
+    return b
+
 
 def load_small_xarray(ds, path=None, filename=None, refresh=False, 
         engine='h5netcdf', **kwargs):
@@ -467,6 +884,10 @@ def make_small_xarray(self, auto_update=True,
 
     if 'ec162' in x:
         set_delta_beam(x, code=drop_code, attr=drop_attr)
+        x.coords['XrayOff'] = (x.ec162 == True)
+        x.coords['XrayOff'].attrs['doc'] = 'Xray Off for events with ec162'
+        x.coords['XrayOn'] = (x.ec162 == False)
+        x.coords['XrayOn'].attrs['doc'] = 'Xray On for events without ec162'
 
     self.x = x
 
@@ -538,5 +959,66 @@ def filtered(self, signal_width=10):
     
     return  np.array(af)
 
+
+def save_exp_stats(exp, instrument=None, path=None, find_corr=True):
+    """
+    Save drop stats summaries for all runs 
+    """
+    import os
+    import glob
+    import xarray as xr
+    from xarray_utils import find_beam_correlations
+    if not instrument:
+        instrument = exp[0:3]
+    if not path:
+        path = os.path.join('/reg/d/psdm/',instrument,exp,'results','nc')
+
+    files = sorted(glob.glob('{:}/run*_{:}.nc'.format(path, 'drop_stats')))
+
+    for f in files:                                      
+        x = xr.open_dataset(f, engine='h5netcdf')
+        try:
+            run = x.run
+            save_file='{:}/run{:04}_{:}.nc'.format(path, run, 'drop_sum')
+            print(save_file)
+            if not find_corr and glob.glob(save_file):
+                xstats = xr.open_dataset(save_file, engine='h5netcdf')
+                xout = xstats.copy(deep=True) 
+                xstats.close()
+                del xstats
+                for avar, da in x.data_vars.items():
+                    try:
+                        if avar in xout:
+                            for a in ['doc', 'unit', 'alias']:
+                                val = x[avar].attrs.get(a, '') 
+                                if isinstance(val, unicode):
+                                    val = str(val)
+                                xout[avar].attrs[a] = val 
+                    except:
+                        print('Cannot add attrs for {:}'.format(avar))
+                
+                for attr, val in x.attrs.items():
+                    try:
+                        if isinstance(val, list) and len(val) > 0 and isinstance(val[0], unicode):
+                            val = [str(v) for v in val]
+                        elif isinstance(val, unicode):
+                            val = str(val)
+                        xout.attrs[attr] = val
+                    except:
+                        print('Cannot add attrs for {:}'.format(attr))
+
+                xout.to_netcdf(save_file, engine='h5netcdf')
+
+            else:
+                xout = x.copy(deep=True) 
+                x.close()
+                del x
+                xstats = find_beam_correlations(xout, groupby='ec162', cut='XrayOn', save_file=save_file)
+                xout.to_netcdf(f, engine='h5netcdf')
+           
+        except:
+            traceback.print_exc('Cannot do {:}'.format(f))
+
+    return load_exp_sum(exp)
 
 

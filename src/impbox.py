@@ -18,6 +18,7 @@ class Impbox(PyDataSource.Detector):
         filter=np.array([-np.ones(hw),np.ones(hw)]).flatten()/(hw*2)
         self.add.parameter(filter=filter)
 
+#    def _on_init(self):
         for ch in range(self.nchannels):
             name = 'Ch'+str(ch+1) 
             setattr(self, name, Channel(self,ch,name))

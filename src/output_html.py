@@ -106,16 +106,35 @@ class report:
         #self.page.p('Other Information Goes Here. Take advantage of tool tips.',style='font-size: 14px;')
         self.page.div.close()
 
-    def start_block(self,title,id=None,class_=""):
+    def start_block(self,title,id=None,class_="", hidden=None):
+        if hidden:
+            hide_ = "myhidden"
+        else:
+            hide_ = ''
         self.sections.append({})
         self.sections[-1]['title'] = title
         self.sections[-1]['id'] = id
         self.sections[-1]['subsections'] = []
         self.page.a('',id=id,class_='anchor')
         self.page.h3(title,class_="text-center bg-primary "+class_, onclick="toggler('{:}group');".format(id))
-        self.page.div(id="{:}group".format(id))
-        return
+        self.page.div(id="{:}group".format(id), class_=hide_)
         
+#        if hidden:
+#            self.page.p(e.a(title, class_='btn btn-sm btn-default',
+#                                  onclick="toggler('{:}extra');".format(id)),
+#                                  class_="text-center")
+#            self.page.div(id='{:}extra'.format(id), class_="myhidden")
+#            self.page.div()
+#        else:
+#            self.page.a('',id=id,class_='anchor')
+#            self.page.div()
+#            self.page.h4(title)
+#            self.sections[-1]['subsections'].append({})
+#            self.sections[-1]['subsections'][-1]['title'] = title
+#            self.sections[-1]['subsections'][-1]['id'] = id
+#
+        return
+ 
     def end_block(self):
         self.page.div.close()
         return
