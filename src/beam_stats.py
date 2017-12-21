@@ -116,13 +116,18 @@ def build_drop_stats(x, min_detected=2,
     """
     """
     import os
+    from requests import post
+    from os import environ
+    update_url = environ.get('BATCH_UPDATE_URL')
 
     if isinstance(x, str):
         x = load_exp_sum(x)
    
-    exp = x.experiment
-    instrument = x.instrument
-
+    exp = x.attrs.get('experiment')
+    instrument = x.attrs.get('instrument')
+    run = x.attrs.get('run')
+    expNum = x.attrs.get('expNum')
+    
     if not path:
         path = os.path.join('/reg/d/psdm/',instrument,exp,'results','nc')
 
@@ -133,14 +138,15 @@ def build_drop_stats(x, min_detected=2,
     h5file = os.path.join(path,report_name+'.nc')
      
     report_notes = ['Report includes:']
-    print report_notes
-
     try:
         from build_html import Build_html
         from h5write import runlist_to_str
         b = Build_html(x, h5file=h5file, filename=report_name, path=html_path,
                 title=exp+' Drop Summary', subtitle='Drop Summary')
         dattrs = [attr for attr, a in x.data_vars.items() if 'dvar' in a.dims]
+        batch_counters = {}
+        webattrs = [instrument.upper(), expNum, exp, report_name, 'report.html'] 
+        weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
         for attr in dattrs:
             inds = (x[attr].to_pandas().sum() >= min_detected)
             attrs = [a for a, val in inds.iteritems() if val]
@@ -154,10 +160,17 @@ def build_drop_stats(x, min_detected=2,
             if attr == 'timing_error':
                 if attrs:
                     report_notes.append(' - ALERT:  off-by-one timing errors detected \n {:}'.format([str(a) for a in sorted(gattrs)]))
+                    batch_str = ', '.join(['<a href={:}#{:}_data>{:}</a>'.format(weblink, a,a) \
+                                            for a in sorted(gattrs)])
+                    batch_attr = '<a href={:}>{:}</a>'.format(weblink,'Off-by-one detected')
+                    #batch_attr = 'Off-by-one detected'
+                    batch_counters[batch_attr] = [batch_str, 'red']
                 #    for a in attrs:
                 #        report_notes.append('      {:}'.format(a))
                 else:
                     report_notes.append(' - No off-by-one timing errors detected')
+                    batch_attr = 'Off-by-one'
+                    batch_counters[batch_attr] = ['None Detected', 'green']
             else:
                 if attrs:
                     report_notes.append(' - {:} detected \n {:}'.format(attr.replace('_',' '), [str(a) for a in sorted(gattrs)]))
@@ -188,6 +201,14 @@ def build_drop_stats(x, min_detected=2,
                 b.add_table(df, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=True)
 
         b.to_html(h5file=h5file, report_notes=report_notes)
+
+        if update_url:
+            try:
+                print('Setting batch job counter output: {:}'.format(batch_counters))
+                post(update_url, json={'counters' : batch_counters})
+            except:
+                traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
+
 
         if not to_name:
             if isinstance(alert, list) or isinstance(alert, str):
@@ -276,15 +297,21 @@ def get_beam_stats(exp, run, default_modules={},
     logger.info(__name__)
     
     ds = PyDataSource.DataSource(exp=exp, run=run, default_modules=default_modules, wait=wait, timeout=timeout)
+#    if update_url:
+#        batch_counters = {'Status': ['Loading small data...','yellow']}
+#        post(update_url, json={'counters' : batch_counters})
+    
     x = load_small_xarray(ds, refresh=refresh, path=path)
+   
+    nevents = ds.nevents
     if drop_code not in x or not x[drop_code].values.any():
         logger.info('Skipping beam stats analysis for {:}'.format(ds))
         logger.info('  -- No {:} present in data'.format(drop_code))
         try:
-            batch_counters = {'Result': ['No dropped shots present', 'red']}
+            batch_counters = {'Warning': ['No dropped shots present in {:} events'.format(nevents), 'red']}
             print('Setting batch job counter output: {:}'.format(batch_counters))
             if update_url:
-                post(update_url, json={'counters' : {'Result': batch_counters}})
+                post(update_url, json={'counters' : batch_counters})
         except:
             traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
 
@@ -293,16 +320,22 @@ def get_beam_stats(exp, run, default_modules={},
     set_delta_beam(x, code=drop_code, attr=drop_attr)
     xdrop = x.where(abs(x[drop_attr]) <= nearest, drop=True)
     ntimes = xdrop.time.size
-    if ntimes < drop_min:
+    try:
+        ndrop = int(np.sum(xdrop.get(drop_code)))
+    except:
+        ndrop = 0
+
+    if ndrop < drop_min:
         logger.info('Skipping beam stats analysis for {:}'.format(ds))
-        logger.info('  -- only {:} events with {:}'.format(ntimes, drop_code))
+        logger.info('  -- only {:} events with {:} in {:} events'.format(ndrop, drop_code, nevents))
         try:
-            batch_counters = {'Result': ['Only {:} dropped shots present'.format(drop_code), 'red']}
+            batch_counters = {'Warning': ['Only {:} dropped shots present in {:} events'.format(ndrop, nevents), 'red']}
             print('Setting batch job counter output: {:}'.format(batch_counters))
             if update_url:
-                post(update_url, json={'counters' : {'Result': batch_counters}})
+                post(update_url, json={'counters' : batch_counters})
         except:
             traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
+        
         return x
 
     dets = {}
@@ -400,9 +433,13 @@ def get_beam_stats(exp, run, default_modules={},
         if itime % nupdate == nupdate-1:
             time_next = time.time()
             dtime = time_next-time_last
-            logger.info('{:8} of {:8} -- {:8.3f} sec, {:8.3f} events/sec'.format(itime+1, 
-                    ntimes, time_next-time0, nupdate/dtime))
+            evt_info = '{:8} of {:8} -- {:8.3f} sec, {:8.3f} events/sec'.format(itime+1, 
+                    ntimes, time_next-time0, nupdate/dtime)
+            logger.info(evt_info)
             time_last = time_next 
+#            if update_url:
+#                batch_counters = {'Status': [evt_info,'yellow']}
+#                post(update_url, json={'counters' : batch_counters})
 
         evt = ds.events.next(t)
         for det, methods in dets.items():
@@ -483,7 +520,11 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
         path = os.path.join('/reg/d/psdm/',instrument,exp,'results','nc')
 
     if not run:
-        run = xdrop.attrs.run
+        if not xdrop:
+            print('Error:  Need to specify exp and run or alternatively xdrop DataSet') 
+            return None
+        else:
+            run = xdrop.attrs.run
 
     if not report_name:
         report_name = 'run{:04}_drop_stats'.format(run)
@@ -494,7 +535,12 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
     if not xdrop:
         import xarray as xr
         xdrop = xr.open_dataset(h5file, engine='h5netcdf')
-   
+
+    exp = xdrop.attrs.get('experiment')
+    instrument = xdrop.attrs.get('instrument')
+    run = xdrop.attrs.get('run')
+    expNum = xdrop.attrs.get('expNum')
+
     try:
         from build_html import Build_html
    
@@ -545,22 +591,31 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
                 except:
                     traceback.print_exc('Cannot make beam correlations {;}'.format(attrs))
 
+        webattrs = [instrument.upper(), expNum, exp, report_name, 'report.html'] 
+        weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
+        #batch_counters['report'] = ['See <a href={:}>Run{:04} Report</a>'.format(weblink,run),'blue']
         batch_counters = {}
-        
         try:
             offbyone_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.timing_error_detected])))
             if offbyone_detectors:
-                batch_counters['Off-by-one detected'] = [str(offbyone_detectors), 'red']
+                #batch_str = ', '.join(['<a href={:}#{:}_data>{:}</a>'.format(weblink, attr,attr) \
+                #                        for attr in offbyone_detectors])
+                batch_str = ', '.join([attr for attr in offbyone_detectors])
+                batch_attr = '<a href={:}#{:}_data>{:}</a>'.format(weblink, "%20Alert%20Timing%20Error", 'Off-by-one detected')
+                batch_counters[batch_attr] = [batch_str, 'red']
                 report_notes.append(' - Off-by-one detected: '+ str(offbyone_detectors))
                 for a in sorted(xdrop.timing_error_detected):
                     report_notes.append('    + '+a)
         except:
-            drop_detectors = []
+            offbyone_detectors = []
 
         try:
             drop_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.drop_shot_detected])))
             if drop_detectors:
-                batch_counters['Dropped shot detected'] = [str(drop_detectors), 'green']
+                batch_str = ', '.join([attr for attr in drop_detectors])
+                #batch_str = ', '.join(['<a href={:}#{:}_data>{:}</a>'.format(weblink, attr,attr) \
+                #                        for attr in drop_detectors])
+                batch_counters['Dropped shot detected'] = [batch_str, 'green']
                 report_notes.append(' - Dropped shot detected: '+str(drop_detectors))
                 for a in sorted(xdrop.drop_shot_detected):
                     report_notes.append('    + '+a)
@@ -570,7 +625,11 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
         try:
             beam_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.beam_corr_detected])))
             if beam_detectors:
-                batch_counters['Beam correlated detected'] = [str(beam_detectors), 'green']
+                batch_str = ', '.join([attr for attr in beam_detectors])
+                #batch_str = ', '.join(['<a href={:}#{:}_data>{:}</a>'.format(weblink, attr,attr) \
+                #                        for attr in beam_detectors])
+                batch_attr = '<a href={:}#{:}_data>{:}</a>'.format(weblink, "%20Beam%20Correlations", 'Beam Correlated detected')
+                batch_counters[batch_attr] = [batch_str, 'green']
                 report_notes.append(' - Beam correlated detected: '+str(beam_detectors))
                 for a in sorted(xdrop.beam_corr_detected):
                     report_notes.append('    + '+a)
@@ -580,6 +639,7 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
         if b.results:
             # only make reports if not empty
             b.to_html(h5file=h5file, report_notes=report_notes)
+
 
         if update_url:
             try:

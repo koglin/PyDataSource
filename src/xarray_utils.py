@@ -371,7 +371,6 @@ def set_delta_beam(x, code='ec162', attr='delta_drop'):
                 #dbeam_max = df_beam.diff().max()
                 #x.coords[attr][abs(x.coords[attr]) > dbeam_max] = dbeam_max
                 x.coords[attr].attrs['doc'] = "number of beam codes to nearest {:}".format(code) 
-                a_pvalue = df_stats['t_pvalue'][ishot]
                 return x.coords[attr]
             else:
                 print('No event code {:} to drop'.format(code))
@@ -389,7 +388,7 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
     """
     """
     import traceback
-    set_delta_beam(xo, code=groupby, attr=corr_coord)
+    xcoor_coord = set_delta_beam(xo, code=groupby, attr=corr_coord)
     import xarray as xr
     import pandas as pd
     xstats = xr.Dataset()
@@ -468,6 +467,7 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
             try:
                 # ishot can be nan when t_stat are nan
                 t_pvalue = df_stats['t_pvalue'][ishot]
+                sig_significance = (df_stats['mean']/df_stats['std'])[ishot]
             except:
                 t_pvalue = None
             t_pvalue0 = df_stats['t_pvalue'][0]
@@ -475,7 +475,9 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
             tag_shot_corr = False
             # Check pvalue valid and if not timed with drop_code then
             # check ratio of found ishot pvalue is less than pvalue on drop code
-            if t_pvalue is not None and t_pvalue <= pvalue and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
+            # Ignore if mean/std for time detected is too big to be reasonable
+            if sig_significance < 1.e10 and t_pvalue is not None and t_pvalue0 != 1 and t_pvalue <= pvalue \
+                        and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
                 tag_shot_corr = True
             
             try:
@@ -505,6 +507,8 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
                     # If off-by-one make sure not beam correlated on ec162
                     if ishot != 0 and c_pvalue < corr_pvalue and \
                                 (abs(beam_corr) > 0.2 or abs(beam_corr) > abs(beam_corr0)*2.):
+                        tag_shot_corr = False
+                    elif ishot != 0 and (c_pvalue == 1 or c_pvalue0 == 1):
                         tag_shot_corr = False
 
                     # Make checks to be sure beam_corr is valid 

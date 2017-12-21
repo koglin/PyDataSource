@@ -779,7 +779,8 @@ class DataSource(object):
         else:
             return None
 
-    def load_run(self, data_source=None, reload=False, try_idx=None, wait=True, timeout=20., **kwargs):
+    def load_run(self, data_source=None, reload=False, try_idx=None, wait=True, timeout=20., 
+            update_url=None, **kwargs):
         """
         Load a run with psana.
 
@@ -808,6 +809,11 @@ class DataSource(object):
                 while not psutils.run_available(self.data_source.exp, self.data_source.run):
                     time.sleep(5.)
                     print('Waiting for {:} to become available...'.format(self.data_source))
+                    if update_url:
+                        from requests import post
+                        batch_counters = ['Waiting {:} sec for data'.format(time.time()-time0),'yellow']
+                        post(update_url, json={'counters' : batch_counters})
+
                     if timeout and timeout > time.time()-time0:
                         print('Timeout loading {:}'.format(self.data_source))
                         return None
