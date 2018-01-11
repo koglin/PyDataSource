@@ -811,22 +811,21 @@ class ExperimentSummary(object):
         """
         return self._arch.search_pvs(pv, do_print=False) != []
 
+    def _load_eventCodes(self):
+        """Currently not archived
+        """
+        data_codes = {}
+        seq_evtCodes = range(67,99)+range(167,199)+range(201,217)
+        for num in seq_evtCodes:
+            pvs = {
+                    'inst_num': 'ECS:SYS0:0:EC_{:}_OWNER_ID'.format(num),
+                    'desc': 'EVNT:SYS0:1:NAME{:}'.format(num),
+                    #'ticks': 'EVNT:SYS0:1:ECS_{:}DLY.A'.format(num),
+                  }
+            data_codes[num] = {name: self._get_pv_from_arch(pv) for name, pv in pvs.items()}
 
-#    def _load_eventCodes(self):
-#        """Currently not archived
-#        """
-#        data_codes = {}
-#        for num in range(67,217):
-#            pvs = {
-#                    'instrument': 'ECS:SYS0:0:EC_{:}_OWNER_NAME'.format(num),
-#                    'inst_num': 'ECS:SYS0:0:EC_{:}_OWNER_ID'.format(num),
-#                    'desc': 'EVNT:SYS0:1:NAME{:}'.format(num),
-#                    'ticks': 'EVNT:SYS0:1:ECS_{:}DLY.A'.format(num),
-#                  }
-#            data_codes[num] = {name: self._get_pv_from_arch(pv) for name, pv in pvs.items()}
-#
-#        self._data_codes = data_codes
-#
+        self._data_codes = data_codes
+
     def _load_epics(self, pvs=None, quiet=False, 
                     omit=['ABSE', 'BEAM', 'SIOC', 'USEG', 'VGBA', 'GATT'],
                     #      'MIRR:EE1:M2H.RBV', 'MIRR:FEE1:M1H.RBV'],

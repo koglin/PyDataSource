@@ -877,8 +877,13 @@ class Build_html(object):
            
             if cuts:
                 for cut in cuts:
-                    if cut in self._xdat and self._xdat[cut].sum() >= min_in_cut: 
-                        self.add_detector(alias, cut=cut, groupby=groupby, **kwargs)
+                    try:
+                        if cut in self._xdat and self._xdat[cut].sum() >= min_in_cut: 
+                            self.add_detector(alias, cut=cut, groupby=groupby, **kwargs)
+                    except:
+                        traceback.print_exc()
+                        print('Could not add detector {:} with cut {:}'.format(alias, cut))
+
             else:
                 self.add_detector(alias, groupby=groupby, **kwargs)
 
@@ -2915,7 +2920,7 @@ class Build_html(object):
             pass
             
         self.html.page.p('Report time: {:}'.format(time.ctime()))
-        self.html.end_subblock()
+        #self.html.end_subblock()
 
         if 'h5file' in kwargs:
             self._make_h5file_html(kwargs['h5file'], report_notes=kwargs.get('report_notes'))
@@ -2950,7 +2955,7 @@ class Build_html(object):
 #        weblink='http://pswww.slac.stanford.edu/swdoc/ana/PyDataSource'
 #        self.html.page.p('See <a href="{:}">{:}</a> for details on how to use PyDataSource.'.format(weblink,weblink))
         self.html.page.p('For questions and feedback contact koglin@slac.stanford.edu')
-        self.html.end_subblock()
+        self.html.end_subblock(hidden=True)
  
     def _make_PyDataSource_html(self, report_notes=None, **kwargs):
         """Make html notes for accessing data with PyDataSource.
@@ -2963,7 +2968,7 @@ class Build_html(object):
             self.html.start_subblock('Report Notes')
             self.html.add_textblock(report_notes)
             self.html.end_subblock()
-        self.html.start_subblock('Access the Data')
+        self.html.start_subblock('Access the Data', hidden=True)
         self.html.page.p('Access event data with PyDataSource python module on a psana node:')
         conda_setup = 'source /reg/g/psdm/bin/conda_setup'
         idatasource = 'idatasource --exp {:} --run {:}'.format(self.exp, self.run) 
@@ -2975,7 +2980,7 @@ class Build_html(object):
                                            '...',
                                            'import PyDataSource', 
                                            'ds = PyDataSource.DataSource(exp="{:}",run={:})'.format(self.exp, self.run)]))
-        self.html.end_subblock()
+        self.html.end_subblock(hidden=True)
 
         try:
             pyds = PyDataSource.PyDataSource

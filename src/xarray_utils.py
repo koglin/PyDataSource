@@ -476,7 +476,7 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
             # Check pvalue valid and if not timed with drop_code then
             # check ratio of found ishot pvalue is less than pvalue on drop code
             # Ignore if mean/std for time detected is too big to be reasonable
-            if sig_significance < 1.e10 and t_pvalue is not None and t_pvalue0 != 1 and t_pvalue <= pvalue \
+            if t_pvalue is not None and sig_significance < 1.e10 and t_pvalue0 != 1 and t_pvalue <= pvalue \
                         and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
                 tag_shot_corr = True
             

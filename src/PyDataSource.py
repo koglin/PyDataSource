@@ -2463,6 +2463,42 @@ class ConfigData(object):
             'BldInfo(NH2-SB1-IPM-02)':  'Nh2Sb1_Ipm2',
             'BldInfo(MFX-BEAMMON-01)':  'MfxBeammon',
             }
+    _seq_evtCodes = range(67,99)+range(167,199)+range(201,217)
+    _lcls_evtCodes = {
+            140: 'Beam & 120Hz',
+            141: 'Beam & 60Hz',
+            142: 'Beam & 30Hz',
+            143: 'Beam & 10Hz',
+            144: 'Beam & 5Hz',
+            145: 'Beam & 1Hz',
+            146: 'Beam & 0.5Hz',
+            147: 'Full N-1',
+            148: 'Full N-2',
+            149: 'TCAV0',
+            150: 'Burst',
+            151: 'Klys Accel',
+            152: 'Klys Standby',
+            153: 'Klys Standby no TCAV0',
+            154: 'Klys Accel at 10 Hz',
+            155: 'Straight Ahead',
+            156: 'TCAV3',
+            157: 'Klys StdBy No TCAV3',
+            158: 'Pockets Cell',
+            159: 'Profile Monitors',
+            160: 'TCAV3 OTR',
+            161: 'BXKIK',
+            162: 'BYKIK',
+            163: 'A-line Kicker',
+            164: 'Test Burst',
+            165: 'Spare',
+            40: '120 Hz',
+            41: '60 Hz',
+            42: '30 Hz',
+            43: '10 Hz',
+            44: '5 Hz',
+            45: '1 Hz',
+            46: '0.5 Hz',
+            }
 
     def __init__(self, ds):
         configStore = ds.env().configStore()
@@ -2629,7 +2665,21 @@ class ConfigData(object):
                 srcstr = str(src)
                 config = self._config[srcstr]
                 for eventcode in config.eventcodes._type_list:
+                    self._init_arch()
                     self._eventcodes.update({eventcode.code: eventcode._values})
+                    try:
+                        code_num = eventcode.code
+                        if code_num in self._seq_evtCodes: 
+                            owner_pv = 'ECS:SYS0:0:EC_{:}_OWNER_ID'.format(code_num)
+                            desc_pv  = 'EVNT:SYS0:1:NAME{:}'.format(code_num)
+                            owner_val = int(self._get_pv_from_arch(owner_pv)['data'][0]['val'])
+                            desc_val = self._get_pv_from_arch(desc_pv)['data'][0]['val']
+                            self._eventcodes[code_num]['description'] = desc_val
+                            self._eventcodes[code_num]['owner'] = owner_val
+                        elif code_num in self._lcls_evtCodes:
+                            self._eventcodes[code_num]['description'] = self._lcls_evtCodes[code_num]
+                    except:
+                        pass
                     if eventcode.isReadout:
                         group = eventcode.readoutGroup
                         if group not in self._readoutGroup:
@@ -2690,6 +2740,33 @@ class ConfigData(object):
             config = self._config[str(src)]
             self._smlData = config._values
 
+    def _init_arch(self):
+        """
+        Epics Archive access
+        """
+        import pandas as pd
+        from epicsarchive import EpicsArchive
+        self._arch = EpicsArchive()
+        dt = pd.Timestamp(min(self._ds._idx_datetime64))
+        self._tstart = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+        dt = pd.Timestamp(max(self._ds._idx_datetime64))
+        self._tend = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+
+    def _get_pv_from_arch(self, pv, tstart=None, tend=None):
+        if not tstart:
+            tstart = self._tstart
+        if not tend:
+            tend = self._tend
+        vals = self._arch._get_json(pv, tstart, tend, False)
+        if vals:
+            return vals[0]
+
+    def _in_archive(self, pv):
+        """
+        Check if pv is in archive.
+        """
+        return self._arch.search_pvs(pv, do_print=False) != []
+
     @property
     def Sources(self):
         """
@@ -2741,6 +2818,10 @@ class ConfigData(object):
         message('Source Information:')
         message('-'*18)
         self.Sources.show_info(append=True)
+#        message('-'*80)
+#        message('Event Code Information:')
+#        message('-'*18)
+#        self.Sources.show_eventCodes(append=True)
         message('') 
         message('-'*80)
         message('Scan Data:')
@@ -3013,8 +3094,10 @@ class ConfigSources(object):
         self._aliases = {item['alias']: src for src, item in self._sources.items()}
         self._cfg_srcs = configData._config_srcs.values()
         self._repr = str(configData._ds) 
+        self._configData = configData
+        self._eventcodes = configData._eventcodes
 
-    def show_info(self, **kwargs):
+    def show_info(self, show_codes=True, **kwargs):
         message = Message(quiet=True, **kwargs)
         message('*Detectors in group 0 are "BLD" data recorded at 120 Hz on event code 40')
         if self._monshmserver:
@@ -3023,7 +3106,7 @@ class ConfigSources(object):
             message('*Detectors listed as Controls are controls devices with unknown event code (but likely 40).')
         message('')
         header =  '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
-                 'Rate', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
+                 'Description', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
         message(header)
         message('-'*(len(header)+10))
         data_srcs = {item['alias']: s for s,item in self._sources.items() \
@@ -3061,9 +3144,45 @@ class ConfigSources(object):
 
             rate = _eventCodes_rate.get(eventCode, '')
 
-            message('{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
-                   group, rate, eventCode, polarity, delay, width, srcstr))
+            try:
+                description = self._eventcodes.get(eventCode, {'description': ''})['description']
+                if not description:
+                    description = rate
+            except:
+                description = rate
 
+            message('{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
+                   group, description, eventCode, polarity, delay, width, srcstr))
+                   #group, rate, eventCode, polarity, delay, width, srcstr))
+
+        if show_codes:
+            message('-'*80)
+            message('Event Code Information:')
+            message('-'*18)
+            self.show_eventCodes(append=True)
+        
+        return message
+
+    def show_eventCodes(self, **kwargs):
+        """
+        Show event code information
+        """
+        message = Message(quiet=True, **kwargs)
+        header = '{:8} {:4} {:12} {:20}'.format('code',  'group', 'type', 'description') 
+        message(header)
+        message('-'*(len(header)+10))
+        items = sorted(self._eventcodes.items(), key=operator.itemgetter(0))
+        for code, item in items:
+            if item.get('isReadout') == 1:
+                codetype = 'Readout'
+            elif item.get('isCommand') == 1:
+                codetype = 'Command'
+            elif item.get('isLatch') == 1:
+                codetype = 'Latch'
+            else:
+                codetype = ''
+            message('{:8} {:4} {:12} {:20}'.format(code, item.get('readoutGroup'), codetype, item.get('description')))
+        
         return message
 
     def __str__(self):

@@ -369,6 +369,21 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['unit'] = 'ADU'
                     xdrop[name].attrs['alias'] = det
 
+            elif detector._pydet.__module__ == 'Detector.GenericWFDetector':
+                srcstr = detector._srcstr 
+                srcname = srcstr.split('(')[1].split(')')[0]
+                devName = srcname.split(':')[1].split('.')[0]
+                if devName == 'Wave8':
+                    #nch = detector.configData.NChannels 
+                    nch = 8
+                    for method in ['wave8_height']:
+                        name = '_'.join([det, method])
+                        methods[name] = method
+                        xdrop[name] = (('time', det+'_ch',), np.zeros([ntimes, nch]))
+                        xdrop[name].attrs['doc'] = 'BeamMonitor {:}'.format(method.replace('_',' '))
+                        xdrop[name].attrs['unit'] = 'V'
+                        xdrop[name].attrs['alias'] = det
+
             elif detector._pydet.__module__ == 'Detector.WFDetector':
                 srcstr = detector._srcstr 
                 srcname = srcstr.split('(')[1].split(')')[0]
@@ -853,7 +868,9 @@ def make_small_xarray(self, auto_update=True,
     
     nupdate = 100
     time_last = time0
-    logger.info('Loading: {:}'.format(dets.keys()))
+    logger.info('Loading Scalar: {:}'.format(dets.keys()))
+    if add_1d:
+        logger.info('Loading 1D: {:}'.format(dets1d.keys()))
     for i, evt in enumerate(self.events):       
         if i >= nevents:
             break
@@ -981,6 +998,23 @@ def count(self, attr='corr'):
     """
     import numpy as np
     return np.sum(getattr(self, attr))
+
+def wave8_height(self, bkrange=[500,600]):
+    """Peaks of 8 waveforms with background subtration from mean within bkrange.
+    """
+    import numpy as np
+    wfs = []
+    peaks = []
+    for ch in range(8):
+        wf = self.evtData.data_u32[ch]
+        if len(wf) == 0:
+            wf = self.evtData.data_u16[ch]
+        back = wf[bkrange[0]:bkrange[1]].mean()
+        wf = -1.*wf+back
+        wfs.append(wf)
+        peaks.append(max(wf))
+
+    return np.array(peaks)
 
 def peak_height(self):
     """Max value of each waveform for WFDetector.
