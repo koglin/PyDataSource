@@ -2800,7 +2800,8 @@ class ConfigData(object):
         return self._ds._scanData
 
     def show_info(self, **kwargs):
-        """Show Detector Source information.
+        """
+        Show Detector Source information.
         """
         message = Message(quiet=True, **kwargs)
         message('-'*80)
@@ -2810,8 +2811,15 @@ class ConfigData(object):
         
         return message
 
+    def get_info(self, **kwargs):
+        """
+        Get Detector Source Information.
+        """
+        return str(self.show_info(**kwargs))
+
     def show_all(self, **kwargs):
-        """Show Detector Source and ScanData information.
+        """
+        Show Detector Source and ScanData information.
         """
         message = Message(quiet=True, **kwargs)
         message('-'*80)

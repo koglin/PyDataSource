@@ -997,6 +997,23 @@ class Build_html(object):
         setup_howto.append("df_nearest = df[abs(df.delta_drop) <= {:}]".format(nearest))
         setup_added = []
 
+###       Test and add in timing error summary
+#        ntiming_errors = len(x.attrs.get('timing_error_detected',[]))
+#        if ntiming_errors:
+#            attr_cat = ' Alert Timing Error'
+#            plt_type = 'Timing Error Event Summary' 
+#            howto = []
+#            fig, axes = plt.subplots(nrows=ntiming_errors,sharex=True)
+#            for attr in x.attrs.get('timing_error_detected',[]):
+#                aattrs = x[attr].attrs
+#                delta_beam = aattrs.get('delta_beam')
+#                df = x[attr].where(x.delta_drop==0,drop=True).to_pandas()
+#                df.plot(color='green',style='.',ax=axes[0], label='drop',legend=True)
+#                df = x[attr].where(x.delta_drop==delta_beam,drop=True).to_pandas()
+#                df.plot(color='purple',style='.',ax=axes[0],label='off-by {:}'.format(delta_beam),legend=True,title=attr)
+#            
+#            self.add_plot(attr_cat, plt_type, howto=howto)
+
         for attr in attrs:
             df_stats = xstats[attr].to_pandas()
             aattrs = x[attr].attrs
@@ -1370,11 +1387,12 @@ class Build_html(object):
         if not attr_names:
             attr_names = {attr: attr.replace(alias+'_','') for attr in attrs if attr in x}
 
+        typ_pre = ''
         if cut:
             if catagory:
                 typ_pre = cut
             else:
-                catagory = catagory+' '+cut
+                catagory = alias+' '+cut
         else: 
             if catagory:
                 typ_pre = ''

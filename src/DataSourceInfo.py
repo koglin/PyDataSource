@@ -94,6 +94,7 @@ class DataSourceInfo(object):
             setattr(self, key, kwargs.get(key, val))
 
         if self.exp is not None:
+            self.exp = str(self.exp)
             self.instrument = self.exp[0:3]
         
         run_id = kwargs.get('run_id')

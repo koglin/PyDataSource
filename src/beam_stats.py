@@ -136,7 +136,16 @@ def build_drop_stats(x, min_detected=2,
     
     filename = '{:}'.format(report_name)
     h5file = os.path.join(path,report_name+'.nc')
-     
+    
+    try:
+        from PyDataSource import DataSource
+        ds = DataSource(exp=exp,run=run)
+        config_info = str(ds.configData.show_info())
+        print(config_info)
+    except:
+        config_info = None
+        traceback.print_exc('Cannot get data source information for {:} Run {:}'.format(exp,run))
+
     report_notes = ['Report includes:']
     try:
         from build_html import Build_html
@@ -199,6 +208,13 @@ def build_drop_stats(x, min_detected=2,
                 howto = ['x["{:}"].to_pandas()[{:}]'.format(attr, attrs)]
                 df = df.T.rename({a: '_'.join(a.split('_')[1:]) for a in attrs}).T
                 b.add_table(df, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=True)
+            
+#        if config_info:
+#            report_notes.append('')
+#            report_notes.append(config_info)
+#            print(report_notes)
+#        else:
+#            print('No config info')
 
         b.to_html(h5file=h5file, report_notes=report_notes)
 
@@ -557,6 +573,15 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
     expNum = xdrop.attrs.get('expNum')
 
     try:
+        from PyDataSource import DataSource
+        ds = DataSource(exp=exp,run=run)
+        config_info = str(ds.configData.show_info())
+        print(config_info)
+    except:
+        config_info = None
+        traceback.print_exc('Cannot get data source information for {:} Run {:}'.format(exp,run))
+
+    try:
         from build_html import Build_html
    
         b = Build_html(xdrop, h5file=h5file, filename=report_name, path=html_path)
@@ -651,10 +676,16 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
         except:
             beam_detectors = []
 
+        if config_info:
+            report_notes.append('')
+            report_notes.append(config_info)
+            print(report_notes)
+        else:
+            print('No config info')
+
         if b.results:
             # only make reports if not empty
             b.to_html(h5file=h5file, report_notes=report_notes)
-
 
         if update_url:
             try:
@@ -950,6 +981,15 @@ def make_small_xarray(self, auto_update=True,
                 logger.info('Error updating 1D data for {:}: {:}'.format(det, item))
 
     x = x.set_coords(coords)
+    for code, ec in cnames.items():
+        try:
+            ec_doc = self.configData._eventcodes.get(code,{}).get('description','')
+            if ec_doc:
+                ec_doc = 'event code for '+ec_doc
+            x[ec].attrs['doc'] = ec_doc 
+        except:
+            print('Cannot add doc for {:}'.format(ec))
+
     if ignore_unused_codes:
         drop_codes = []
         for code, ec in cnames.items():
