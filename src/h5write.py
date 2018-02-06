@@ -555,11 +555,17 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
         xstats = None
         traceback.print_exc()
         print 'Cannot merge stats chunks'
-    
+        cleanup = False
+
     
     if xstats is not None:
         print '... merge stats with event data'
-        x = x.merge(xstats)
+        try:
+            x = x.merge(xstats)
+        except:
+            traceback.print_exc()
+            print 'Cannot merge stats into overall run Dataset'
+            cleanup = False
 
     if save:
         print 'Saving data'

@@ -392,13 +392,13 @@ def get_beam_stats(exp, run, default_modules={},
                 if devName == 'Wave8':
                     #nch = detector.configData.NChannels 
                     nch = 8
-                    for method in ['wave8_height']:
-                        name = '_'.join([det, method])
-                        methods[name] = method
-                        xdrop[name] = (('time', det+'_ch',), np.zeros([ntimes, nch]))
-                        xdrop[name].attrs['doc'] = 'BeamMonitor {:}'.format(method.replace('_',' '))
-                        xdrop[name].attrs['unit'] = 'V'
-                        xdrop[name].attrs['alias'] = det
+                    method = 'wave8_height'
+                    name = det
+                    methods[name] = method
+                    xdrop[name] = (('time', det+'_ch',), np.zeros([ntimes, nch]))
+                    xdrop[name].attrs['doc'] = 'BeamMonitor {:}'.format(method.replace('_',' '))
+                    xdrop[name].attrs['unit'] = 'V'
+                    xdrop[name].attrs['alias'] = det
 
             elif detector._pydet.__module__ == 'Detector.WFDetector':
                 srcstr = detector._srcstr 
@@ -455,6 +455,11 @@ def get_beam_stats(exp, run, default_modules={},
         if methods:
             dets[det] = methods
     
+    print('-'*80)
+    print(xdrop)
+    print('-'*80)
+    print(dets)
+    print('-'*80)
     ds.reload()
     times = zip(xdrop.sec.values,xdrop.nsec.values,xdrop.fiducials.values)
     nupdate = 100
@@ -480,7 +485,8 @@ def get_beam_stats(exp, run, default_modules={},
                     try:
                         xdrop[name][itime] = globals()[method](detector) 
                     except:
-                        traceback.print_exc('Error with {:} {:}'.format(name, method))
+                        print('Cannot calculate {:} for {:}'.format(method, name))
+                        #traceback.print_exc('Error with {:} {:}'.format(name, method))
 
     # Flatten waveform data with channels
     if flatten:
@@ -1059,7 +1065,10 @@ def wave8_height(self, bkrange=[500,600]):
 def peak_height(self):
     """Max value of each waveform for WFDetector.
     """
-    return self.waveform.max(axis=1)
+    if hasattr(self, 'waveform') and hasattr(self.waveform, 'max'):
+        return self.waveform.max(axis=1)
+    else:
+        return None
 
 def peak_time(self):
     """Time of max of each waveform for WFDetector.

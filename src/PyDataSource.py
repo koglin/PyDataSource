@@ -2665,7 +2665,13 @@ class ConfigData(object):
                 srcstr = str(src)
                 config = self._config[srcstr]
                 for eventcode in config.eventcodes._type_list:
-                    self._init_arch()
+                    try:
+                        # No archive on shared memory currently
+                        if not self._monshmserver:
+                            self._init_arch()
+                    except:
+                        traceback.print_exc('Cannot initialize archive')
+                    
                     self._eventcodes.update({eventcode.code: eventcode._values})
                     try:
                         code_num = eventcode.code
@@ -3662,12 +3668,14 @@ class Detector(object):
             pass
 
         _pydet_dict = {
-                'AreaDetector':  {'det_class': ImageData,
-                                  'calib_class': ImageCalibData},
-                'WFDetector':    {'det_class': WaveformData,
-                                  'calib_class': WaveformCalibData},
-                'IpimbDetector': {'det_class': IpimbData,
-                                  'calib_class': None},
+                'AreaDetector':      {'det_class': ImageData,
+                                      'calib_class': ImageCalibData},
+                'GenericWFDetector': {'det_class': GenericWaveformData,
+                                     'calib_class': GenericWaveformCalibData},
+                'WFDetector':        {'det_class': WaveformData,
+                                      'calib_class': WaveformCalibData},
+                'IpimbDetector':     {'det_class': IpimbData,
+                                      'calib_class': None},
                 }
 
         item = _pydet_dict.get(self._pydet_name)
@@ -3679,6 +3687,14 @@ class Detector(object):
         try:
             self._on_init(**kwargs)
             self._init = True
+            # Epix10ka calib class not yet implmented
+            if self._det_config['devName'] == 'Epix10ka':
+                self._calib_class = None
+                self._attrs.remove('image')
+                self._attrs.remove('calib')
+                self.shape = (352,384)
+                self.size = 135168
+
         except:
             pass
 
@@ -3756,6 +3772,9 @@ class Detector(object):
         if self.src == 'BldInfo(FEE-SPEC0)':
             dims_dict = {attr: ([], ()) for attr in ['integral', 'npeaks']}
             dims_dict['hproj'] = (['X'], self.hproj.shape)
+
+        elif self._det_class == GenericWaveformData:
+            dims_dict = {'waveform': (['ch', 't'], (16, 4096))} 
 
         elif self._det_class == WaveformData:
             if self._pydet.dettype == 17:
@@ -5952,72 +5971,78 @@ class IpimbData(object):
         
         return list(sorted(all_attrs))
 
+class GenericWaveformData(object):
+    """Tab accessibile dictified psana.Detector object.
+       
+       Attributes come from psana.Detector 
+       with low level implementation done in C++ or python.  
+       Boost is used for the C++.
+    """
 
-#class GenaricWaveformData(object):
-#    """Tab accessibile dictified psana.Detector object.
-#       
-#       Attributes come from psana.Detector 
-#       with low level implementation done in C++ or python.  
-#       Boost is used for the C++.
-#    """
-#
-#    _attrs = ['raw', 'wftime'] 
-#
-#    _attr_info = {
-#            'raw':    {'doc': 'Waveform array',
-#                            'unit': 'V'},
+    _attrs = ['waveform'] 
+
+    _attr_info = {
+            'waveform':    {'doc': 'Waveform array',
+                            'unit': 'V'},
 #            'wftime':      {'doc': 'Waveform sample time',
 #                            'unit': 's'},
-#            } 
-#
-#    def __init__(self, det, evt):
-#        self._evt = evt
-#        self._det = det
-#
-#    def show_info(self, **kwargs):
-#        """Show information for relevant detector attributes.
-#        """
-#        message = Message(quiet=True, **kwargs)
-#        try:
-#            items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
-#            for attr, item in items:
-#                fdict = {'attr': attr, 'unit': '', 'doc': ''}
-#                fdict.update(**item)
-#                value = getattr(self, attr)
-#                if isinstance(value, str):
-#                    fdict['str'] = value
-#                elif isinstance(value, list):
-#                    if len(value) < 5:
-#                        fdict['str'] = str(value)
-#                    else:
-#                        fdict['str'] = 'list'
-#                elif hasattr(value,'mean'):
-#                    if value.size < 5:
-#                        fdict['str'] = str(value)
-#                    else:
-#                        fdict['str'] = '<{:.5}>'.format(value.mean())
-#                else:
-#                    try:
-#                        fdict['str'] = '{:12.5g}'.format(value)
-#                    except:
-#                        fdict['str'] = str(value)
-#
-#                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
-#        except:
-#            message('No Event')
-#
-#        return message
-#
+            } 
+
+    def __init__(self, det, evt):
+        self._evt = evt
+        self._det = det
+
+    def show_info(self, **kwargs):
+        """Show information for relevant detector attributes.
+        """
+        message = Message(quiet=True, **kwargs)
+        try:
+            items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
+            for attr, item in items:
+                fdict = {'attr': attr, 'unit': '', 'doc': ''}
+                fdict.update(**item)
+                value = getattr(self, attr)
+                if isinstance(value, str):
+                    fdict['str'] = value
+                elif isinstance(value, list):
+                    if len(value) < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = 'list'
+                elif hasattr(value,'mean'):
+                    if value.size < 5:
+                        fdict['str'] = str(value)
+                    else:
+                        fdict['str'] = '<{:.5}>'.format(value.mean())
+                else:
+                    try:
+                        fdict['str'] = '{:12.5g}'.format(value)
+                    except:
+                        fdict['str'] = str(value)
+
+                message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
+        except:
+            message('No Event')
+
+        return message
+
+    @property
+    def waveform(self):
+        """
+        List of waveforms
+        """
+        return self._det(self._evt)
+
 #    def __getattr__(self, attr):
 #        if attr in self._attrs:
 #            return getattr(self._det, attr)(self._evt)
 #
-#    def __dir__(self):
-#        all_attrs =  set(self._attrs +
-#                         self.__dict__.keys() + dir(WaveformData))
-#        
-#        return list(sorted(all_attrs))
-#
+    def __dir__(self):
+        all_attrs =  set(self._attrs +
+                         self.__dict__.keys() + dir(GenericWaveformData))
+        
+        return list(sorted(all_attrs))
+
 
 class WaveformData(object):
     """
@@ -6100,10 +6125,18 @@ class WaveformData(object):
         
         return list(sorted(all_attrs))
 
+class GenericWaveformCalibData(object):
+    """
+    Generic Waveform Calib Data -- not implented
+    """
+    def __init__(self, det, evt):
+        self._evt = evt
+        self._det = det
+
 
 class WaveformCalibData(object):
     """
-    Calibration data using psana.Detector access.
+    Waveform Calibration data using psana.Detector access.
     """
 
     _attrs = ['runnum'] 

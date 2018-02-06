@@ -22,4 +22,10 @@ class Epix10ka(PyDataSource.Detector):
         """
         return (self.configData.numberOfRows, self.configData.numberOfColumns)
 
+    @property
+    def calibData(self):
+        """
+        Not yet implemented
+        """
+        return None
 

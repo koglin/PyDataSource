@@ -569,7 +569,9 @@ class ExperimentSummary(object):
             return attrs
 
     def plot_move(self, attrs, run_min=None, run_max=None, style=None, linewidth=2, 
-            figsize=(12,8), ax_pos = (.1,.2,.55,.7), box_to_anchor=(1.1, 1.), 
+            figsize=(12,8), 
+            ax_pos = (.1,.2,.8,.7), box_to_anchor=(0., 1.), 
+            #ax_pos = (.1,.2,.55,.7), box_to_anchor=(1.1, 1.), 
             max_points=5000, **kwargs):
         """
         Plot motor moves vs time and run.

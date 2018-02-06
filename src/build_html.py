@@ -213,12 +213,12 @@ class Build_experiment(object):
         stend = '{:}-{:02}-{:02}T{:02}:{:02}:{:02}Z'.format(*es._tend)
 
         for det in dets:
-            howto=['es.plot_move({:}, run_min={:}, run_max={:})'.format(det, run_min, run_max)]
             print('Try plot_move', det)
             if isinstance(dets, dict):
                 attrs = dets[det]
             else:
                 attrs = det
+            howto=['es.plot_move({:}, run_min={:}, run_max={:})'.format(attrs, run_min, run_max)]
 
             dfattrs = pd.DataFrame({attr: es.xset[attr].attrs for attr in attrs if attr in es.xset})
             try:
