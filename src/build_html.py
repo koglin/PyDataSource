@@ -951,9 +951,11 @@ class Build_html(object):
                     cut=beam_on, save_file=save_file, **kwargs)
         if not attrs:
             attrs = x.attrs.get('drop_shot_detected',[]) \
+                  + x.attrs.get('beam_warning_detected',[]) \
                   + x.attrs.get('timing_error_detected',[])
         
         all_attrs = x.attrs.get('drop_shot_detected',[]) \
+              + x.attrs.get('beam_warning_detected',[]) \
               + x.attrs.get('beam_corr_detected',[]) \
               + x.attrs.get('timing_error_detected',[])
         
@@ -1568,15 +1570,21 @@ class Build_html(object):
                 #perhigh = '{:}%'.format(int(max(percentiles)*100))
                 #dfcut = df[(df > df_tbl[perlow]-2*df_tbl['std']).all(axis=1) & (df < df_tbl[perhigh]+2*df_tbl['std']).all(axis=1)]
                 #dfcut = df[(df > df_tbl['5%']-2*df_tbl['std']).all(axis=1) & (df < df_tbl['95%']+2*df_tbl['std']).all(axis=1)]
-                dfcut = df
+                howto = []
+                howto.append("attrs = {:}".format(attrs))
+                howto.append("df = x.reset_coords()[attrs].to_dataframe()")
+                try:
+                    dfcut = df[(df < df.max(axis=0)).all(axis=1) & (df > df.min(axis=0)).all(axis=1)].dropna()
+                    howto.append("dfcut = df[(df < df.max(axis=0)).all(axis=1) & (df > df.min(axis=0)).all(axis=1)].dropna()")
+                except:
+                    dfcut = df
                 try:
                     #howto = ["dfcut = df[(df > df_tbl['5%']-2*df_tbl['std']).all(axis=1) & (df < df_tbl['95%']+2*df_tbl['std']).all(axis=1)]"] 
-                    howto = []
                     plt_type = 'hist'
                     #dfcut.hist(alpha=0.2, layout=layout, figsize=figsize)
-                    df.hist(bins=bins, alpha=0.2, layout=layout, figsize=figsize)
+                    dfcut.hist(bins=bins, alpha=0.2, layout=layout, figsize=figsize)
                     #plt.tight_layout()
-                    howto.append("df.hist(alpha=0.2, layout={:}, figsize={:})".format(layout, figsize))
+                    howto.append("dfcut.hist(alpha=0.2, layout={:}, figsize={:})".format(layout, figsize))
                     self.add_plot(catagory, typ_pre+plt_type, howto=howto)
                 except:
                     plt.cla()

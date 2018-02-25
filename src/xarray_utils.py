@@ -379,9 +379,9 @@ def set_delta_beam(x, code='ec162', attr='delta_drop'):
             traceback.print_exc('Cannot set drop_code = '.format(code))
 
 
-def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.0001,
+def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.0001,
             groupby='ec162', nearest=5, corr_coord='delta_drop',
-            pulse=None, confidence=0.1,
+            pulse=None, confidence=0.1, sigma0=5,
             percentiles=[0.5], 
             save_file=None,
             cut=None, verbose=False, **kwargs):
@@ -396,6 +396,7 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
     xds = xo[attrs].load()
     xo.attrs['drop_shot_detected'] = []
     xo.attrs['timing_error_detected'] = []
+    xo.attrs['beam_warning_detected'] = []
     xo.attrs['beam_corr_detected'] = []
     if 'EBeam_damageMask' in xds:
         xds = xds.drop('EBeam_damageMask')
@@ -446,6 +447,8 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
             ctest = test_correlation(x, attr, pulse, cut=cut, shift=ishot)
             actest[ishot] = ctest
 
+        xstd = x[attr].groupby(groupby).std()
+        xmean = x[attr].groupby(groupby).mean()
         try:
             # Statistics for delta_drop
             df = xo.reset_coords()[[attr,corr_coord]].to_dataframe()
@@ -461,25 +464,32 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
             # Pearson's correlation coefficient, 2-tailed p-value
             df_ctest = pd.DataFrame(actest,index=['beam_corr','c_pvalue']).T        
             df_stats = df_table.join(df_ctest).join(df_ttest)
-           
-            ishot = df_stats['t_stat'].abs().idxmax()
-            t_stat = df_stats['t_stat'].abs().max()
+            
+            tag_shot_corr = False
+            t_pvalue0 = df_stats['t_pvalue'][0]
+            if abs(float((xmean[1]-xmean[0])/xstd[0])) > sigma0 or xstd[1] > xstd[0]*sigma0:
+                # First check if dropped shot and regular shot mean values differ by > sigma0 
+                ishot = 0
+                tag_shot_corr = True
+            else:
+                # Otherwise choose shot with greatest ttest significance
+                ishot = df_stats['t_stat'].abs().idxmax()
+            
             try:
                 # ishot can be nan when t_stat are nan
                 t_pvalue = df_stats['t_pvalue'][ishot]
                 sig_significance = (df_stats['mean']/df_stats['std'])[ishot]
+                # Check pvalue valid and if not timed with drop_code then
+                # check ratio of found ishot pvalue is less than pvalue on drop code
+                # Ignore if mean/std for time detected is too big to be reasonable
+                if sig_significance < 1.e10 and t_pvalue0 != 1 and t_pvalue <= pvalue \
+                            and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
+                    tag_shot_corr = True
+
             except:
                 t_pvalue = None
-            t_pvalue0 = df_stats['t_pvalue'][0]
 
-            tag_shot_corr = False
-            # Check pvalue valid and if not timed with drop_code then
-            # check ratio of found ishot pvalue is less than pvalue on drop code
-            # Ignore if mean/std for time detected is too big to be reasonable
-            if t_pvalue is not None and sig_significance < 1.e10 and t_pvalue0 != 1 and t_pvalue <= pvalue \
-                        and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
-                tag_shot_corr = True
-            
+           
             try:
                 shot_corr_detected = False
                 shot_corr = df_stats['beam_corr'].abs().idxmax()
@@ -519,23 +529,8 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
                     elif c_pvalue < corr_pvalue and (abs(beam_corr) > 0.2 or abs(beam_corr) > abs(beam_corr0)*2.):
                         shot_corr_detected = True
 
-#                try:
-#                    # beam_corr can be nan when df_stats['beam_corr'] are nan
-#                    if shot_corr_detected:
-#                        beam_corr = df_stats['beam_corr'][shot_corr]
-#                        c_pvalue = df_stats['c_pvalue'][shot_corr]
-#                        if abs(beam_corr) < confidence:
-#                            shot_corr_detected = False
-#
-#                except:
-#                    beam_corr = None 
-#                    c_pvalue = None
-#                    shot_corr_detected = False
-#
-                #if beam_corr and beam_corr >= confidence: 
-                #if c_pvalue is not None and c_pvalue <= corr_pvalue: 
-                    # Make sure beam correlation is consistent with drop shot detection
-                    # If beam_corr is on ec162 then do not tag
+                # Make sure beam correlation is consistent with drop shot detection
+                # If beam_corr is on ec162 then do not tag
                 if shot_corr_detected:
                     if tag_shot_corr and ishot != shot_corr:
                         if shot_corr == 0:
@@ -567,6 +562,11 @@ def find_beam_correlations(xo, pvalue=1e-10, pvalue0_ratio=0.1, corr_pvalue=0.00
                     xo[attr].attrs['drop_shot_detected'] = True
                     if attr not in xo.attrs['drop_shot_detected']:
                         xo.attrs['drop_shot_detected'].append(attr)
+                elif alias in ['EBeam','PhaseCavity'] or attr.endswith('xpos') or attr.endswith('ypos'):
+                    note = 'Beam-warning detected'
+                    xo[attr].attrs['beam_warning_detected'] = True
+                    if attr not in xo.attrs['beam_warning_detected']:
+                        xo.attrs['beam_warning_detected'].append(attr)
                 else:
                     note = 'Time-error detected'
                     xo[attr].attrs['timing_error_detected'] = True

@@ -533,17 +533,19 @@ def get_beam_stats(exp, run, default_modules={},
 def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
         report_name=None, h5file=None, path=None, 
         alert=True, to_name=None, from_name=None, html_path=None,
-        make_scatter=False,
+        make_scatter=False, cut_flag=None,
         pulse=None, **kwargs):
     """
     """
     import os
+    import re
     import numpy as np
     import pandas as pd
     import xarray as xr
     from requests import post
     from os import environ
     update_url = environ.get('BATCH_UPDATE_URL')
+    _seq_evtCodes = range(67,99)+range(167,199)+range(201,217)
 
     if not path:
         if not exp:
@@ -602,16 +604,53 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
         try:
             energy_mean= xdrop.EBeam_ebeamPhotonEnergy.where(xdrop.XrayOn, drop=True).values.mean()
             energy_std= xdrop.EBeam_ebeamPhotonEnergy.where(xdrop.XrayOn, drop=True).values.std()
-            report_notes.append('Energy = {:5.0f}+={:4.0f} eV'.format(energy_mean, energy_std))
+            report_notes.append('Energy = {:6.1f}+={:5.1f} eV'.format(energy_mean, energy_std))
             charge_mean= xdrop.EBeam_ebeamCharge.where(xdrop.XrayOn, drop=True).values.mean()
             charge_std= xdrop.EBeam_ebeamCharge.where(xdrop.XrayOn, drop=True).values.std()
-            report_notes.append('Charge = {:5.2f}+={:4.2f} mA'.format(charge_mean, charge_std))
+            report_notes.append('Charge = {:6.3f}+={:5.3f} mA'.format(charge_mean, charge_std))
+            report_notes.append('')
         except:
             pass
 
+        try:
+            nevents = int(xdrop.time.count()) 
+            code_flags = [a for a in xdrop.coords if a.startswith('ec') \
+                    and int(a.lstrip('ec')) in _seq_evtCodes \
+                    and xdrop[a].sum()<nevents]
+            report_notes.append('Event Types:')
+            report_notes.append('-'*40)
+            for code in code_flags+['ec162']:
+                doc = xdrop[code].attrs.get('doc','').lstrip('event code for ')
+                nec = int(xdrop[code].sum())
+                ecfrac = nec/float(nevents)
+                report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec, code, ecfrac*100., doc)
+                report_notes.append(report_str)
+            report_notes.append('')
+            try:
+                if code_flags:
+                    flag_names = []
+                    for code in code_flags:
+                        flag_name = xdrop[code].attrs.get('doc','').lstrip('event code for ')
+                        flag_name = re.sub('-|:|\.| ','_', flag_name).replace('"','').replace('__','_').replace('__','_')
+                        xdrop.coords[flag_name] = xdrop[code]
+                        flag_names.append(flag_name)
+                    if len(code_flags) > 1:
+                        df_codes = xdrop.reset_coords()[flag_names].to_dataframe().sum()
+                        if df_codes.sum() == nevents:
+                            cut_flag = df_codes.argmax()
+                            flag_inds = range(len(flag_names))
+                            xdrop['tag'] = (['time'], np.zeros(nevents, dtype=int))
+                            xdrop.coords['tag_name'] = (('tag'), flag_names)
+                            for i in flag_inds:
+                                xdrop['tag'][xdrop[flag_names[i]] == 1] = i
+            except:
+                print('Cannot process code_flags {:}'.format(code_flags))
+        except:
+            print('Cannot detect code_flags')
+
         report_notes.append('Report includes:')
         
-        b._xstats = b.add_delta_beam(pulse=pulse)
+        b._xstats = b.add_delta_beam(pulse=pulse, cut=cut_flag)
         corr_attrs = xdrop.attrs.get('beam_corr_detected')
         print('Beam Correlations Detected {:}'.format(corr_attrs))
         if corr_attrs:
@@ -635,7 +674,7 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
                         make_timeplot=False, make_histplot=False, make_table=False, 
                         make_scatter=make_scatter)
                 except:
-                    traceback.print_exc('Cannot make beam correlations {;}'.format(attrs))
+                    traceback.print_exc('Cannot make beam correlations {:}'.format(corr_attrs))
 
         webattrs = [instrument.upper(), expNum, exp, report_name, 'report.html'] 
         weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
@@ -681,6 +720,21 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
                     report_notes.append('    + '+a)
         except:
             beam_detectors = []
+
+        try:
+            warning_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.beam_warning_detected])))
+            if warning_detectors:
+                batch_str = ', '.join([attr for attr in warning_detectors])
+                #batch_str = ', '.join(['<a href={:}#{:}_data>{:}</a>'.format(weblink, attr,attr) \
+                #                        for attr in warning_detectors])
+                #batch_attr = '<a href={:}#{:}_data>{:}</a>'.format(weblink, "%20Beam%20Warnings", 'Beam Warnings detected')
+                #batch_counters[batch_attr] = [batch_str, 'green']
+                batch_counters['Beam warnings'] = [batch_str, 'green']
+                report_notes.append(' - Beam Warnings: '+str(warning_detectors))
+                for a in sorted(xdrop.beam_warning_detected):
+                    report_notes.append('    + '+a)
+        except:
+            warning_detectors = []
 
         if config_info:
             report_notes.append('')
