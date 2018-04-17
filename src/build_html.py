@@ -628,7 +628,7 @@ class Build_html(object):
 
         self.results = {}
 
-        if xdat:
+        if xdat is not None:
             if xdat.__class__.__name__ == 'DataSource':
                 # 1st arg is actually PyDataSource.DataSource
                 ds = xdat
@@ -643,7 +643,7 @@ class Build_html(object):
                 print('or alternatively exp and run kwargs')
                 return
 
-        if xdat:
+        if xdat is not None:
             self._xdat = xdat
         else:
             self.logger.info('Building xarray data')

@@ -1,8 +1,9 @@
 #!/bin/bash
 
-export PYTHONPATH=
+unset PYTHONPATH
+unset LD_LIBRARY_PATH
 
-source /reg/g/psdm/bin/conda_setup "" > /dev/null
+source /reg/g/psdm/etc/psconda.sh  > /dev/null
 
 args="$@"
 

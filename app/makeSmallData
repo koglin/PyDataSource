@@ -15,7 +15,6 @@ EOF
 RUN=-1
 EXP='xxx'
 QUEUE=psanaq
-DIRNAME='xxx'
 
 while getopts "e:r:h" OPTION
 do
@@ -30,12 +29,17 @@ do
 	e)
 	    EXP=$OPTARG
 	    ;;
+    d)  DIRNAME=$OPTARG
+        ;;
 	?)
 	    usage
 	    exit
 	    ;;
 	esac
 done
+
+: ${DIRNAME:="scratch"}
+#: ${DIRNAME:="ftc"}
 
 if [ $RUN -le 0 ]; then
     echo 'we need a run as input, use -r option'
@@ -58,8 +62,8 @@ fi
 
 for NRUN in $RUNS;
 do
-    FTC=`echo $NRUN | sed s:\/xtc:\/ftc:g | sed s/.xtc/.smd.xtc/g`
-    LOGDIR='/reg/d/psdm/'$HUTCH'/'$EXP'/ftc/smallDataLogs'
+    FTC=`echo $NRUN | sed s:\/xtc:\/$DIRNAME:g | sed s/.xtc/.smd.xtc/g`
+    LOGDIR='/reg/d/psdm/'$HUTCH'/'$EXP'/'$DIRNAME'/smallDataLogs'
     LOG=$LOGDIR'/log_run'$RUN'_%J.log'
     if [ ! -d  $LOGDIR ]; then
 	echo 'now we will make ' $LOGDIR

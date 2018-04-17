@@ -640,7 +640,8 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
                             cut_flag = df_codes.argmax()
                             flag_inds = range(len(flag_names))
                             xdrop['tag'] = (['time'], np.zeros(nevents, dtype=int))
-                            xdrop.coords['tag_name'] = (('tag'), flag_names)
+                            #xdrop.coords['tag_name'] = (('tag'), flag_names)
+                            xdrop.attrs['tag_names'] = flag_names
                             for i in flag_inds:
                                 xdrop['tag'][xdrop[flag_names[i]] == 1] = i
             except:
