@@ -69,6 +69,7 @@ class DataSourceInfo(object):
                      'exp':           None, 
                      'h5':            None,
                      'run':           0,
+                     'stream':        None,
                      'smd':           None, 
                      'station':       0,
                      'idx':           None,
@@ -109,7 +110,7 @@ class DataSourceInfo(object):
 
 #        inst_id = '{:}:{:}'.format(self.instrument.upper(), self.station)
 
-    def _set_data_source(self, data_source=None, **kwargs): 
+    def _set_data_source(self, data_source=None, valid_streams=True, **kwargs): 
         self._set_exp_defaults(**kwargs)
 
         if self.monshmserver:
@@ -128,6 +129,8 @@ class DataSourceInfo(object):
 
                 if len(items) == 2:
                     value = items[1]
+                    if key in ['run', 'station']:
+                        value = int(value)
                     setattr(self, key, value)
                 else:
                     setattr(self, key, True)
@@ -138,7 +141,22 @@ class DataSourceInfo(object):
                 self.instrument = self.exp[0:3]
      
                 data_source = "exp={exp}:run={run}".format(exp=self.exp,run=self.run)
-                
+               
+                stream = None
+                if self.stream:
+                    if isinstance(self.stream, list):
+                        stream = ','.join([str(a) for a in self.stream]) 
+                    else:
+                        stream = str(self.stream)
+                elif valid_streams:
+                    import psutils
+                    stream = psutils.run_available(exp=self.exp,run=self.run, valid_streams=True)
+                    if stream:
+                        stream = ','.join([str(a) for a in stream]) 
+
+                if stream:
+                    data_source += ":stream={:}".format(stream)
+
                 if self.ffb:
                     data_source += ":one-stream"
                 elif self.h5:

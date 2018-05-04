@@ -140,8 +140,16 @@ def build_drop_stats(x, min_detected=2,
     try:
         from PyDataSource import DataSource
         ds = DataSource(exp=exp,run=run)
-        config_info = str(ds.configData.show_info())
+        config_info = str(ds.configData.show_info(show_codes=False))
         print(config_info)
+        ievt = 0
+        evt = ds.events.next()
+        # make sure in all detectors have been seen to get full det config
+        for det, detector in ds._detectors.items(): 
+            while det not in evt._attrs and ievt < min([1000,ds.nevents]):
+                evt.next(publish=False, init=False)
+                if evt.Evr.eventCodes:
+                    ievt += 1
     except:
         config_info = None
         traceback.print_exc('Cannot get data source information for {:} Run {:}'.format(exp,run))
@@ -209,14 +217,18 @@ def build_drop_stats(x, min_detected=2,
                 df = df.T.rename({a: '_'.join(a.split('_')[1:]) for a in attrs}).T
                 b.add_table(df, attr_cat, tbl_type, tbl_type, doc=doc, howto=howto, hidden=True)
             
-#        if config_info:
-#            report_notes.append('')
-#            report_notes.append(config_info)
-#            print(report_notes)
-#        else:
-#            print('No config info')
+        try:
+            if config_info:
+                report_notes.append('')
+                report_notes.append(config_info)
+                print(report_notes)
+            else:
+                print('No config info')
+        except:
+            traceback.print_exc('Cannot add config information')
+            print(config_info)
 
-        b.to_html(h5file=h5file, report_notes=report_notes)
+        b.to_html(h5file=h5file, report_notes=report_notes, show_event_access=True)
 
         if update_url:
             try:
@@ -224,7 +236,6 @@ def build_drop_stats(x, min_detected=2,
                 post(update_url, json={'counters' : batch_counters})
             except:
                 traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
-
 
         if not to_name:
             if isinstance(alert, list) or isinstance(alert, str):
@@ -274,7 +285,7 @@ def build_drop_stats(x, min_detected=2,
 
 def get_beam_stats(exp, run, default_modules={}, 
         flatten=True, refresh=True,
-        drop_code='ec162', drop_attr='delta_drop', nearest=5, drop_min=3,  
+        drop_code='ec162', drop_attr='delta_drop', nearest=None, drop_min=3,  
         report_name=None, path=None, engine='h5netcdf', 
         wait=None, timeout=False,
         **kwargs):
@@ -290,7 +301,8 @@ def get_beam_stats(exp, run, default_modules={},
         Name for number of shots off from dropped shot.
     
     nearest : int
-        Number of nearest events to dropped shot to analayze
+        Number of nearest events to dropped shot to analayze 
+        [default=5 unless rate=10 Hz, then nearest=10]
 
     drop_min : int
         Minumum number of dropped shots to perform analysis
@@ -317,10 +329,10 @@ def get_beam_stats(exp, run, default_modules={},
 #        batch_counters = {'Status': ['Loading small data...','yellow']}
 #        post(update_url, json={'counters' : batch_counters})
     
-    x = load_small_xarray(ds, refresh=refresh, path=path)
+    xsmd = load_small_xarray(ds, refresh=refresh, path=path)
    
     nevents = ds.nevents
-    if drop_code not in x or not x[drop_code].values.any():
+    if drop_code not in xsmd or not xsmd[drop_code].values.any():
         logger.info('Skipping beam stats analysis for {:}'.format(ds))
         logger.info('  -- No {:} present in data'.format(drop_code))
         try:
@@ -331,10 +343,26 @@ def get_beam_stats(exp, run, default_modules={},
         except:
             traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
 
-        return x
+        return xsmd
 
-    set_delta_beam(x, code=drop_code, attr=drop_attr)
-    xdrop = x.where(abs(x[drop_attr]) <= nearest, drop=True)
+    set_delta_beam(xsmd, code=drop_code, attr=drop_attr)
+    if not nearest:
+        nearest=5
+        xdrop = xsmd.where(abs(xsmd[drop_attr]) <= nearest, drop=True)
+        if xdrop[drop_code].values.all():
+            nearest=12
+            xdrop = xsmd.where(abs(xsmd[drop_attr]) <= nearest, drop=True)
+            if xdrop[drop_code].values.all():
+                logger.info('Skipping beam stats analysis for {:}'.format(ds))
+                logger.info('  -- only {:} events with {:} in {:} events'.format(ndrop, drop_code, nevents))
+                batch_counters = {'Warning': ['Low event rate: {:} dropped shots present in {:} events'.format(ndrop, nevents), 'red']}
+                print('Setting batch job counter output: {:}'.format(batch_counters))
+                if update_url:
+                    post(update_url, json={'counters' : batch_counters})
+                return xdrop 
+    else:
+        xdrop = xsmd.where(abs(xsmd[drop_attr]) <= nearest, drop=True)
+    
     ntimes = xdrop.time.size
     try:
         ndrop = int(np.sum(xdrop.get(drop_code)))
@@ -352,10 +380,12 @@ def get_beam_stats(exp, run, default_modules={},
         except:
             traceback.print_exc('Cannot update batch submission json counter info to {:}'.format(update_url))
         
-        return x
+        return xsmd
 
     dets = {}
     flatten_list = []
+    area_dets = []
+    wf_dets =[]
     for det, detector in ds._detectors.items():
         methods = {}
         try:
@@ -376,6 +406,7 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['doc'] = '{:} sum of raw data'.format(det)
                     xdrop[name].attrs['unit'] = 'ADU'
                     xdrop[name].attrs['alias'] = det
+                    area_dets.append(name)
                 else:
                     method = 'count'
                     name = '_'.join([det, method])
@@ -384,6 +415,7 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['doc'] = '{:} sum of pedestal corrected data'.format(det)
                     xdrop[name].attrs['unit'] = 'ADU'
                     xdrop[name].attrs['alias'] = det
+                    area_dets.append(name)
 
             elif detector._pydet.__module__ == 'Detector.GenericWFDetector':
                 srcstr = detector._srcstr 
@@ -399,6 +431,7 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['doc'] = 'BeamMonitor {:}'.format(method.replace('_',' '))
                     xdrop[name].attrs['unit'] = 'V'
                     xdrop[name].attrs['alias'] = det
+                    wf_dets.append(name)
 
             elif detector._pydet.__module__ == 'Detector.WFDetector':
                 srcstr = detector._srcstr 
@@ -413,6 +446,7 @@ def get_beam_stats(exp, run, default_modules={},
                         xdrop[name].attrs['doc'] = 'Acqiris {:}'.format(method.replace('_',' '))
                         xdrop[name].attrs['unit'] = 'V'
                         xdrop[name].attrs['alias'] = det
+                        wf_dets.append(name)
                 
                 elif devName == 'Imp':
                     nch = 4
@@ -424,6 +458,7 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['doc'] = 'IMP filtered amplitudes'
                     xdrop[name].attrs['unit'] = 'V'
                     xdrop[name].attrs['alias'] = det
+                    wf_dets.append(name)
  
             elif detector._pydet.__module__ == 'Detector.UsdUsbDetector':
                 srcstr = detector._srcstr 
@@ -454,7 +489,9 @@ def get_beam_stats(exp, run, default_modules={},
         
         if methods:
             dets[det] = methods
-    
+            xdrop.attrs['waveform_detectors'] = wf_dets
+            xdrop.attrs['area_detectors'] = area_dets
+
     print('-'*80)
     print(xdrop)
     print('-'*80)
@@ -518,7 +555,8 @@ def get_beam_stats(exp, run, default_modules={},
     h5file = os.path.join(path,report_name+'.nc')
    
     print('Build {:} {:} {:}'.format(exp,run, xdrop))
-    b = build_beam_stats(exp=exp, run=run, xdrop=xdrop, 
+    b = build_beam_stats(exp=exp, run=run, xdrop=xdrop, xsmd=xsmd, 
+            nearest=nearest,
             report_name=report_name, h5file=h5file, path=path, **kwargs)
     
     try:
@@ -530,10 +568,13 @@ def get_beam_stats(exp, run, default_modules={},
    
     return xdrop
 
-def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
+def build_beam_stats(exp=None, run=None, 
+        xdrop=None, xsmd=None, 
+        instrument=None,
         report_name=None, h5file=None, path=None, 
         alert=True, to_name=None, from_name=None, html_path=None,
         make_scatter=False, cut_flag=None,
+        nearest=5,
         pulse=None, **kwargs):
     """
     """
@@ -546,24 +587,25 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
     from os import environ
     update_url = environ.get('BATCH_UPDATE_URL')
     _seq_evtCodes = range(67,99)+range(167,199)+range(201,217)
+    batch_counters = {}
 
     if not path:
         if not exp:
-            exp = str(xdrop.attrs.experiment)
+            exp = str(xdrop.attrs['experiment'])
         if not instrument:
             if xdrop is None:
                 instrument = exp[:3]
             else:
-                instrument = str(xdrop.attrs.instrument)
+                instrument = str(xdrop.attrs['instrument'])
 
         path = os.path.join('/reg/d/psdm/',instrument,exp,'results','nc')
 
     if not run:
-        if not xdrop:
+        if xdrop is None:
             print('Error:  Need to specify exp and run or alternatively xdrop DataSet') 
             return None
         else:
-            run = xdrop.attrs.run
+            run = xdrop.attrs['run']
 
     if not report_name:
         report_name = 'run{:04}_drop_stats'.format(run)
@@ -571,7 +613,7 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
     if not h5file:
         h5file = os.path.join(path,report_name+'.nc')
  
-    if not xdrop:
+    if xdrop is None:
         import xarray as xr
         xdrop = xr.open_dataset(h5file, engine='h5netcdf')
 
@@ -579,11 +621,13 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
     instrument = xdrop.attrs.get('instrument')
     run = xdrop.attrs.get('run')
     expNum = xdrop.attrs.get('expNum')
+    webattrs = [instrument.upper(), expNum, exp, report_name, 'report.html'] 
+    weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
 
     try:
         from PyDataSource import DataSource
         ds = DataSource(exp=exp,run=run)
-        config_info = str(ds.configData.show_info())
+        config_info = str(ds.configData.show_info(show_codes=False))
         print(config_info)
     except:
         config_info = None
@@ -601,6 +645,7 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
             xdrop.coords['XrayOn'].attrs['doc'] = 'Xray On for events without {:}'.format(drop_attr)
 
         report_notes = []
+        # X-ray Energy and Charge information
         try:
             energy_mean= xdrop.EBeam_ebeamPhotonEnergy.where(xdrop.XrayOn, drop=True).values.mean()
             energy_std= xdrop.EBeam_ebeamPhotonEnergy.where(xdrop.XrayOn, drop=True).values.std()
@@ -612,12 +657,29 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
         except:
             pass
 
+        # Event code flags
         try:
             nevents = int(xdrop.time.count()) 
             code_flags = [a for a in xdrop.coords if a.startswith('ec') \
                     and int(a.lstrip('ec')) in _seq_evtCodes \
                     and xdrop[a].sum()<nevents]
-            report_notes.append('Event Types:')
+            if xsmd is not None:
+                nsmd = int(xsmd.time.count()) 
+                report_str = 'Event Types in All Run Events: {:} Total'.format(nsmd)
+                report_notes.append(report_str)
+                report_notes.append('-'*40)
+                for code in code_flags+['ec162']:
+                    doc = xdrop[code].attrs.get('doc','').lstrip('event code for ')
+                    nec_smd = int(xsmd[code].sum())
+                    ecfrac_smd = nec_smd/float(nsmd)
+                    report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec_smd, code, ecfrac_smd*100., doc)
+                    report_notes.append(report_str)
+                report_notes.append('')
+           
+            
+            report_str = 'Event Types in Dropped Shot Analysis: {:} of {:} ({:5.1f}%)'.format(nevents, 
+                            nsmd, float(nevents)/float(nsmd)*100.)
+            report_notes.append(report_str)
             report_notes.append('-'*40)
             for code in code_flags+['ec162']:
                 doc = xdrop[code].attrs.get('doc','').lstrip('event code for ')
@@ -639,19 +701,52 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
                         if df_codes.sum() == nevents:
                             cut_flag = df_codes.argmax()
                             flag_inds = range(len(flag_names))
-                            xdrop['tag'] = (['time'], np.zeros(nevents, dtype=int))
+                            xdrop.coords['tag'] = (['time'], np.zeros(nevents, dtype=int))
                             #xdrop.coords['tag_name'] = (('tag'), flag_names)
                             xdrop.attrs['tag_names'] = flag_names
                             for i in flag_inds:
-                                xdrop['tag'][xdrop[flag_names[i]] == 1] = i
+                                xdrop.coords['tag'][xdrop[flag_names[i]] == 1] = i
             except:
                 print('Cannot process code_flags {:}'.format(code_flags))
+                traceback.print_exc('Cannot process code_flags {:}'.format(code_flags))
         except:
             print('Cannot detect code_flags')
+            traceback.print_exc('Cannot detect code_flags')
+
+        # Timing and config alerts
+        try:
+            configCheck = ds.configData.configCheck
+            report_config = False
+            det_errors = [] 
+            if configCheck.alerts:
+                det_errors += configCheck.alerts.keys()
+#                report_config = True
+#                batch_attr = '<a href={:}#{:}>{:}</a>'.format(weblink, 'Report_Notes', 'Timing Config Alerts')
+#                batch_str = ','.join(set(configCheck.alerts.keys()))
+#                batch_counters[batch_attr] = [batch_str, 'red']
+            if configCheck.warnings:
+                det_errors += configCheck.warnings.keys()
+#                report_config = True
+#                batch_str = ','.join(set(configCheck.warnings.keys()))
+#                batch_attr = '<a href={:}#{:}>{:}</a>'.format(weblink, 'Report_Notes', 'Timing Config Warnings')
+#                batch_counters[batch_attr] = [batch_str, 'red']
+            #if report_config:
+            if det_errors:
+                batch_str = ', '.join(set(det_errors))
+                batch_attr = '<a href={:}#{:}>{:}</a>'.format(weblink, 'Report_Notes', 'Timing Config Errors')
+                batch_counters[batch_attr] = [batch_str, 'red']
+                report_notes.append('Detector Timing and Config Errors:')
+                report_notes.append('----------------------------------')
+                report_notes.append(str(configCheck.show_info()))
+                report_notes.append('')
+                print(report_notes)
+        except:
+            print('Cannot check timing and config alerts')
 
         report_notes.append('Report includes:')
-        
-        b._xstats = b.add_delta_beam(pulse=pulse, cut=cut_flag)
+      
+       
+        b._xstats = b.add_delta_beam(pulse=pulse, cut=cut_flag, nearest=nearest)
         corr_attrs = xdrop.attrs.get('beam_corr_detected')
         print('Beam Correlations Detected {:}'.format(corr_attrs))
         if corr_attrs:
@@ -677,10 +772,15 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
                 except:
                     traceback.print_exc('Cannot make beam correlations {:}'.format(corr_attrs))
 
-        webattrs = [instrument.upper(), expNum, exp, report_name, 'report.html'] 
-        weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
         #batch_counters['report'] = ['See <a href={:}>Run{:04} Report</a>'.format(weblink,run),'blue']
-        batch_counters = {}
+
+        try:
+            for alias in ds.configData._config_srcs:
+                config_data = getattr(ds.configData, alias)
+                b.add_textblock(str(config_data.show_info()),alias,'config',alias+'_config')
+        except:
+            print('Cannot add detector configurations')
+ 
         try:
             offbyone_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.timing_error_detected])))
             if offbyone_detectors:
@@ -746,7 +846,7 @@ def build_beam_stats(exp=None, run=None, xdrop=None, instrument=None,
 
         if b.results:
             # only make reports if not empty
-            b.to_html(h5file=h5file, report_notes=report_notes)
+            b.to_html(h5file=h5file, report_notes=report_notes, show_event_access=True)
 
         if update_url:
             try:
@@ -838,6 +938,7 @@ def load_small_xarray(ds, path=None, filename=None, refresh=False,
 def make_small_xarray(self, auto_update=True,
         add_dets=True, add_counts=False, add_1d=True,
         ignore_unused_codes=True,
+        ignore_attrs=['timestamp','numChannels','digital_in'],
         drop_code='ec162', drop_attr='delta_drop', 
         path=None, filename=None, save=True, engine='h5netcdf', 
         nevents=None):
@@ -925,6 +1026,9 @@ def make_small_xarray(self, auto_update=True,
                     attrs = {}
                     attrs1d = {}
                     for attr, vals in attr_info.items():
+                        if attr in ignore_attrs:
+                            #ignore some attrs, e.g., timestamp
+                            continue
                         try:
                             b = list(vals[1])
                         except:
@@ -963,8 +1067,16 @@ def make_small_xarray(self, auto_update=True,
     logger.info('Loading Scalar: {:}'.format(dets.keys()))
     if add_1d:
         logger.info('Loading 1D: {:}'.format(dets1d.keys()))
-    for i, evt in enumerate(self.events):       
+    i = 0
+    for evt in self.events:       
+        # Skip events without event code with are only controls cameras 
+        # nevents in ds does not include controls cameras
+        if not evt.Evr.eventCodes:
+            continue
+
+        # break at nevents 
         if i >= nevents:
+            logger.info('Breaking event loop at event {:} with more events available in DataSource'.format(i))
             break
         if i % nupdate == nupdate-1:
             time_next = time.time()
@@ -995,6 +1107,7 @@ def make_small_xarray(self, auto_update=True,
                                 data1d[name][i] = getattr(detector, attr)
                             except:
                                 pass
+        i += 1
 
     df = pd.DataFrame(data)
     x = df.to_xarray()
@@ -1006,8 +1119,20 @@ def make_small_xarray(self, auto_update=True,
     x.attrs['experiment'] = self.data_source.exp
     x.attrs['expNum'] = self.expNum
     # add attributes
+    self.reload()
+    evt = self.events.next()
     for det, item in dets.items():
         detector = self._detectors.get(det)
+        # get next event with detector in event
+        # needed when controls cameras and/or groups present
+        try:
+            detector.next()
+        except:
+            self.reload()
+            try:
+                detector.next()
+            except:
+                print('Cannot load attributes for {:}'.format(det))
         if det == 'EventId':
             continue
         try:
@@ -1015,10 +1140,10 @@ def make_small_xarray(self, auto_update=True,
             det_info = detector._xarray_info['dims']
             for name, attr in item['names'].items():
                 info = det_info.get(attr, ([],(),{},))
+                x[name].attrs['attr'] = attr
+                x[name].attrs['alias'] = det
                 if len(info) == 3:
                     attrs = info[2]
-                    x[name].attrs['attr'] = attr
-                    x[name].attrs['alias'] = det
                     x[name].attrs.update(attrs)
         except:
             logger.info('Error updating scalar data for {:}: {:}'.format(det, item))

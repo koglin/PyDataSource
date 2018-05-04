@@ -392,7 +392,7 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
     import xarray as xr
     import pandas as pd
     xstats = xr.Dataset()
-    attrs = [a for a in xo if xo[a].dims == ('time',)]
+    attrs = [a for a in xo.variables if xo[a].dims == ('time',)]
     xds = xo[attrs].load()
     xo.attrs['drop_shot_detected'] = []
     xo.attrs['timing_error_detected'] = []
@@ -583,6 +583,8 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
 
         except:
             traceback.print_exc()
+            print 'xmean', xmean
+            print 'xstd', xstd
             print 'Cannot calc stats for', attr, ishot
         
     for avar, da in xo.data_vars.items():

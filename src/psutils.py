@@ -226,7 +226,8 @@ def get_run_from_id(run_id, exp):
 
     return run
 
-def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=None, path=None):
+def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=None, path=None, 
+        all_streams=False, valid_streams=False):
     """
     Check if run is available
 
@@ -234,6 +235,10 @@ def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=N
     ---------
     offline : bool
         Check if offline if True 
+    valid_streams : bool
+        Return list of valid streams with non-zero size if True
+    all_streams : bool
+        Return list of all streams if True
     """
     import glob, os
     from RegDB import experiment_info
@@ -260,6 +265,7 @@ def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=N
     else:
         xtc_files = glob.glob(path+'/*.xtc')
 
+    streams = [] 
     for item in file_list:
         if idx:
             name = '{:}/index/e{:}-r{:04}-s{:02}-c{:02}.xtc.idx'.format(path,expNum,item['run'],item['stream'],item['chunk'])
@@ -267,8 +273,16 @@ def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=N
             name = '{:}/e{:}-r{:04}-s{:02}-c{:02}.xtc'.format(path,expNum,item['run'],item['stream'],item['chunk'])
         if name not in xtc_files:
             return False
+        else:
+            if valid_streams and os.path.getsize(name):
+                streams.append(item['stream'])
+            elif all_streams:
+                streams.append(item['stream'])
 
-    return True
+    if valid_streams or all_streams:
+        return streams
+    else:
+        return True
 
 def get_runs(exp, instrument=None):
     """

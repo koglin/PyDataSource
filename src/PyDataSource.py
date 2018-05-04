@@ -878,6 +878,15 @@ class DataSource(object):
         if self.data_source.idx:
             self.runs = Runs(self, **kwargs)
             self.events = self.runs.next().events
+            if not reload:
+                self._idx_nsteps = self.runs.current.nsteps
+                self._idx_times = self.runs.current.times
+                self.nevents = len(self._idx_times)
+                self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
+                                        for a in self._idx_times]
+                self._idx_datetime64 = [np.datetime64(int(sec*1e9+nsec), 'ns') \
+                                        for sec,nsec,fid in self._idx_times_tuple]
+
             if 'BldInfo(EBeam)' not in self.configData._sources:
                 try:
                     self.add_detector('BldInfo(EBeam)', alias='EBeam')
@@ -2458,7 +2467,7 @@ class ConfigData(object):
     _configStore_attrs = ['get','put','keys']
     # Alias default provides way to keep aliases consistent for controls devices like the FEE_Spec
     _alias_defaults = {
-            'BldInfo(FEE-SPEC0)':       'FEE_Spec',
+            'BldInfo(FEE-SPEC0)':       'FEE_Spec0',
             'BldInfo(NH2-SB1-IPM-01)':  'Nh2Sb1_Ipm1',
             'BldInfo(NH2-SB1-IPM-02)':  'Nh2Sb1_Ipm2',
             'BldInfo(MFX-BEAMMON-01)':  'MfxBeammon',
@@ -2746,6 +2755,12 @@ class ConfigData(object):
             config = self._config[str(src)]
             self._smlData = config._values
 
+        try:
+            import config_check
+            self.configCheck = config_check.ConfigCheck(self)
+        except:
+            traceback.print_exc()
+
     def _init_arch(self):
         """
         Epics Archive access
@@ -2753,10 +2768,13 @@ class ConfigData(object):
         import pandas as pd
         from epicsarchive import EpicsArchive
         self._arch = EpicsArchive()
-        dt = pd.Timestamp(min(self._ds._idx_datetime64))
-        self._tstart = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
-        dt = pd.Timestamp(max(self._ds._idx_datetime64))
-        self._tend = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+        try:
+            dt = pd.Timestamp(min(self._ds._idx_datetime64))
+            self._tstart = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+            dt = pd.Timestamp(max(self._ds._idx_datetime64))
+            self._tend = [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
+        except:
+            pass
 
     def _get_pv_from_arch(self, pv, tstart=None, tend=None):
         if not tstart:
@@ -2805,7 +2823,7 @@ class ConfigData(object):
 
         return self._ds._scanData
 
-    def show_info(self, **kwargs):
+    def show_info(self, show_codes=True, **kwargs):
         """
         Show Detector Source information.
         """
@@ -2813,8 +2831,13 @@ class ConfigData(object):
         message('-'*80)
         message('Source Information:')
         message('-'*18)
-        self.Sources.show_info(append=True)
-        
+        self.Sources.show_info(append=True, **kwargs)
+        if show_codes:
+            message('-'*80)
+            message('Event Code Information:')
+            message('-'*18)
+            self.Sources.show_eventCodes(append=True)
+ 
         return message
 
     def get_info(self, **kwargs):
@@ -2832,10 +2855,6 @@ class ConfigData(object):
         message('Source Information:')
         message('-'*18)
         self.Sources.show_info(append=True)
-#        message('-'*80)
-#        message('Event Code Information:')
-#        message('-'*18)
-#        self.Sources.show_eventCodes(append=True)
         message('') 
         message('-'*80)
         message('Scan Data:')
@@ -3111,7 +3130,7 @@ class ConfigSources(object):
         self._configData = configData
         self._eventcodes = configData._eventcodes
 
-    def show_info(self, show_codes=True, **kwargs):
+    def show_info(self, **kwargs):
         message = Message(quiet=True, **kwargs)
         message('*Detectors in group 0 are "BLD" data recorded at 120 Hz on event code 40')
         if self._monshmserver:
@@ -3119,10 +3138,10 @@ class ConfigSources(object):
         else:
             message('*Detectors listed as Controls are controls devices with unknown event code (but likely 40).')
         message('')
-        header =  '{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:26}'.format('Alias', 'Group', 
-                 'Description', 'Code', 'Pol.', 'Delay [s]', 'Width [s]', 'Source') 
+        header =  '{:20} {:>3} {:>13} {:>4} {:>3} {:>11} {:>11} {:30}'.format('Alias', 'Grp', 
+                 'Description', 'Code', 'Pol', 'Delay [s]', 'Width [s]', 'Source') 
         message(header)
-        message('-'*(len(header)+10))
+        message('-'*(len(header)))
         data_srcs = {item['alias']: s for s,item in self._sources.items() \
                        if s in self._cfg_srcs or s.startswith('Bld')}
         
@@ -3165,16 +3184,10 @@ class ConfigSources(object):
             except:
                 description = rate
 
-            message('{:22} {:>8} {:>13} {:>5} {:>5} {:12} {:12} {:40}'.format(alias, 
+            message('{:20} {:>3} {:>13} {:>4} {:>3} {:>11} {:>11} {:30}'.format(alias, 
                    group, description, eventCode, polarity, delay, width, srcstr))
                    #group, rate, eventCode, polarity, delay, width, srcstr))
-
-        if show_codes:
-            message('-'*80)
-            message('Event Code Information:')
-            message('-'*18)
-            self.show_eventCodes(append=True)
-        
+       
         return message
 
     def show_eventCodes(self, **kwargs):
@@ -3259,8 +3272,9 @@ class SourceData(object):
 
     def show_info(self, **kwargs):
         message = Message(quiet=True, **kwargs)
-        for attr in self._source:
-            val = self._source[attr]
+        for attr, val in sorted(self._source.items(), key=operator.itemgetter(0)):
+#        for attr in self._source:
+#            val = self._source[attr]
             if attr in self._units:
                 val = '{:10.9f}'.format(val)
             item = [attr, val, self._units.get(attr, ''), self._doc.get(attr, '')]
@@ -3770,7 +3784,7 @@ class Detector(object):
 
         # xarray dims
         if self.src == 'BldInfo(FEE-SPEC0)':
-            dims_dict = {attr: ([], ()) for attr in ['integral', 'npeaks']}
+            dims_dict = {attr: ([], ()) for attr in ['integral']}
             dims_dict['hproj'] = (['X'], self.hproj.shape)
 
         elif self._det_class == GenericWaveformData:
@@ -6636,7 +6650,8 @@ class EpicsConfig(object):
 
     def show_info(self, **kwargs):
         message = Message(quiet=True, **kwargs)
-        for alias, items in self._pvs.items():
+        #for alias, items in self._pvs.items():
+        for alias, items in sorted(self._pvs.items(), key=operator.itemgetter(0)):
             message('{:18s} {:}'.format(alias, item.pvId))
 
         return message

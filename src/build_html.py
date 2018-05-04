@@ -1025,6 +1025,7 @@ class Build_html(object):
             delta_beam = aattrs.get('delta_beam')
             delta_beam_pvalue = aattrs.get('delta_beam_pvalue')
             timing_error_detected = aattrs.get('timing_error_detected')
+            dropped_shot_detected = aattrs.get('dropped_shot_detected')
             if catagory:
                 attr_cat = catagory
                 plt_type = attr 
@@ -1037,11 +1038,17 @@ class Build_html(object):
                     plt_type = attr+' Timing'
                     sformat='Timing offset by {:} detected relative to {:}' 
                     doc.append(sformat.format(delta_beam, code))
+                elif dropped_shot_detected:
+                    attr_cat = alias
+                    plt_type = attr_attr+' Detected Dropped Shot'
+                    tbl_type = attr_attr+' Detected Dropped Shot'
+                    sformat='Dropped Shot Detected on {:}' 
+                    doc.append(sformat.format(code))
                 else:
                     attr_cat = alias
                     plt_type = attr_attr+' Dropped Shot'
                     tbl_type = attr_attr+' Dropped Shot'
-                    sformat='Dropped Shot Detected on {:}' 
+                    sformat='No Dropped Shot on {:}' 
                     doc.append(sformat.format(code))
 
             if attr_cat not in setup_added:
@@ -1450,7 +1457,7 @@ class Build_html(object):
                 
                 # Need to add in howto print formatted df_attrs, but tricky
                 self.results[catagory]['table'].update({'attrs': {'DataFrame': df_attrs, 'name': 'df_attrs',
-                            'format': {'unit': '{:<10s}', 'doc': '{:<69s}'}}})
+                            'format': {'unit': '{:<10s}', 'doc': '{:<60s}'}}})
                 
                 df.rename(inplace=True, columns=attr_names)
                 howto.append("attr_names={:}".format(attr_names))
@@ -1998,6 +2005,45 @@ class Build_html(object):
             plt.show()
         else:
             plt.close()
+
+
+    def add_textblock(self, data, catagory=None, text_type=None, name=None, howto=[], doc=[]): 
+        """
+        Add a table to the report from the input pandas.DataFrame
+        
+        Parameters
+        ----------
+       
+        data : str or list
+            input data
+
+        catagory : str
+            Plot catagory for organization in html page [Default = alias]
+
+        text_type : str
+            Name describing text type
+
+        howto : list
+            List of strings to describe howto make the table 
+
+        doc : str
+            String to describe the table
+
+        """
+        
+        if not catagory:
+            catagory = 'Tables'
+        if not text_type:
+            text_type = ', '.join(df.columns)
+        if not name:
+            name = catagory+'_'+text_type.replace(' ','_')
+        
+        self._add_catagory(catagory)
+        self.results[catagory]['textblock'].update({text_type: 
+                                                   {'text': data, 
+                                                    'name': name,
+                                                    'howto': howto, 
+                                                    'doc': doc}})
 
     def add_table(self, df, catagory=None, tbl_type=None, name=None, howto=[], doc=[], hidden=False): 
         """
@@ -2949,15 +2995,20 @@ class Build_html(object):
         #self.html.end_subblock()
 
         if 'h5file' in kwargs:
-            self._make_h5file_html(kwargs['h5file'], report_notes=kwargs.get('report_notes'))
+            self._make_h5file_html(**kwargs)
+            #self._make_h5file_html(kwargs['h5file'], report_notes=kwargs.get('report_notes'))
         else:
             self._make_PyDataSource_html()
 
         self.html.end_block()         
  
-    def _make_h5file_html(self, h5file, report_notes=None, engine='h5netcdf', **kwargs):
+    def _make_h5file_html(self, h5file=None, report_notes=None, engine='h5netcdf', 
+            show_event_access=False, **kwargs):
         """Make html notes for accessing hdf5 file (using netCDF format) in xarray.
         """
+        if not h5file:
+            print('Must pass h5file keyword')
+            return
         if report_notes:
             if isinstance(report_notes, list):
                 report_notes = '\n'.join(report_notes)
@@ -2967,7 +3018,7 @@ class Build_html(object):
             self.html.end_subblock()
         self.html.start_subblock('Access the Data', hidden=True)
         self.html.page.p('Analyze run summary data on a psana node using pylab, pandas and xarray:')
-        conda_setup = 'source /reg/g/psdm/bin/conda_setup'
+        conda_setup = '. /reg/g/psdm/etc/psconda.sh'
         self.html.add_textblock('\n'.join([conda_setup, 
                                            'ipython --pylab',
                                            '...',
@@ -2980,6 +3031,20 @@ class Build_html(object):
         self.html.page.p('See <a href="{:}">{:}</a> for details on how to use data using xarray.'.format(weblink,weblink))
 #        weblink='http://pswww.slac.stanford.edu/swdoc/ana/PyDataSource'
 #        self.html.page.p('See <a href="{:}">{:}</a> for details on how to use PyDataSource.'.format(weblink,weblink))
+        if show_event_access: 
+            self.html.page.p('Access event data with PyDataSource python module on a psana node:')
+            conda_setup = '. /reg/g/psdm/etc/psconda.sh'
+            idatasource = 'idatasource --exp {:} --run {:}'.format(self.exp, self.run) 
+            #self.html.add_textblock('\n'.join([ana_env, idatasource]))
+            self.html.add_textblock('\n'.join([conda_setup, idatasource]))
+            self.html.page.p('Where idatasource is a shortcut for starting ipython and loading the event data:')
+            self.html.add_textblock('\n'.join([conda_setup, 
+                                               'ipython --pylab',
+                                               '...',
+                                               'import PyDataSource', 
+                                               'ds = PyDataSource.DataSource(exp="{:}",run={:})'.format(self.exp, self.run)]))
+     
+
         self.html.page.p('For questions and feedback contact koglin@slac.stanford.edu')
         self.html.end_subblock(hidden=True)
  
@@ -2996,7 +3061,7 @@ class Build_html(object):
             self.html.end_subblock()
         self.html.start_subblock('Access the Data', hidden=True)
         self.html.page.p('Access event data with PyDataSource python module on a psana node:')
-        conda_setup = 'source /reg/g/psdm/bin/conda_setup'
+        conda_setup = '. /reg/g/psdm/etc/psconda.sh'
         idatasource = 'idatasource --exp {:} --run {:}'.format(self.exp, self.run) 
         #self.html.add_textblock('\n'.join([ana_env, idatasource]))
         self.html.add_textblock('\n'.join([conda_setup, idatasource]))
@@ -3059,18 +3124,6 @@ class Build_html(object):
                     howto_step = "# Howto {:} {:}:\n".format(name, catagory)
                     howto_step += '\n'.join(howto)
                     ahowto.append(howto_step)
-
-            datatyp = 'textblock'
-            data_items = sorted(item[datatyp].items(), key=operator.itemgetter(0))
-            for name, data in data_items:
-                text = data.get('text')
-                if not isinstance(text, list):
-                    text = [text]
-                text_data = '\n'.join(text)
-                if text_data:
-                    self.html.add_textblock(text_data, 
-                        subblock='{:} {:}'.format(catagory,name), 
-                        hidden=True)
 
             datatyp = 'table'
             data_items = sorted(item[datatyp].items(), key=operator.itemgetter(0))
@@ -3152,6 +3205,18 @@ class Build_html(object):
                     howto_step = "# Howto make the {:} {:} {:}:\n".format(catagory, name, datatyp)
                     howto_step += '\n'.join(howto)
                     ahowto.append(howto_step)
+
+            datatyp = 'textblock'
+            data_items = sorted(item[datatyp].items(), key=operator.itemgetter(0))
+            for name, data in data_items:
+                text = data.get('text')
+                if not isinstance(text, list):
+                    text = [text]
+                text_data = '\n'.join(text)
+                if text_data:
+                    self.html.add_textblock(text_data, 
+                        subblock='{:} {:}'.format(catagory,name), 
+                        hidden=True)
 
             if ahowto:
                 self.html.add_textblock(ahowto, 
