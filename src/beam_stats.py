@@ -106,6 +106,8 @@ def load_exp_sum(exp, instrument=None, path=None, nctype='drop_sum', save=True):
         sum_file = '{:}/drop_summary.nc'.format(path)
         x.attrs['file_name'] = sum_file
         print('Saving drop_summary file: {:}'.format(sum_file))
+        from xarray_utils import clean_dataset
+        x = clean_dataset(x)
         x.to_netcdf(sum_file, engine='h5netcdf')
 
     return x
@@ -310,6 +312,7 @@ def get_beam_stats(exp, run, default_modules={},
 
     """
     from xarray_utils import set_delta_beam
+    from xarray_utils import clean_dataset
     import PyDataSource
     import xarray as xr
     import numpy as np
@@ -560,6 +563,7 @@ def get_beam_stats(exp, run, default_modules={},
             report_name=report_name, h5file=h5file, path=path, **kwargs)
     
     try:
+        xdrop = clean_dataset(xdrop)
         xdrop.to_netcdf(h5file, engine=engine)
         logger.info('Saving file to {:}'.format(h5file))
         print('Saving file to {:}'.format(h5file))
@@ -605,7 +609,7 @@ def build_beam_stats(exp=None, run=None,
             print('Error:  Need to specify exp and run or alternatively xdrop DataSet') 
             return None
         else:
-            run = xdrop.attrs['run']
+            run = int(xdrop.attrs['run'])
 
     if not report_name:
         report_name = 'run{:04}_drop_stats'.format(run)
@@ -617,10 +621,10 @@ def build_beam_stats(exp=None, run=None,
         import xarray as xr
         xdrop = xr.open_dataset(h5file, engine='h5netcdf')
 
-    exp = xdrop.attrs.get('experiment')
-    instrument = xdrop.attrs.get('instrument')
-    run = xdrop.attrs.get('run')
-    expNum = xdrop.attrs.get('expNum')
+    exp = str(xdrop.attrs.get('experiment'))
+    instrument = str(xdrop.attrs.get('instrument'))
+    run = int(xdrop.attrs.get('run'))
+    expNum = int(xdrop.attrs.get('expNum'))
     webattrs = [instrument.upper(), expNum, exp, report_name, 'report.html'] 
     weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
 
@@ -637,7 +641,7 @@ def build_beam_stats(exp=None, run=None,
         from build_html import Build_html
    
         b = Build_html(xdrop, h5file=h5file, filename=report_name, path=html_path)
-        drop_attr = xdrop.attrs.get('drop_attr', 'ec162')
+        drop_attr = str(xdrop.attrs.get('drop_attr', 'ec162'))
         if 'XrayOff' not in xdrop and drop_attr in xdrop:
             xdrop.coords['XrayOff'] = (xdrop[drop_attr] == True)
             xdrop.coords['XrayOff'].attrs['doc'] = 'Xray Off for events with {:}'.format(drop_attr)
@@ -669,7 +673,7 @@ def build_beam_stats(exp=None, run=None,
                 report_notes.append(report_str)
                 report_notes.append('-'*40)
                 for code in code_flags+['ec162']:
-                    doc = xdrop[code].attrs.get('doc','').lstrip('event code for ')
+                    doc = str(xdrop[code].attrs.get('doc','')).lstrip('event code for ')
                     nec_smd = int(xsmd[code].sum())
                     ecfrac_smd = nec_smd/float(nsmd)
                     report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec_smd, code, ecfrac_smd*100., doc)
@@ -682,7 +686,7 @@ def build_beam_stats(exp=None, run=None,
             report_notes.append(report_str)
             report_notes.append('-'*40)
             for code in code_flags+['ec162']:
-                doc = xdrop[code].attrs.get('doc','').lstrip('event code for ')
+                doc = str(xdrop[code].attrs).get('doc','').lstrip('event code for ')
                 nec = int(xdrop[code].sum())
                 ecfrac = nec/float(nevents)
                 report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec, code, ecfrac*100., doc)
@@ -692,7 +696,7 @@ def build_beam_stats(exp=None, run=None,
                 if code_flags:
                     flag_names = []
                     for code in code_flags:
-                        flag_name = xdrop[code].attrs.get('doc','').lstrip('event code for ')
+                        flag_name = str(xdrop[code].attrs).get('doc','').lstrip('event code for ')
                         flag_name = re.sub('-|:|\.| ','_', flag_name).replace('"','').replace('__','_').replace('__','_')
                         xdrop.coords[flag_name] = xdrop[code]
                         flag_names.append(flag_name)
@@ -747,10 +751,10 @@ def build_beam_stats(exp=None, run=None,
       
        
         b._xstats = b.add_delta_beam(pulse=pulse, cut=cut_flag, nearest=nearest)
-        corr_attrs = xdrop.attrs.get('beam_corr_detected')
+        corr_attrs = [str(aa) for aa in xdrop.attrs.get('beam_corr_detected')]
         print('Beam Correlations Detected {:}'.format(corr_attrs))
         if corr_attrs:
-            pulse = xdrop.attrs.get('beam_corr_attr')
+            pulse = str(xdrop.attrs.get('beam_corr_attr'))
             if not pulse:
                 pulse = 'FEEGasDetEnergy_f_21_ENRC'
                 if pulse not in xdrop or xdrop[pulse].sum() == 0:
@@ -949,6 +953,7 @@ def make_small_xarray(self, auto_update=True,
         If true drop unused eventCodes except drop_code [default=True]
     """
     from xarray_utils import set_delta_beam
+    from xarray_utils import clean_dataset
     import numpy as np
     import pandas as pd
     import time
@@ -1207,6 +1212,7 @@ def make_small_xarray(self, auto_update=True,
             filename = 'run{:04}_smd.nc'.format(self.data_source.run)
 
         try:
+            self.x = clean_dataset(self.x)
             self.x.to_netcdf(os.path.join(path,filename), engine='h5netcdf')
         except:
             traceback.print_exc('Cannot save to {:}/{:}'.format(path,filename))
@@ -1291,6 +1297,7 @@ def save_exp_stats(exp, instrument=None, path=None, find_corr=True):
     import glob
     import xarray as xr
     from xarray_utils import find_beam_correlations
+    from xarray_utils import clean_dataset
     if not instrument:
         instrument = exp[0:3]
     if not path:
@@ -1330,6 +1337,8 @@ def save_exp_stats(exp, instrument=None, path=None, find_corr=True):
                     except:
                         print('Cannot add attrs for {:}'.format(attr))
 
+                
+                xout = clean_dataset(xout)
                 xout.to_netcdf(save_file, engine='h5netcdf')
 
             else:

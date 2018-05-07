@@ -622,3 +622,47 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
             print('Cannot save file: {:}'.format(save_file))
 
     return xstats
+
+def clean_dict(attrs):
+    """
+    Replace unicode with str in dict 
+    """
+    for attr, item in attrs.items():
+        if isinstance(attr, unicode):
+            attr = str(attr)
+        if isinstance(item, list):
+            clean_item = []
+            for a in item:
+                if isinstance(a, unicode):
+                    clean_item.append(str(a))
+                else:
+                    clean_item.append(a)
+            attrs[attr] = clean_item
+        elif isinstance(item, unicode):
+            attrs[attr] = str(item)
+        else:
+            attrs[attr] = item
+
+    return attrs
+
+def clean_dataset(xds):
+    xds.attrs = clean_dict(xds.attrs)
+    for attr in xds.coords.keys():
+        xcoord = xds.coords[attr]
+        attrs = clean_dict(xcoord.attrs)
+        xcoord.attrs = attrs
+        if isinstance(attr, unicode):
+            del xds.coords[attr]
+            attr = str(attr)
+        xds.coords[attr] = xcoord
+    for attr, xdata in xds.data_vars.items():
+        attrs = clean_dict(xdata.attrs)
+        xdata.attrs = attrs
+        if isinstance(attr, unicode):
+            del xds[attr]
+            attr = str(attr)
+        xds[attr] = xdata
+    return xds
+
+    return xds
+
