@@ -181,6 +181,8 @@ class ConfigCheck(object):
                     continue
                 for attr, avalue in alert_info.items():
                     set_value = getattr(sourceData, attr)
+                    if attr == 'evr_polarity':
+                        set_value = {0: 'Pos', 1: 'Neg'}.get(set_value, set_value)
                     doc=None
                     unit = units.get(attr)
                     if isinstance(avalue, list):

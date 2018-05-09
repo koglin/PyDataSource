@@ -150,7 +150,11 @@ def exp_info(exp):
     info = experiment_info.getexp(expNum)
     grp = info.get('posix_gid')
     members = group_member_dict(grp)
-    info['members'] = members[grp]['members']
+    if grp in members:
+        info['members'] = members[grp]['members']
+    else:
+        print('ERROR - connot get members for group {:}'.format(grp))
+        info['members'] = [] 
     return info
 
 def group_member_dict(*args):

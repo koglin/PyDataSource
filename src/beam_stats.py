@@ -520,13 +520,17 @@ def get_beam_stats(exp, run, default_modules={},
         evt = ds.events.next(t)
         for det, methods in dets.items():
             detector = evt._dets.get(det)
-            if detector:
+            if detector and detector.sourceData.eventCode in evt.Evr.eventCodes_strict:
                 for name, method in methods.items():
                     try:
                         xdrop[name][itime] = globals()[method](detector) 
                     except:
+                        xdrop[name][itime] = np.nan 
                         print('Cannot calculate {:} for {:}'.format(method, name))
                         #traceback.print_exc('Error with {:} {:}'.format(name, method))
+            else:
+                for name, method in methods.items():
+                    xdrop[name][itime] = np.nan 
 
     # Flatten waveform data with channels
     if flatten:
@@ -673,20 +677,19 @@ def build_beam_stats(exp=None, run=None,
                 report_notes.append(report_str)
                 report_notes.append('-'*40)
                 for code in code_flags+['ec162']:
-                    doc = str(xdrop[code].attrs.get('doc','')).lstrip('event code for ')
+                    doc = str(xsmd[code].attrs.get('doc','')).lstrip('event code for ')
                     nec_smd = int(xsmd[code].sum())
                     ecfrac_smd = nec_smd/float(nsmd)
                     report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec_smd, code, ecfrac_smd*100., doc)
                     report_notes.append(report_str)
                 report_notes.append('')
-           
             
             report_str = 'Event Types in Dropped Shot Analysis: {:} of {:} ({:5.1f}%)'.format(nevents, 
                             nsmd, float(nevents)/float(nsmd)*100.)
             report_notes.append(report_str)
             report_notes.append('-'*40)
             for code in code_flags+['ec162']:
-                doc = str(xdrop[code].attrs).get('doc','').lstrip('event code for ')
+                doc = str(xdrop[code].attrs.get('doc','')).lstrip('event code for ')
                 nec = int(xdrop[code].sum())
                 ecfrac = nec/float(nevents)
                 report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec, code, ecfrac*100., doc)
@@ -696,7 +699,7 @@ def build_beam_stats(exp=None, run=None,
                 if code_flags:
                     flag_names = []
                     for code in code_flags:
-                        flag_name = str(xdrop[code].attrs).get('doc','').lstrip('event code for ')
+                        flag_name = str(xdrop[code].attrs.get('doc','')).lstrip('event code for ')
                         flag_name = re.sub('-|:|\.| ','_', flag_name).replace('"','').replace('__','_').replace('__','_')
                         xdrop.coords[flag_name] = xdrop[code]
                         flag_names.append(flag_name)
@@ -742,6 +745,10 @@ def build_beam_stats(exp=None, run=None,
                 report_notes.append('Detector Timing and Config Errors:')
                 report_notes.append('----------------------------------')
                 report_notes.append(str(configCheck.show_info()))
+                report_notes.append('')
+                report_str='Link to Confluence Detector timing settings:'
+                report_link='https://confluence.slac.stanford.edu/display/PCDS/Detector+timing+settings'
+                report_notes.append('<a href={:}>{:}</a>'.format(report_link, report_str))
                 report_notes.append('')
                 print(report_notes)
         except:
@@ -1102,7 +1109,8 @@ def make_small_xarray(self, auto_update=True,
                         try:
                             data[name][i] = getattr(detector, attr)
                         except:
-                            pass
+                            data[name][i] = np.nan
+                            #pass
             if add_1d:
                 for det, attrs in dets1d.items():
                     if det in evt._attrs:
@@ -1111,7 +1119,8 @@ def make_small_xarray(self, auto_update=True,
                             try:
                                 data1d[name][i] = getattr(detector, attr)
                             except:
-                                pass
+                                data[name][i] = np.nan
+                                #pass
         i += 1
 
     df = pd.DataFrame(data)
