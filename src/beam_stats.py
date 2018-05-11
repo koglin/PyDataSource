@@ -288,6 +288,7 @@ def build_drop_stats(x, min_detected=2,
 def get_beam_stats(exp, run, default_modules={}, 
         flatten=True, refresh=True,
         drop_code='ec162', drop_attr='delta_drop', nearest=None, drop_min=3,  
+        pulse=None, gasdetcut_mJ=None,
         report_name=None, path=None, engine='h5netcdf', 
         wait=None, timeout=False,
         **kwargs):
@@ -363,13 +364,60 @@ def get_beam_stats(exp, run, default_modules={},
                 if update_url:
                     post(update_url, json={'counters' : batch_counters})
                 return xdrop 
-    else:
-        xdrop = xsmd.where(abs(xsmd[drop_attr]) <= nearest, drop=True)
     
-    ntimes = xdrop.time.size
+    if not pulse:
+        pulse = 'FEEGasDetEnergy_f_21_ENRC'
+        if pulse not in xdrop or xdrop[pulse].sum() == 0:
+            pulse = 'FEEGasDetEnergy_f_11_ENRC'
+        if pulse not in xdrop or xdrop[pulse].sum() == 0:
+            pulse = None
+    
+    if gasdetcut_mJ is not False:
+        gas_attr = 'FEEGasDetEnergy_f_11_ENRC'
+        try:
+            gasdet_stats = xsmd[gas_attr].where(xsmd[drop_code]).dropna(dim='time').to_pandas().describe(percentiles=[0.05,0.95])
+            gasdetcut_mJ = min([gasdet_stats['max'],gasdet_stats['std']+gasdet_stats['95%']])
+        except:
+            gasdetcut_mJ = 0.1
+            traceback.print_exc('Cannot auto set gasdetcut_mJ - default = {:} mJ'.format(gasdetcut_mJ))
+       
+        try:
+            xsmd.attrs['gasdetcut_mJ'] = gasdetcut_mJ
+            xsmd.attrs['gasdet_attr'] = gas_attr
+            xsmd.coords['Gasdet_cut'] = xsmd[gas_attr] > gasdetcut_mJ
+            xsmd.coords['Gasdet_cut'].attrs['doc'] = "Gas detector cut.  Gasdet_pre_atten > {:} mJ".format(gasdetcut_mJ)
+            try:
+                nlowshots = ((xsmd['Gasdet_cut'] == False) & (xsmd[drop_code] == False)).values.sum()
+                nshots = (xsmd[drop_code] == False).values.sum()
+                xsmd.attrs['lowbeam_fraction'] = nlowshots/float(nshots) 
+            except:
+                traceback.print_exc('Cannot calculate lowbeam_fraction for threshold gasdetcut_mJ {:} mJ'.format(gasdetcut_mJ))
+        except:
+            traceback.print_exc('Cannot make Gasdet_cut with threshold gasdetcut_mJ {:} mJ'.format(gasdetcut_mJ))
+        
+        try:
+            xsmd.coords['XrayOff'] = (xsmd[drop_code] == True) | (xsmd['Gasdet_cut'] == False)
+            xsmd.coords['XrayOff'].attrs['doc'] = 'Xray Off for events with {:} or lowbeam'.format(drop_code)
+            xsmd.coords['XrayOn'] = (xsmd[drop_code] == False) & (xsmd['Gasdet_cut'] == True)
+            xsmd.coords['XrayOn'].attrs['doc'] = 'Xray On for events without {:} and no lowbeam'.format(drop_code)
+        except:
+            traceback.print_exc('Cannot set XrayOn/XrayOff with threshold gasdetcut_mJ {:} mJ'.format(gasdetcut_mJ))
+   
     try:
+        if 'Gasdet_cut' in xsmd.coords:
+            drop_select = (abs(xsmd[drop_attr]) <= nearest) & (xsmd['Gasdet_cut'] | xsmd[drop_code])
+        else:
+            drop_select = abs(xsmd[drop_attr]) <= nearest
+    except:
+        drop_select = abs(xsmd[drop_attr]) <= nearest
+        traceback.print_exc('Cannot select smd using threshold gasdetcut_mJ {:} mJ'.format(gasdetcut_mJ))
+            
+    try:
+        xdrop = xsmd.where(drop_select, drop=True)
+        ntimes = xdrop.time.size
         ndrop = int(np.sum(xdrop.get(drop_code)))
     except:
+        traceback.print_exc('Cannot select dropped events')
         ndrop = 0
 
     if ndrop < drop_min:
@@ -649,6 +697,7 @@ def build_beam_stats(exp=None, run=None,
         if 'XrayOff' not in xdrop and drop_attr in xdrop:
             xdrop.coords['XrayOff'] = (xdrop[drop_attr] == True)
             xdrop.coords['XrayOff'].attrs['doc'] = 'Xray Off for events with {:}'.format(drop_attr)
+        if 'XrayOn' not in xdrop and drop_attr in xdrop:
             xdrop.coords['XrayOn'] = (xdrop[drop_attr] == False)
             xdrop.coords['XrayOn'].attrs['doc'] = 'Xray On for events without {:}'.format(drop_attr)
 
@@ -661,6 +710,18 @@ def build_beam_stats(exp=None, run=None,
             charge_mean= xdrop.EBeam_ebeamCharge.where(xdrop.XrayOn, drop=True).values.mean()
             charge_std= xdrop.EBeam_ebeamCharge.where(xdrop.XrayOn, drop=True).values.std()
             report_notes.append('Charge = {:6.3f}+={:5.3f} mA'.format(charge_mean, charge_std))
+            gas_attr = xdrop.attrs.get('gasdet_attr')
+            if gas_attr and gas_attr in xdrop: 
+                pulseE_mean= xdrop[gas_attr].where(xdrop.XrayOn, drop=True).values.mean()
+                pulseE_std= xdrop[gas_attr].where(xdrop.XrayOn, drop=True).values.std()
+                report_notes.append('PulseE = {:6.3f}+={:5.3f} mJ'.format(charge_mean, charge_std))
+            lowbeam_frac = xdrop.attrs.get('lowbeam_fraction', 0)
+            gasdetcut_mJ = xdrop.attrs.get('gasdetcut_mJ')
+            if lowbeam_frac > 0.01:
+                if gasdetcut_mJ: 
+                    report_notes.append('LowBeam = {:4.1f} % (<{:6.2} mJ)'.format(lowbeam_frac*100., gasdetcut_mJ))
+                else:
+                    report_notes.append('LowBeam = {:4.1f} %'.format(lowbeam_frac*100.))
             report_notes.append('')
         except:
             pass

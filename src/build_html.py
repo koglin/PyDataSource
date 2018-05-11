@@ -952,14 +952,22 @@ class Build_html(object):
         if not attrs:
             attrs = x.attrs.get('drop_shot_detected',[]) \
                   + x.attrs.get('beam_warning_detected',[]) \
+                  + x.attrs.get('area_detectors',[]) \
+                  + x.attrs.get('wf_detectors',[]) \
                   + x.attrs.get('timing_error_detected',[])
         
         all_attrs = x.attrs.get('drop_shot_detected',[]) \
               + x.attrs.get('beam_warning_detected',[]) \
+              + x.attrs.get('area_detectors',[]) \
+              + x.attrs.get('wf_detectors',[]) \
+              + x.attrs.get('beam_corr_detected',[]) \
+              + x.attrs.get('timing_error_detected',[])
+ 
+        show_attrs = x.attrs.get('drop_shot_detected',[]) \
               + x.attrs.get('beam_corr_detected',[]) \
               + x.attrs.get('timing_error_detected',[])
         
-        adets = list(sorted(set([str(x[a].attrs.get('alias')) for a in all_attrs]))) 
+        adets = list(sorted(set([str(x[a].attrs.get('alias')) for a in show_attrs]))) 
 
         if add_detectors:
             for alias in self.aliases:
@@ -977,7 +985,9 @@ class Build_html(object):
                     make_histplot = True
                 else:
                     hidden=True
-                    det_attrs = None
+                    #det_attrs = None
+                    det_attrs = [a for a in attrs \
+                                if str(x[a].attrs.get('alias')) == alias ]
                     make_correlation = False
                     make_scatter = False
                     make_histplot = True
@@ -1017,6 +1027,8 @@ class Build_html(object):
 #            self.add_plot(attr_cat, plt_type, howto=howto)
 
         for attr in attrs:
+            if attr not in xstats:
+                continue
             df_stats = xstats[attr].to_pandas()
             aattrs = x[attr].attrs
             alias = aattrs.get('alias', attr)
@@ -1025,7 +1037,8 @@ class Build_html(object):
             delta_beam = aattrs.get('delta_beam')
             delta_beam_pvalue = aattrs.get('delta_beam_pvalue')
             timing_error_detected = aattrs.get('timing_error_detected')
-            dropped_shot_detected = aattrs.get('dropped_shot_detected')
+            drop_shot_detected = aattrs.get('drop_shot_detected')
+            beam_corr_detected = aattrs.get('beam_corr_detected')
             if catagory:
                 attr_cat = catagory
                 plt_type = attr 
@@ -1038,17 +1051,23 @@ class Build_html(object):
                     plt_type = attr+' Timing'
                     sformat='Timing offset by {:} detected relative to {:}' 
                     doc.append(sformat.format(delta_beam, code))
-                elif dropped_shot_detected:
+                elif drop_shot_detected:
                     attr_cat = alias
                     plt_type = attr_attr+' Detected Dropped Shot'
                     tbl_type = attr_attr+' Detected Dropped Shot'
                     sformat='Dropped Shot Detected on {:}' 
                     doc.append(sformat.format(code))
+                elif beam_corr_detected:
+                    attr_cat = alias
+                    plt_type = attr_attr+' Delta Beam'
+                    tbl_type = attr_attr+' Delta Beam'
+                    sformat='Beam Correlated but No Dropped Shot on {:}' 
+                    doc.append(sformat.format(code))
                 else:
                     attr_cat = alias
-                    plt_type = attr_attr+' Dropped Shot'
-                    tbl_type = attr_attr+' Dropped Shot'
-                    sformat='No Dropped Shot on {:}' 
+                    plt_type = attr_attr+' Delta Beam'
+                    tbl_type = attr_attr+' Delta Beam'
+                    sformat='No Beam Correlation or Dropped Shot on {:}' 
                     doc.append(sformat.format(code))
 
             if attr_cat not in setup_added:

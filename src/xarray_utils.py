@@ -380,6 +380,7 @@ def set_delta_beam(x, code='ec162', attr='delta_drop'):
 
 
 def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.0001,
+            adet_pvalue0_ratio=0.33, adet_pvalue=1e-5,
             groupby='ec162', nearest=5, corr_coord='delta_drop',
             pulse=None, confidence=0.1, sigma0=5,
             percentiles=[0.5], 
@@ -398,6 +399,16 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
     xo.attrs['timing_error_detected'] = []
     xo.attrs['beam_warning_detected'] = []
     xo.attrs['beam_corr_detected'] = []
+    area_detectors = xds.attrs.get('area_detectors',[])
+    wf_detectors = xds.attrs.get('wf_detectors',[])
+    adets = list(sorted(set(area_detectors + wf_detectors)))
+    for attr in adets:
+        try:
+            if len(xds[attr].dropna(dim='time')) < 5:
+                adets.remove(attr)
+        except:
+            adets.remove(attr)
+
     if 'EBeam_damageMask' in xds:
         xds = xds.drop('EBeam_damageMask')
     if pulse not in xds:
@@ -414,6 +425,9 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
 
     print('Analyzing beam correlations for {:} Run {:}'.format(xo.experiment, xo.run))
     for attr in [a for a in xds.data_vars if xds[a].dims == ('time',)]:
+        if len(xds[attr].dropna(dim='time')) < 5:
+            print('Skipping {:} -- too few events'.format(attr))
+            continue
         #if verbose:
         print '*****', attr, '*******'
         attrs = [attr, groupby, pulse]
@@ -424,6 +438,14 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
                 print('Ommitting cut: {:} not valid cut'.format(cut))
                 cut = None
 
+        # use lower threshold for area detector
+        if attr in adets:
+            pvalue_thresh = adet_pvalue
+            pval0_ratio = adet_pvalue0_ratio
+        else:
+            pvalue_thresh = pvalue
+            pval0_ratio = pvalue0_ratio
+        
         x = xds[attrs]
         alias = x[attr].attrs.get('alias')
         attest = {}
@@ -482,8 +504,8 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
                 # Check pvalue valid and if not timed with drop_code then
                 # check ratio of found ishot pvalue is less than pvalue on drop code
                 # Ignore if mean/std for time detected is too big to be reasonable
-                if sig_significance < 1.e10 and t_pvalue0 != 1 and t_pvalue <= pvalue \
-                            and (t_pvalue/t_pvalue0 < pvalue0_ratio or ishot == 0):
+                if sig_significance < 1.e10 and t_pvalue0 != 1 and t_pvalue <= pvalue_thresh \
+                            and (t_pvalue/t_pvalue0 < pval0_ratio or ishot == 0):
                     tag_shot_corr = True
 
             except:
@@ -502,7 +524,7 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
                     if c_pvalue < corr_pvalue and abs(beam_corr) > 0.2:
                         shot_corr_detected = True
                         # Make sure shot correlation is not also OK on drop shot
-                        if (beam_corr0 > beam_corr/2. or (c_pvalue>0 and c_pvalue0/c_pvalue >= pvalue0_ratio)):
+                        if (beam_corr0 > beam_corr/2. or (c_pvalue>0 and c_pvalue0/c_pvalue >= pval0_ratio)):
                             shot_corr = 0
                             beam_corr = df_stats['beam_corr'][shot_corr]
                             c_pvalue = df_stats['c_pvalue'][shot_corr]
@@ -522,7 +544,7 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
                         tag_shot_corr = False
 
                     # Make checks to be sure beam_corr is valid 
-                    if c_pvalue0 == 0 or c_pvalue/c_pvalue0 > 1./pvalue0_ratio:
+                    if c_pvalue0 == 0 or c_pvalue/c_pvalue0 > 1./pval0_ratio:
                         shot_corr_detected = False
                     elif c_pvalue == 0 and c_pvalue0 < pvalue**2 and beam_corr0>beam_corr/2.:
                         shot_corr_detected = False
