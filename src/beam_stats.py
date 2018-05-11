@@ -714,7 +714,7 @@ def build_beam_stats(exp=None, run=None,
             if gas_attr and gas_attr in xdrop: 
                 pulseE_mean= xdrop[gas_attr].where(xdrop.XrayOn, drop=True).values.mean()
                 pulseE_std= xdrop[gas_attr].where(xdrop.XrayOn, drop=True).values.std()
-                report_notes.append('PulseE = {:6.3f}+={:5.3f} mJ'.format(charge_mean, charge_std))
+                report_notes.append('PulseE = {:6.3f}+={:5.3f} mJ'.format(pulseE_mean, pulseE_std))
             lowbeam_frac = xdrop.attrs.get('lowbeam_fraction', 0)
             gasdetcut_mJ = xdrop.attrs.get('gasdetcut_mJ')
             if lowbeam_frac > 0.01:
