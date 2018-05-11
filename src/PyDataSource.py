@@ -383,6 +383,7 @@ def psmon_publish(evt, quiet=True):
             for name, psmon_args in psplots.items():
                 eventCode = psmon_args['pubargs'].get('eventCode', None)
                 nskip = psmon_args['pubargs'].get('nskip', None)
+                reshape = psmon_args['pubargs'].get('reshape', None)
                 if nskip and (evt._ds._ievent % nskip != 0):
                     continue
 
@@ -394,6 +395,8 @@ def psmon_publish(evt, quiet=True):
                     psmon_fnc = None
                     if psplot_func is 'Image':
                         image = getattr_complete(detector, psmon_args['attr'][0])
+                        if reshape:
+                            image = image.reshape(reshape)
                         if not quiet:
                             print(name, image)
                         if image is not None:
@@ -3834,6 +3837,7 @@ class Detector(object):
                         'raw':       raw_dims,
                         'corr':      raw_dims,
                         'calib':     raw_dims,
+                        'photons':   raw_dims,
                         }
                 elif hasattr(self, 'raw') and self.raw is not None:
                     dshape = self.raw.shape
@@ -3844,6 +3848,7 @@ class Detector(object):
                         'raw':       raw_dims,
                         'corr':      raw_dims,
                         'calib':     raw_dims,
+                        'photons':   raw_dims,
                         }
                 elif hasattr(self.calibData, 'shape') and self.calibData.shape is not None:
                     # Shape is not alwasy correct as of ana-1.3.4 for roi, e.g., Timetool
@@ -3854,6 +3859,7 @@ class Detector(object):
                         'raw':       raw_dims,
                         'corr':      raw_dims,
                         'calib':     raw_dims,
+                        'photons':   raw_dims,
                         }
                 else:
                     try:
@@ -5701,7 +5707,7 @@ class AddOn(object):
 
     def psplot(self, *attrs, **kwargs):
         """
-        Add psplot.
+        Add psplot.  Automatically reshape AreaDetector 3D data to 2D for plotting.
 
         Parameters
         ----------
@@ -5782,7 +5788,7 @@ class AddOn(object):
         if not plot_error and plot_type not in ['Image','XYPlot']:
             try:
                 ndim = self._getattr(attr).ndim
-                if ndim == 2:
+                if ndim in [2,3]:
                     plot_type = 'Image'
                 elif ndim == 1:
                     plot_type = 'XYPlot'
@@ -5803,7 +5809,11 @@ class AddOn(object):
                 plt_opts = ['xlabel', 'ylabel', 'aspect_ratio', 'aspect_lock', 'scale', 'pos']
                 plt_kwargs = {key: item for key, item in kwargs.items() \
                               if key in plt_opts}
-               
+        
+                if ndim == 3:
+                    calibData = self._getattr('calibData')
+                    pub_kwargs['reshape'] = [calibData.shape[0]*calibData.shape[1], calibData.shape[2]]
+
                 if attr == 'image':
                     calibData = self._getattr('calibData')
                     scale = calibData.pixel_size/1000.
@@ -6239,7 +6249,7 @@ class ImageData(object):
     Attributes come from psana.Detector with low level implementation 
     done in C++ or python.  Boost is used for the C++.
     """
-    _attrs = ['image', 'raw', 'calib', 'corr', 'shape', 'size'] 
+    _attrs = ['image', 'raw', 'calib', 'corr', 'photons', 'shape', 'size'] 
     _attr_info = {
             'shape':       {'doc': 'Shape of raw data array', 
                             'unit': ''},
@@ -6250,6 +6260,8 @@ class ImageData(object):
             'calib':       {'doc': 'Calibrated data',
                             'unit': 'ADU'},
             'image':       {'doc': 'Reconstruced 2D image from calibStore geometry',
+                            'unit': 'ADU'},
+            'photons':     {'doc': '2-d or 3-d array of integer number of merged photons',
                             'unit': 'ADU'},
             'corr':        {'doc': 'Pedestal corrected data (no common mode correction)',
                             'unit': 'ADU'},
