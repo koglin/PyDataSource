@@ -721,13 +721,13 @@ def build_beam_stats(exp=None, run=None,
                     nsmd = int(xsmd.time.count()) 
                     nec_smd = int(xsmd['ec162'].sum())
                     ecfrac_smd = nec_smd/float(nsmd)
-                    report_notes.append('Dropped = 1/{:}'.format(int(round(1./ecfrac_smd))))
+                    report_notes.append('Dropped = 1/{:}'.format(round(1./ecfrac_smd)))
                     # Check for A-line Kicker rate
                     if 'ec163' in xsmd.coords:
                         nec_smd = int(xsmd['ec163'].sum())
                         if nec_smd > 0:
                             ecfrac_smd = nec_smd/float(nsmd)
-                            report_notes.append('ESA Kick = 1/{:}'.format(int(round(1./ecfrac_smd))))
+                            report_notes.append('ESA Kick = 1/{:}'.format(round(1./ecfrac_smd)))
                 except:
                     print('Cannot report drop fraction')
                     traceback.print_exc('Cannot report drop fraction')
