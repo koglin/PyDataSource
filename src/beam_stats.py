@@ -375,6 +375,7 @@ def get_beam_stats(exp, run, default_modules={},
     if gasdetcut_mJ is not False:
         gas_attr = 'FEEGasDetEnergy_f_11_ENRC'
         try:
+            # determine gasdet cut from dropped shots
             gasdet_stats = xsmd[gas_attr].where(xsmd[drop_code]).dropna(dim='time').to_pandas().describe(percentiles=[0.05,0.95])
             gasdetcut_mJ = min([gasdet_stats['max'],gasdet_stats['std']+gasdet_stats['95%']])
         except:
@@ -721,6 +722,12 @@ def build_beam_stats(exp=None, run=None,
                     nec_smd = int(xsmd['ec162'].sum())
                     ecfrac_smd = nec_smd/float(nsmd)
                     report_notes.append('Dropped = 1/{:}'.format(int(round(1./ecfrac_smd))))
+                    # Check for A-line Kicker rate
+                    if 'ec163' in xsmd.coords:
+                        nec_smd = int(xsmd['ec163'].sum())
+                        if nec_smd > 0:
+                            ecfrac_smd = nec_smd/float(nsmd)
+                            report_notes.append('ESA Kick = 1/{:}'.format(int(round(1./ecfrac_smd))))
                 except:
                     print('Cannot report drop fraction')
                     traceback.print_exc('Cannot report drop fraction')
@@ -738,6 +745,9 @@ def build_beam_stats(exp=None, run=None,
 
         # Event code flags
         try:
+            code_kicker = ['ec162']
+            if 'ec163' in xdrop.coords:
+                code_kicker.append('ec163')
             nevents = int(xdrop.time.count()) 
             code_flags = [a for a in xdrop.coords if a.startswith('ec') \
                     and int(a.lstrip('ec')) in _seq_evtCodes \
@@ -747,24 +757,32 @@ def build_beam_stats(exp=None, run=None,
                 report_str = 'Event Types in All Run Events: {:} Total'.format(nsmd)
                 report_notes.append(report_str)
                 report_notes.append('-'*40)
-                for code in code_flags+['ec162']:
-                    doc = str(xsmd[code].attrs.get('doc','')).lstrip('event code for ')
-                    nec_smd = int(xsmd[code].sum())
-                    ecfrac_smd = nec_smd/float(nsmd)
-                    report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec_smd, code, ecfrac_smd*100., doc)
-                    report_notes.append(report_str)
+                for code in code_flags+code_kicker:
+                    try:
+                        doc = str(xsmd[code].attrs.get('doc','')).lstrip('event code for ')
+                        nec_smd = int(xsmd[code].sum())
+                        if nec_smd > 0:
+                            ecfrac_smd = nec_smd/float(nsmd)
+                            report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec_smd, code, ecfrac_smd*100., doc)
+                            report_notes.append(report_str)
+                    except:
+                        print('Error in report of {:} rate'.format(code))
                 report_notes.append('')
             
             report_str = 'Event Types in Dropped Shot Analysis: {:} of {:} ({:5.1f}%)'.format(nevents, 
                             nsmd, float(nevents)/float(nsmd)*100.)
             report_notes.append(report_str)
             report_notes.append('-'*40)
-            for code in code_flags+['ec162']:
-                doc = str(xdrop[code].attrs.get('doc','')).lstrip('event code for ')
-                nec = int(xdrop[code].sum())
-                ecfrac = nec/float(nevents)
-                report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec, code, ecfrac*100., doc)
-                report_notes.append(report_str)
+            for code in code_flags+code_kicker:
+                try:
+                    doc = str(xdrop[code].attrs.get('doc','')).lstrip('event code for ')
+                    nec = int(xdrop[code].sum())
+                    if nec > 0:
+                        ecfrac = nec/float(nevents)
+                        report_str = '{:7} {:6} - {:5.1f}%  {:20}'.format(nec, code, ecfrac*100., doc)
+                        report_notes.append(report_str)
+                except:
+                    print('Error in report of {:} rate'.format(code))
             report_notes.append('')
             try:
                 if code_flags:
