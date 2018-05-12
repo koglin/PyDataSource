@@ -147,6 +147,9 @@ def exp_info(exp):
         expNum = experiment_info.name2id(exp)
     else:
         expNum = exp
+    if not expNum:
+        return {}
+    
     info = experiment_info.getexp(expNum)
     grp = info.get('posix_gid')
     members = group_member_dict(grp)

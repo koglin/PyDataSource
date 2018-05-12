@@ -111,6 +111,7 @@ class DataSourceInfo(object):
 #        inst_id = '{:}:{:}'.format(self.instrument.upper(), self.station)
 
     def _set_data_source(self, data_source=None, valid_streams=True, **kwargs): 
+        import psutils
         self._set_exp_defaults(**kwargs)
 
         if self.monshmserver:
@@ -149,7 +150,6 @@ class DataSourceInfo(object):
                     else:
                         stream = str(self.stream)
                 elif valid_streams:
-                    import psutils
                     stream = psutils.run_available(exp=self.exp,run=self.run, valid_streams=True)
                     if stream:
                         stream = ','.join([str(a) for a in stream]) 
@@ -174,8 +174,15 @@ class DataSourceInfo(object):
                 self.monshmserver = data_source
                 self.idx = False
 
-        if not self.instrument and self.exp is not None:
-            self.instrument = self.exp[0:3]
+        if not self.instrument:
+            if self.exp is None:
+                try:
+                    if self.monshmserver:
+                        self.exp = psutils.active_experiment()
+                except:
+                    print('Cannot determine active experiment for shared memory')
+            if self.exp is not None:
+                self.instrument = self.exp[0:3]
 
         if self.exp and self.monshmserver:
             calibDir = '/reg/d/psdm/{:}/{:}/calib'.format(self.instrument,self.exp)
@@ -185,8 +192,11 @@ class DataSourceInfo(object):
         self._set_user_dir()
         self._set_xarray_dir()
 
-        import psutils
-        self.info = psutils.exp_info(self.exp)
+        try:
+            self.info = psutils.exp_info(self.exp)
+        except:
+            print('Cannot get exp_info for {:}'.format(self.exp))
+            self.info = {}
 
         return data_source
 

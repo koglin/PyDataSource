@@ -23,6 +23,12 @@ class ConfigCheck(object):
         import pandas as pd
         self._configData = configData
         instrument = configData._ds.instrument
+        if not instrument:
+            calibDir = configData._ds._ds.env().calibDir()
+            instrument = calibDir.split('/')[4]
+            if not instrument:
+                instrument = 'default'
+
         default_path = '/reg/g/psdm/utils/arp/config/default'
         if not path:
             path = os.path.join('/reg/g/psdm/utils/arp/config',instrument.lower())

@@ -4005,7 +4005,7 @@ class Detector(object):
     def __iter__(self):
         return self
 
-    def monitor(self, nevents=-1, sleep=0.2):
+    def monitor(self, attrs=['raw','calib'], nevents=-1, sleep=0.2):
         """
         Monitor detector attributes continuously with show_info function.
         """ 
@@ -4014,7 +4014,7 @@ class Detector(object):
             try:
                 self.next()
                 try:
-                    print(self.show_info())
+                    print(self.show_info(attrs=attrs))
                 except:
                     pass
                 
@@ -4196,7 +4196,7 @@ class Detector(object):
                
         return message
 
-    def show_info(self, **kwargs):
+    def show_info(self, attrs=None, **kwargs):
         """
         Show basic detector information, including from user defined AddOn methods, 
         for current event.
@@ -4205,7 +4205,7 @@ class Detector(object):
         message('-'*80)
         message(str(self))
         message('-'*80)
-        getattr(self, self._tabclass).show_info(append=True)
+        getattr(self, self._tabclass).show_info(attrs=attrs, append=True)
         self._show_user_info(append=True)
 
         return message
@@ -6282,6 +6282,33 @@ class ImageData(object):
         return self._det.instrument()
 
     @property
+    def photons(self):
+        """
+        Returns photons with correction for split photons between neighboring pixels.
+        adu_per_photon 
+          - photon conversion factor parameter 
+          - can be updated with set_adu_per_photon.
+          - default = 30
+        thr_fraction 
+          - fraction of the merged intensity which gets converted to one photon
+          - can be updated with set_thr_fraction.
+          - default = 0.9
+        see:  https://confluence.slac.stanford.edu/display/PSDM/Hit+and+Peak+Finding+Algorithms#HitandPeakFindingAlgorithms-Photoncounting
+        """
+        if self.adu_per_photon:
+            adu_per_photon = self.adu_per_photon
+        else:
+            adu_per_photon = 30
+        if self.thr_fraction:
+            thr_fraction = self.thr_fraction
+        else:
+            thr_fraction = 0.9 
+
+        return self._det.photons(self._evt, 
+                    adu_per_photon=adu_per_photon,
+                    thr_fraction=thr_fraction)
+
+    @property
     def corr(self):
         """
         Pedestal corrected raw data.
@@ -6291,6 +6318,18 @@ class ImageData(object):
             return self.raw-ped
         else:
             return self.raw
+
+    def set_thr_fraction(self, thr_fraction):
+        """
+        Sets threshold fraction for photons calculation
+        """
+        self.add.parameter(thr_fraction=thr_fraction)
+
+    def set_adu_per_photon(self, adu_per_photon):
+        """
+        Sets adu per photon for photons calculation
+        """
+        self.add.parameter(adu_per_photon=adu_per_photon)
 
     def make_image(self, nda):
         """
@@ -6318,14 +6357,19 @@ class ImageData(object):
         """
         self._det.common_mode_apply(self._evt, nda)
 
-    def show_info(self, **kwargs):
+    def show_info(self, attrs=None, **kwargs):
         """
         Show information for relevant detector attributes.
         """
+        if attrs:
+            if not isinstance(attrs, list):
+                attrs = ['raw', 'corr']
         message = Message(quiet=True, **kwargs)
         if self.size > 0 or self.raw is not None:
             items = sorted(self._attr_info.items(), key = operator.itemgetter(0))
             for attr, item in items:
+                if attrs and attr not in attrs:
+                    continue
                 value = getattr(self, attr)
                 strval = _repr_value(value)
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
