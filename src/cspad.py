@@ -31,7 +31,7 @@ def img_max(self):
     try:
         import numpy as np
         stat = 'max'
-        code = self.configData.eventCode
+        code = self.sourceData.eventCode
         attr = 'corr_stats'
         dat = getattr(self, attr).sel(stat=stat).sel(codes=code)[-1]
         xx = self.calibData.indexes_x
