@@ -351,7 +351,18 @@ def get_beam_stats(exp, run, default_modules={},
 
     set_delta_beam(xsmd, code=drop_code, attr=drop_attr)
     if not nearest:
-        nearest=5
+        # auto set number of nearest shots to include at least two on
+        # each side for up to 60 Hz data rates.
+        try:
+            df_drop = xsmd[drop_attr].dropna(dim='time').to_pandas()
+            drop_mode = df_drop.diff().mode()[0]
+            if drop_mode > 3 and drop_mode < 13:
+                nearest = min([int(drop_mode*3),12])
+            else:
+                nearest = 5
+        except:
+            nearest=5
+        
         xdrop = xsmd.where(abs(xsmd[drop_attr]) <= nearest, drop=True)
         if xdrop[drop_code].values.all():
             nearest=12
