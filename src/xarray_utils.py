@@ -399,8 +399,8 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
     xo.attrs['timing_error_detected'] = []
     xo.attrs['beam_warning_detected'] = []
     xo.attrs['beam_corr_detected'] = []
-    area_detectors = xds.attrs.get('area_detectors',[])
-    wf_detectors = xds.attrs.get('wf_detectors',[])
+    area_detectors = [a for a in xds.attrs.get('area_detectors',[])]
+    wf_detectors = [a for a in xds.attrs.get('wf_detectors',[])]
     adets = list(sorted(set(area_detectors + wf_detectors)))
     for attr in adets:
         try:
@@ -425,9 +425,15 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
 
     print('Analyzing beam correlations for {:} Run {:}'.format(xo.experiment, xo.run))
     for attr in [a for a in xds.data_vars if xds[a].dims == ('time',)]:
-        if len(xds[attr].dropna(dim='time')) < 5:
+        adf = xds[attr].dropna(dim='time').to_pandas()
+        if len(adf) < 5:
             print('Skipping {:} -- too few events'.format(attr))
             continue
+        adf_unique = adf.unique()
+        if len(adf_unique) < 2:
+            print('Skipping {:} -- only one unique value in data'.format(attr))
+            continue
+
         #if verbose:
         print '*****', attr, '*******'
         attrs = [attr, groupby, pulse]
@@ -649,6 +655,7 @@ def clean_dict(attrs):
     """
     Replace unicode with str in dict 
     """
+    import numpy as np
     for attr, item in attrs.items():
         if isinstance(attr, unicode):
             attr = str(attr)
@@ -662,6 +669,8 @@ def clean_dict(attrs):
             attrs[attr] = clean_item
         elif isinstance(item, unicode):
             attrs[attr] = str(item)
+        elif isinstance(item, np.ndarray):
+            attrs[attr] = [a for a in item]
         else:
             attrs[attr] = item
 
