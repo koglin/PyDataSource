@@ -706,7 +706,7 @@ class DataSource(object):
         if not loaded:
             return None
 
-        if self.data_source.smd:
+        if self.data_source.smd and not self.data_source.live:
             self._load_smd_config()
 
     def _load_smd_config(self, quiet=False):
@@ -782,8 +782,9 @@ class DataSource(object):
         else:
             return None
 
-    def load_run(self, data_source=None, reload=False, try_idx=None, wait=True, timeout=20., 
-            update_url=None, **kwargs):
+    def load_run(self, data_source=None, reload=False, 
+            try_idx=None, wait=True, timeout=20., 
+            update_url=None, quiet=True, **kwargs):
         """
         Load a run with psana.
 
@@ -824,18 +825,23 @@ class DataSource(object):
             if True:
                 if wait and not self.data_source.monshmserver:
                     time0 = time.time()
+                    if not quiet:
+                        print('Try Loading {:}'.format(self.data_source))
                     while True:
                         try:
                             self._ds = psana.DataSource(str(self.data_source))
                             break
                         except:
                             time.sleep(5.)
-                            print('Waiting for {:} to become available...'.format(self.data_source))
+                            print('...Waiting for {:} to become available...'.format(self.data_source))
                             if timeout and timeout > time.time()-time0:
-                                print('Timeout loading {:}'.format(self.data_source))
+                                print('...Timeout loading {:}'.format(self.data_source))
                                 return None
                 else:
+                    if not quiet:
+                        print('Loading {:}'.format(self.data_source))
                     self._ds = psana.DataSource(str(self.data_source))
+                
                 _key_info, _modules = get_keys(self._ds.env().configStore())
                 if 'Partition' in _modules:
                     try_idx = False
@@ -865,6 +871,8 @@ class DataSource(object):
                     data_source_smd = self.data_source
                     data_source_idx = str(data_source_smd).replace('smd','idx')
                     self.data_source = DataSourceInfo(data_source=data_source_idx)
+                    if not quiet:
+                        print('Loading idx {:}'.format(self.data_source))
                     self._ds = psana.DataSource(str(self.data_source))
                 except:
                     print('Failed to load either smd or idx data for exp {:}, run {:}'.format( \
@@ -901,7 +909,7 @@ class DataSource(object):
                 except:
                     pass
 
-        elif self.data_source.smd:
+        elif self.data_source.smd and not self.data_source.live:
             self.steps = Steps(self, **kwargs)
             # SmdEvents automatically goes to next step if no events in current step.
             self.events = SmdEvents(self)
@@ -918,30 +926,37 @@ class DataSource(object):
                             return None
 
                 self._scanData = None
-                data_source_idx = str(self.data_source).replace('smd','idx')
-                if wait:
-                    time0 = time.time()
-                    while True:
-                        try:
-                            self._idx_ds = psana.DataSource(data_source_idx)
-                            break
-                        except:
-                            time.sleep(5.)
-                            print('Waiting for {:} to become available...'.format(data_source_idx))
-                            if timeout and timeout > time.time()-time0:
-                                print('Timeout loading {:}'.format(self.data_source))
-                            return None
+                if 'live' in str(self.data_source):
+                    self.nevents = None
                 else:
-                    self._idx_ds = psana.DataSource(data_source_idx)
-                
-                self._idx_run = self._idx_ds.runs().next()
-                self._idx_nsteps = self._idx_run.nsteps()
-                self._idx_times = self._idx_run.times()
-                self.nevents = len(self._idx_times)
-                self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
-                                        for a in self._idx_times]
-                self._idx_datetime64 = [np.datetime64(int(sec*1e9+nsec), 'ns') \
-                                        for sec,nsec,fid in self._idx_times_tuple]
+                    data_source_idx = str(self.data_source).replace('smd','idx')
+                    if wait:
+                        time0 = time.time()
+                        while True:
+                            if not quiet:
+                                print('Additional wait loading idx {:}'.format(self.data_source))
+                            try:
+                                self._idx_ds = psana.DataSource(data_source_idx)
+                                break
+                            except:
+                                time.sleep(5.)
+                                print('Waiting for {:} to become available...'.format(data_source_idx))
+                                if timeout and timeout > time.time()-time0:
+                                    print('Timeout loading {:}'.format(self.data_source))
+                                return None
+                    else:
+                        if not quiet:
+                            print('Additional loading idx {:}'.format(self.data_source))
+                        self._idx_ds = psana.DataSource(data_source_idx)
+                    
+                    self._idx_run = self._idx_ds.runs().next()
+                    self._idx_nsteps = self._idx_run.nsteps()
+                    self._idx_times = self._idx_run.times()
+                    self.nevents = len(self._idx_times)
+                    self._idx_times_tuple = [(a.seconds(), a.nanoseconds(), a.fiducial()) \
+                                            for a in self._idx_times]
+                    self._idx_datetime64 = [np.datetime64(int(sec*1e9+nsec), 'ns') \
+                                            for sec,nsec,fid in self._idx_times_tuple]
 
         else:
             # For live data or data_source without idx or smd
@@ -1342,9 +1357,13 @@ class DataSource(object):
         Initialize evr. 
         Requires first event to know which evr when more than one present.
         """
-        while 'EvrData' not in self._evt_modules and self._ievent < 400:
-            evt = self.events.next()
-        
+        try:
+            while 'EvrData' not in self._evt_modules and self._ievent < 400:
+                evt = self.events.next()
+        except:
+            print('No EvrData in first {:} events'.format(self._ievent))
+            return
+
         if 'EvrData' in self._evt_modules:
             evr_typ, evr_src, evr_key = self._evt_modules['EvrData'].values()[0][0]
             srcstr = str(evr_src) 

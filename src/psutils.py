@@ -255,9 +255,16 @@ def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=N
         run = experiment_info.experiment_runs(instrument.upper(),exp)[-1]['num']
     if isinstance(exp, str):
         expNum = experiment_info.name2id(exp)
+        if expNum is None:
+            return False
     else:
         expNum = exp
-    file_list = experiment_info.get_open_files(expNum,run)
+
+    try:
+        file_list = experiment_info.get_open_files(expNum,run)
+    except:
+        file_list = []
+
     if not file_list:
         return False
     

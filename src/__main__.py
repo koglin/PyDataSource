@@ -32,6 +32,8 @@ def initArgs():
                         help='Number of Events to analyze')
     parser.add_argument("-M", "--max_size", type=int,
                         help='Maximum data array size')
+    parser.add_argument("--ffb", action="store_true", default=False,
+                        help='Use ffb.')
     parser.add_argument("--keep_chunks", action="store_true", default=True,
                         help='Keep individual chunked files after merging.')
     #parser.add_argument("--make_summary", action="store_true", default=False,
@@ -48,6 +50,7 @@ if __name__ == "__main__":
     attr = args.attr
     exp = args.exp
     run = int(args.run.split('-')[0])
+    ffb = args.ffb
     #print '{:} Run {:}'.format(exp, run)
     if attr in ['build']:
         from build_html import Build_html
@@ -62,9 +65,12 @@ if __name__ == "__main__":
         if run > 100000:
             import psutils
             run = psutils.get_run_from_id(run, exp) 
-        print("get_beam_stats(exp={:},run={:}, from_name={:}, to_name={:}, wait=True, timeout=False".format(exp, \
-                    run,args.batchuser,args.alert))
-        xdrop = get_beam_stats(exp=exp,run=run, from_name=args.batchuser, to_name=args.alert, wait=True, timeout=False)
+        format_str = "get_beam_stats(exp={:},run={:}, from_name={:}, to_name={:}, wait=True, timeout=False"
+        if ffb:
+            format_str += ", ffb=True"
+        print(format_str.format(exp,run,args.batchuser,args.alert))
+        xdrop = get_beam_stats(exp=exp,run=run, ffb=ffb,
+                from_name=args.batchuser, to_name=args.alert, wait=True, timeout=False)
 
     else:
         import PyDataSource

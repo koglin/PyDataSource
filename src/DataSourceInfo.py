@@ -53,7 +53,8 @@ class DataSourceInfo(object):
 
             smd:  small data support -- has become standard for experiments after Oct 2015
             h5:   loads hdf5 data instead of xtc
-            ffb:  appends ':one-stream' to data source
+            ffb:  use a special set of disks (fast-feedback, or "FFB") reserved for the running experiment
+            live: live ffb data - waits for additional data in case the analysis "catches up" to the DAQ
 
         The shared memory data_source can be loaded with the monshmemsrver keyword:
 
@@ -74,6 +75,7 @@ class DataSourceInfo(object):
                      'station':       0,
                      'idx':           None,
                      'ffb':           None,
+                     'live':          None,
                      'monshmserver':  None,
                      'dir':           None,
                      'cfg':           None}
@@ -150,23 +152,33 @@ class DataSourceInfo(object):
                     else:
                         stream = str(self.stream)
                 elif valid_streams:
-                    stream = psutils.run_available(exp=self.exp,run=self.run, valid_streams=True)
-                    if stream:
-                        stream = ','.join([str(a) for a in stream]) 
+                    # specify streams if any are not valid
+                    ok_stream = psutils.run_available(exp=self.exp,run=self.run, valid_streams=True)
+                    all_stream = psutils.run_available(exp=self.exp,run=self.run, all_streams=True)
+                    if ok_stream and ok_stream != all_stream:
+                        stream = ','.join([str(a) for a in ok_stream]) 
 
-                if stream:
-                    data_source += ":stream={:}".format(stream)
-
-                if self.ffb:
-                    data_source += ":one-stream"
-                elif self.h5:
+                if self.h5:
                     data_source += ":h5"
-                elif self.idx:
-                    data_source += ":idx"
-                    self.smd = False
                 else:
-                    data_source += ":smd"
-                    self.smd = True
+                    if stream and not self.ffb:
+                        data_source += ":stream={:}".format(stream)
+
+                    if self.idx:
+                        data_source += ":idx"
+                        self.smd = False
+                    else:
+                        data_source += ":smd"
+                        self.smd = True
+                
+                    if self.ffb:
+                        # Set dir to standard ffb dir if not specifically passed in an unusual 
+                        # circumstance such as testing.
+                        if not self.dir:
+                            self.dir = os.path.join('/reg/d/ffb/',self.instrument,self.exp,'xtc')
+                        data_source += ":dir={:}".format(self.dir)
+                        if self.live:
+                            data_source += ":live"
 
             else:
                 print 'No data source specified, so assume this is shared memory.'
