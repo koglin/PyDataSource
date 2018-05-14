@@ -457,7 +457,14 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
         attest = {}
         actest = {}
 
-        for ishot in range(-nearest,nearest+1):
+        #ashots = range(-nearest,nearest+1)
+        #for ishot in ashots:
+        # Need to rework ttest_groupby and test_correlation
+        # to handle non 120Hz data in a more natural way
+        # This fixes timing errors but not necessarily robustly
+        ashots = sorted([a for a in set(xo[corr_coord].values) if abs(a) <= nearest])
+        for iashot,idelta in enumerate(ashots):
+            ishot = iashot-ashots.index(0)
             if x[pulse].attrs.get('alias') == x[attr].attrs.get('alias'):
                 # if FEEGasDetEnergy detector then test agains all other with shifted drops
                 tnearest = None 
@@ -465,7 +472,7 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
                 tnearest = nearest
             ttest = ttest_groupby(x, attr, groupby=groupby, ishot=ishot, 
                                     nearest=tnearest)
-            attest[ishot] = ttest
+            attest[idelta] = ttest
             if ttest is None:
                 if verbose:
                     print attr, groupby, 'Not valid test'
@@ -473,7 +480,7 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
          
             # Do not test correlation of same attr
             ctest = test_correlation(x, attr, pulse, cut=cut, shift=ishot)
-            actest[ishot] = ctest
+            actest[idelta] = ctest
 
         xstd = x[attr].groupby(groupby).std()
         xmean = x[attr].groupby(groupby).mean()

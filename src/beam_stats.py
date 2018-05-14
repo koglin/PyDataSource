@@ -370,7 +370,8 @@ def get_beam_stats(exp, run, default_modules={},
             if xdrop[drop_code].values.all():
                 logger.info('Skipping beam stats analysis for {:}'.format(ds))
                 logger.info('  -- only {:} events with {:} in {:} events'.format(ndrop, drop_code, nevents))
-                batch_counters = {'Warning': ['Low event rate: {:} dropped shots present in {:} events'.format(ndrop, nevents), 'red']}
+                batch_counters = {'Warning': 
+                        ['Low event rate: {:} dropped shots present in {:} events'.format(ndrop, nevents), 'red']}
                 print('Setting batch job counter output: {:}'.format(batch_counters))
                 if update_url:
                     post(update_url, json={'counters' : batch_counters})
