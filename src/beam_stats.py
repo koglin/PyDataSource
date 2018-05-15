@@ -462,7 +462,7 @@ def get_beam_stats(exp, run, default_modules={},
                 devName = srcname.split(':')[1].split('.')[0]
                 # for not just use rawsum for 'Epix10ka' and  'Jungfrau' until full
                 # development of gain switching in Detector module
-                if devName.startswith('Opal') or devName in ['Epix10ka','Jungfrau']:
+                if devName.startswith('Opal') or devName in ['Epix10ka']:
                     method = 'rawsum'
                     name = '_'.join([det, method])
                     methods[name] = method
@@ -471,6 +471,24 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['unit'] = 'ADU'
                     xdrop[name].attrs['alias'] = det
                     area_dets.append(name)
+                elif devName in ['Jungfrau']:
+                    nch = detector.configData.numberOfModules
+                    if nch > 1:
+                        method = 'sectors'
+                        name = '_'.join([det, 'rawsum'])
+                        methods[name] = method
+                        xdrop[name] = (('time', det+'_ch'), np.zeros([ntimes, nch]))
+                        for ich in range(nch):
+                            area_dets.append('{:}_ch{:}'.format(name,ich))
+                    else:
+                        method = 'sector'
+                        name = '_'.join([det, 'rawsum'])
+                        methods[name] = method
+                        xdrop[name] = (('time'), np.zeros([ntimes]))
+                        area_dets.append(name)
+                    xdrop[name].attrs['doc'] = '{:} sum of raw data'.format(det)
+                    xdrop[name].attrs['unit'] = 'ADU'
+                    xdrop[name].attrs['alias'] = det
                 else:
                     method = 'count'
                     name = '_'.join([det, method])
@@ -588,7 +606,7 @@ def get_beam_stats(exp, run, default_modules={},
                     except:
                         xdrop[name][itime] = np.nan 
                         print('Cannot calculate {:} for {:}'.format(method, name))
-                        #traceback.print_exc('Error with {:} {:}'.format(name, method))
+                        traceback.print_exc('Error with {:} {:}'.format(name, method))
             else:
                 for name, method in methods.items():
                     xdrop[name][itime] = np.nan 
@@ -606,7 +624,15 @@ def get_beam_stats(exp, run, default_modules={},
                 nch = xdrop[name].shape[1]
                 if nch <= 16:
                     for ich in range(nch):
-                        xdrop['{:}_ch{:}'.format(name,ich)] = xdrop[name][:,ich]
+                        chname = '{:}_ch{:}'.format(name,ich)
+                        xdrop[chname] = xdrop[name][:,ich]
+                        try:
+                            if not xdrop[name].attrs.get('attr'):
+                                alias = xdrop[name].attrs.get('alias','')
+                                attr = name.lstrip(alias).lstrip('_')
+                                xdrop[name].attrs['attr'] = attr 
+                        except:
+                            pass
                     del xdrop[name]
 
     if not path:
@@ -1340,6 +1366,19 @@ def count(self, attr='corr'):
     """
     import numpy as np
     return np.sum(getattr(self, attr))
+
+def sector(self, attr='raw'):
+    """Return calib mean of each AreaDetector sector
+    """
+    import numpy as np
+    return getattr(self, attr).sum()
+
+def sectors(self, attr='raw'):
+    """Return calib mean of each AreaDetector sector
+    """
+    import numpy as np
+    data = getattr(self, attr)
+    return np.array([data[isector].sum() for isector in range(data.shape[0])])
 
 def wave8_height(self, bkrange=[500,600]):
     """Peaks of 8 waveforms with background subtration from mean within bkrange.

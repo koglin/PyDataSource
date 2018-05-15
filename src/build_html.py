@@ -971,31 +971,36 @@ class Build_html(object):
 
         if add_detectors:
             for alias in self.aliases:
-                if alias in adets:
-                    hidden=None
-                    make_correlation = False
-                    #make_correlation = True
-                    det_attrs = [a for a in all_attrs \
-                                if str(x[a].attrs.get('alias')) == alias ]
-                    if alias == 'EBeam':
-                        det_attrs += ['EBeam_ebeamCharge', 'EBeam_ebeamPhotonEnergy']
-                    make_scatter = False
-                    #make_scatter = [a for a in x.attrs.get('beam_corr_detected',[]) \
-                    #            if str(x[a].attrs.get('alias')) == alias ]
-                    make_histplot = True
-                else:
-                    hidden=True
-                    #det_attrs = None
-                    det_attrs = [a for a in attrs \
-                                if str(x[a].attrs.get('alias')) == alias ]
-                    make_correlation = False
-                    make_scatter = False
-                    make_histplot = True
+                try:
+                    if alias in adets:
+                        hidden=None
+                        make_correlation = False
+                        #make_correlation = True
+                        det_attrs = [a for a in all_attrs \
+                                    if a in x.data_vars and str(x[a].attrs.get('alias','')) == alias ]
+                        if alias == 'EBeam':
+                            det_attrs += ['EBeam_ebeamCharge', 'EBeam_ebeamPhotonEnergy']
+                        make_scatter = False
+                        #make_scatter = [a for a in x.attrs.get('beam_corr_detected',[]) \
+                        #            if str(x[a].attrs.get('alias')) == alias ]
+                        make_histplot = True
+                    else:
+                        hidden=True
+                        #det_attrs = None
+                        det_attrs = [a for a in attrs \
+                                    if a in x.data_vars and str(x[a].attrs.get('alias')) == alias ]
+                        make_correlation = False
+                        make_scatter = False
+                        make_histplot = True
 
-                self.add_detector(alias, catagory=alias, attrs=det_attrs, cut='XrayOn',
-                        make_timeplot=False, make_scatter=make_scatter, 
-                        make_correlation=make_correlation, make_histplot=make_histplot, 
-                        make_table=True, hidden=hidden)
+                    self.add_detector(alias, catagory=alias, attrs=det_attrs, cut='XrayOn',
+                            make_timeplot=False, make_scatter=make_scatter, 
+                            make_correlation=make_correlation, make_histplot=make_histplot, 
+                            make_table=True, hidden=hidden)
+                
+                except:
+                    traceback.print_exc()
+                    print('Cannot add detector summary for {:}'.format(alias))
 
         dfattrs = [a for a in x if x[a].dims == ('time',)]
         df = x[dfattrs].to_dataframe()
