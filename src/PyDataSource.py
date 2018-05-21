@@ -589,15 +589,18 @@ class ScanData(object):
             name_format = ' {:>'+str(name_len)+'}'
             header1 += name_format.format(alias)
             vals = self.control_values[name]
-            if self.nsteps > 1:
-                meanvals = np.mean(abs(vals[1:]-vals[:-1]))
-                if meanvals > 0:
-                    sigdigit = int(np.floor(np.log10(meanvals)))
+            try:
+                if self.nsteps > 1:
+                    meanvals = np.mean(abs(vals[1:]-vals[:-1]))
+                    if meanvals > 0:
+                        sigdigit = int(np.floor(np.log10(meanvals)))
+                    else:
+                        sigdigit = -2
                 else:
-                    sigdigit = -2
-            else:
-                sigdigit = int(np.floor(np.log10(abs(vals))))
-            
+                    sigdigit = int(np.floor(np.log10(abs(vals))))
+            except:
+                sigdigit = 0
+
             if sigdigit < -5 or sigdigit > 5:
                 self._control_format[name] = ' {:'+str(name_len)+'.3e}'
             elif sigdigit < 0:
