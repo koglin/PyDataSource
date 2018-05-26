@@ -73,7 +73,7 @@ if __name__ == "__main__":
                     except:
                         print('Cannot make {:} {:} plot -- trying raw data'.format(alias, attr))
                         attr = 'raw'
-                        detector.add.psplot(raw)
+                        detector.add.psplot(attr)
                 elif detector._pydet.__module__ in ['Detector.WFDetector','Detector.GenericWFDetector']:
                     try:
                         if not attr:
