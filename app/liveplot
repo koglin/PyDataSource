@@ -40,6 +40,11 @@ def initArgs():
 
 if __name__ == "__main__":
     args = initArgs()
+    if not args.exp:
+        from PyDataSource import psutils
+        args.exp = psutils.active_experiment()
+        print('No exp provided -- {:} is the active experiment'.format(args.exp))
+    
     ds = PyDataSource.DataSource(**vars(args))
     dets = ds.configData._config_srcs.keys()
     detstr = args.det
