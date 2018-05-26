@@ -20,6 +20,8 @@ def initArgs():
                         help='total number of chunks')
     parser.add_argument("--ichunk", type=int,  
                         help='chunk index')
+    parser.add_argument("--det", type=str,
+                        help='Cmma separated detector alias names used for plot Input method')
     parser.add_argument("--batchuser", type=str,
                         help='Batch job user name')
     parser.add_argument("--alert", type=str,
@@ -118,6 +120,82 @@ if __name__ == "__main__":
             print ds.nevents        
         if attr in ['scan']:
             print ds.configData.ScanData.show_info()
+        if attr in ['plot']:
+            dets = ds.configData._config_srcs.keys()
+            detstr = args.det
+            if detstr:
+                try:
+                    dets = detstr.split(',')
+                except:
+                    print('Cannot parse args.det')
+
+            if dets:
+                evt = ds.events.next()
+                for alias, detector in ds._detectors.items():
+                    if '.' in alias:
+                        alias, attr = alias.split('.')
+                    else:
+                        attr = None
+                    if alias not in dets:
+                        continue
+                    try:
+                        while alias not in evt._attrs:
+                            evt.next()
+                        try:
+                            detector._update_xarray_info()
+                        except:
+                            pass
+                        if detector._pydet.__module__ == 'Detector.AreaDetector':
+                            if not attr:
+                                attr = 'image'
+                            try:
+                                detector.add.psplot(attr)
+                            except:
+                                print('Cannot make {:} {:} plot -- trying raw data'.format(alias, attr))
+                                attr = 'raw'
+                                detector.add.psplot(raw)
+                        elif detector._pydet.__module__ in ['Detector.WFDetector','Detector.GenericWFDetector']:
+                            try:
+                                if not attr:
+                                    if detector._det_config['property'].get('filtered'):
+                                        attr = 'filtered'
+                                    else:
+                                        attr = 'waveform'
+                                nwfs = detector.waveform.shape[0]
+                                for sensor in range(nwfs):
+                                    detector.add.roi(attr,sensor=sensor,name='{:}_Ch{:}'.format(attr,sensor+1),publish=True)
+                            except:
+                                print('Cannot make {:} waveform plot'.format(alias))
+                        else:
+                            print('No plot available for {:} {:}'.format(alias, detector._pydet.__module__))
+
+                    except:
+                        print('Cannot make {:} plot for {:}'.format(alias, detector._pydet.__module__))
+                if args.nevents:
+                    nevents = args.nevents
+                else:
+                    nevents = -1
+                time.sleep(2)
+                
+                if nevents > 0:
+                    get_new = 'y'
+                    while get_new in ["y","Y"]:
+                        evt.monitor(nevents)
+                        get_new = raw_input("Display more events -- 'y' for {:} events or enter number of events?\n".format(nevents)) 
+                        try:
+                            get_int = int(get_new)
+                        except:
+                            get_int = False
+                        if get_int:
+                            nevents = get_int
+                            get_new = "y"
+                else:
+                    evt.monitor(nevents)
+                    get_new = raw_input("Run Finished - Reload ?\n".format(nevents))
+                    while get_new in ["y","Y"]:
+                        ds.reload()
+                        evt.monitor(nevents)
+                        get_new = raw_input("Run Finished - Reload ?\n".format(nevents))
 
         if attr in ['mpi']:
             from h5write import to_hdf5_mpi

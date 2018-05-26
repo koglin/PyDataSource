@@ -1,0 +1,78 @@
+#!/bin/bash
+# 
+# Batch Control Submission script for auto run stats creation.
+#
+# see:  https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing
+#
+unset PYTHONPATH
+unset LD_LIBRARY_PATH
+unset DISPLAY XAUTHORITY
+export PYTHONPATH=
+echo "$@"
+source /reg/g/psdm/etc/psconda.sh 
+
+SOURCE="${BASH_SOURCE[0]}"
+# resolve $SOURCE until the file is no longer a symlink
+while [ -h "$SOURCE" ]; do 
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" 
+  # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+cd $DIR
+
+EXP=$1
+shift
+RUN=$1
+INSTRUMENT=${EXP:0:3}
+# ARP options are positional:   psanaq followed by config file name
+shift
+if [[ $1 ]]; then
+  QUEUEREQ=$1
+  shift
+  if [[ $1 ]]; then
+    CONFIG=$1
+    shift
+  fi
+fi
+
+PSANA=`which psana`
+PSANADIR=`dirname $PSANA`
+PYDSDIR="$PSANADIR/../lib/python2.7/site-packages/PyDataSource"
+RUNNUM=`python "$PYDSDIR/get_run_from_runid.py" $EXP $RUN`
+RUNSTR="Run$RUNNUM"
+EXPRUN="$EXP$RUNSTR"
+BATCHUSER=`whoami`
+OPRNAME="$INSTRUMENT"opr
+#OUTLOG="/reg/neh/operator/$OPRNAME/experiments/$EXP/arplogs/$BATCHUSER/$RUNSTR"
+OUTLOG="/reg/neh/operator/$OPRNAME/experiments/$EXP/logs/$RUNSTR"
+if [[ ! -a $OUTLOG ]];  then
+    mkdir -p $OUTLOG
+fi
+
+: ${QUEUEREQ:="psanaq"}
+: ${CONFIG:="wfs"}
+JOBNAME="$EXPRUN"h5
+RUNFILE="/reg/d/psdm/$INSTRUMENT/$EXP/results/src/to_hdf5.py"
+
+cd /reg/d/psdm/$INSTRUMENT/$EXP/results/src/
+
+echo Processing $EXP Run $RUN
+
+LOGSUM=/reg/neh/operator/$OPRNAME/experiments/"$EXP"/logs/batch_jobs.log
+echo '--------------------------------' >> $LOGSUM
+date >> $LOGSUM
+echo Processing $EXP Run $RUN >> $LOGSUM
+echo `uname -a` >> $LOGSUM
+echo 'User: '$BATCHUSER >> $LOGSUM
+echo 'Run:    '$RUNSTR >> $LOGSUM
+echo $EXPRUN >> $LOGSUM
+echo 'Log Path: '$OUTLOG >> $LOGSUM
+echo 'Config: '$CONFIG >> $LOGSUM
+echo 'Run File: '$RUNFILE >> $LOGSUM
+
+echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" --exp=$EXP --run=$RUN  >> $LOGSUM
+bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" --exp=$EXP --run=$RUN 
+
