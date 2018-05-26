@@ -104,9 +104,9 @@ if __name__ == "__main__":
         
         if nevents > 0:
             get_new = 'y'
-            while get_new in ["y","Y"]:
+            while get_new not in ["n","N"]:
                 evt.monitor(nevents)
-                get_new = raw_input("Display more events -- 'y' for {:} events or enter number of events?\n".format(nevents)) 
+                get_new = raw_input("Display more events -- 'n' to exit, 'y' for {:} events, or enter number of events?\n".format(nevents)) 
                 try:
                     get_int = int(get_new)
                 except:
