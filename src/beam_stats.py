@@ -368,6 +368,13 @@ def get_beam_stats(exp, run, default_modules={},
             nearest=12
             xdrop = xsmd.where(abs(xsmd[drop_attr]) <= nearest, drop=True)
             if xdrop[drop_code].values.all():
+                try:
+                    ntimes = xdrop.time.size
+                    ndrop = int(np.sum(xdrop.get(drop_code)))
+                except:
+                    traceback.print_exc('Cannot select dropped events')
+                    ndrop = 0
+
                 logger.info('Skipping beam stats analysis for {:}'.format(ds))
                 logger.info('  -- only {:} events with {:} in {:} events'.format(ndrop, drop_code, nevents))
                 batch_counters = {'Warning': 
