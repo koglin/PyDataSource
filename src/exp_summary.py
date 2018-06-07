@@ -834,7 +834,7 @@ class ExperimentSummary(object):
                     omit_rbv=['XRT:M2H','MIRR:FEE1','MIRR:XRT','STEP:M1H','STEP:M2H','MOVR:DMP1'],
                     omit_endswith=['CNT'],
                     run=None,
-                    set_only=True,
+                    set_only=None,
                     max_size=50000,
                     **kwargs):
         """
@@ -853,6 +853,8 @@ class ExperimentSummary(object):
             self._load_run_info()
 
         if not pvs:
+            if set_only is None:
+                set_only = True
             import PyDataSource
             autorun=False
             if not run:
@@ -900,13 +902,15 @@ class ExperimentSummary(object):
                         except:
                             print('Cannot pop ',pv,'ending with',omit_pv)
                 for omit_pv in omit_rbv:
-                    if  omit_pv in pv and pv.endswith('RBV'):
+                    if  omit_pv in pv and pv.endswith('.RBV'):
                         try:
                             pvnames.pop(pv)
                         except:
                             print('Cannot pop ',pv, omit_rbv)
 
         else:
+            if set_only is None:
+                set_only = False
             pvnames = pvs
 
         evr_pvs = {}
@@ -918,7 +922,7 @@ class ExperimentSummary(object):
                     evr_pvs[pvbase] = {}
                 evr_pvs[pvbase].update({pv: alias})
 
-            elif pv.endswith('RBV'):
+            elif pv.endswith('.RBV'):
                 pvnames[pv.rstrip('.RBV')] = alias+'_set'
                 if set_only:
                     del pvnames[pv]
@@ -930,7 +934,7 @@ class ExperimentSummary(object):
         for attr, item in epicsArch_dict.items():
             alias = item['alias']
             pv = attr
-            if pv.endswith('RBV'):
+            if pv.endswith('.RBV'):
                 alias += '_set'
                 attr = pv.rstrip('.RBV')
             
@@ -942,7 +946,7 @@ class ExperimentSummary(object):
         #pvnames.update(**pvmots)
         #pvs = {pv: alias for pv, alias in pvnames.items() if arch.search_pvs(pv, do_print=False) != []} 
         pvs = {pv: alias for pv, alias in pvnames.items() if self._in_archive(pv)} 
-       
+
         meta_attrs = {'units': 'EGU', 'PREC': 'PREC', 'pv': 'name'}
 
         data_arrays = {} 
@@ -1206,8 +1210,14 @@ class ExperimentSummary(object):
         if not quiet:
             print('... processing {:} epics data'.format(self.exp))
         coords = ['begin_time','end_time','duration','run_id','prep_time']
-        attrs = [a for a,b in self.xepics.data_vars.items() \
-                 if b.attrs.get('pv','').endswith('STATE') or a.endswith('_set')]
+        if kwargs.get('pvs'):
+            attrs = kwargs.get('pvs').values()
+        else:
+            attrs = [a for a,b in self.xepics.data_vars.items() \
+                     if b.attrs.get('pv','').endswith('STATE') or a.endswith('_set') 
+                  or 'TRIG' in b.attrs.get('pv','')] 
+                 #or a.endswith('_calc') or a.endswith('_code')]
+                  #or b.attrs.get('pv','').split(':')[-1] in ['RATE','TCTL','EC_RBV','TPOL','TWID','TDES','TEC','EVENTCTRL.ENM']]
         #attrs = [a for a in self.xepics.data_vars.keys() \
                  #if a.startswith('dia_s') or (a.endswith('_set') and not a.startswith('dia_a'))]
         #xpvs = self.xepics[attrs].dropna(dim='time',how='all')
