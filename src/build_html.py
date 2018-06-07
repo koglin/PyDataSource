@@ -370,11 +370,27 @@ class Build_experiment(object):
         self.output_dir = os.path.join(self.path, self.filename) 
        
         if not os.path.isdir(self.path):
-            os.mkdir(self.path)
+            try:
+                os.mkdir(self.path)
+            except:
+                traceback.print_exc()
+                self.logger.info('Could not create dir {:}'.format(self.path))
+                self.logger.info('Requires sudo:')
+                self.logger.info('psana-> .  /reg/g/psdm/etc/ana_env.sh')
+                self.logger.info('psana-> sit_setup dm-current')
+                self.logger.info('psana-> dm-create-folders --dir stats --mkdir {:}'.format(self.exp))
 
         if not os.path.isdir(self.output_dir):
-            os.mkdir(self.output_dir)
- 
+            try:
+                os.mkdir(self.output_dir)
+            except:
+                traceback.print_exc()
+                self.logger.info('Could not create dir {:}'.format(self.output_dir))
+                self.logger.info('Requires sudo:')
+                self.logger.info('psana-> .  /reg/g/psdm/etc/ana_env.sh')
+                self.logger.info('psana-> sit_setup dm-current')
+                self.logger.info('psana-> dm-create-folders --dir stats --mkdir {:}'.format(self.exp))
+
     def to_html(self, path=None, quiet=False, **kwargs):
         """
         Write out html file
