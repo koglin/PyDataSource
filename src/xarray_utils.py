@@ -351,7 +351,7 @@ def set_delta_beam(x, code='ec162', attr='delta_drop'):
     """Find the number of beam codes to nearest code
        using time stamps
     """
-    import traceback#
+    import traceback
     import pandas as pd
     import numpy as np
     if code not in x:
@@ -704,3 +704,473 @@ def clean_dataset(xds):
 
     return xds
 
+def open_cxi_psocake(exp, run, folder=None, file_name=None, 
+        load_smd=True, load_moved_pvs=True,
+        save=True, refresh=False, **kwargs):
+    """
+    load psocake cxidb formatted hdf5 file and return xarray
+    Parameters
+    ----------
+    load_smd : bool
+        load small data from 
+    """
+    import os
+    import glob
+    import xarray as xr
+    import numpy as np
+    import time
+    instrument = exp[0:3]
+    base_path = os.path.join('/reg/d/psdm',instrument,exp)
+    file_nc=None
+    if not folder:
+        files = glob.glob(base_path+'/*/*/psocake/r{:04}/{:}_{:04}.nc'.format(run,exp,run))
+        if files:
+            file_nc = files[-1]
+    else:
+        file_nc = os.path.join(base_path, folder, 'r{:04}'.format(run), '{:}_{:04}.nc'.format(exp,run))
+        if not os.path.isfile(file_nc):
+            file_nc = None
+
+    if not refresh and file_nc:
+        try:
+            xdata = xr.open_dataset(file_nc,engine='h5netcdf')
+            print('Loading netcdf4 file {:}'.format(file_nc))
+            return xdata
+        except:
+            print('Could not open netcdf4 file {:}'.format(file_nc))
+
+    if not file_name:
+        if not folder:
+            files = glob.glob(base_path+'/*/*/psocake/r{:04}/{:}_{:04}.cxi'.format(run,exp,run))
+            print(files)
+            file_name = files[-1]
+            print('...choosing {:}'.format(file_name))
+            print('use folder keyword to select a different psocake file')
+        else:
+            file_name = os.path.join(base_path, folder, 'r{:04}'.format(run), '{:}_{:04}.cxi'.format(exp,run))
+
+    if not file_nc:
+        file_nc = file_name.rstrip('cxi')+'nc'
+
+    xdata = open_cxi_dataset(file_name, **kwargs)
+    xdata.attrs['experiment'] = exp
+    xdata.attrs['run'] = run
+    if load_smd:
+        time_last = time.time() 
+        file_name = os.path.join(base_path, 'results', 'nc', 'run{:04}_smd.nc'.format(run))
+        print('... opening {:}'.format(file_name))
+        xsmd = xr.open_dataset(file_name, engine='h5netcdf')
+        if 'time_ns' not in xsmd.coords:
+            xsmd.coords['time_ns'] = (('time'), np.int64(xsmd.sec*1e9+xsmd.nsec))
+        # datetime64 not consistent at the us time level so need to recreate it
+        # datetime64 is curriosly slow to calculate -- ~16 ms each time point
+        print('... recalculating datetime64 for smd')
+        #xsmd['time'] = [np.datetime64(int(sec*1e9+nsec), 'ns') for sec,nsec in zip(xsmd.sec,xsmd.nsec)]
+        print('Load Time smd hdf5 = {:8.3f} sec'.format(time.time()-time_last))
+        try:
+            time_last = time.time() 
+            xdata = xsmd.swap_dims({'time': 'time_ns'}).merge(xdata).swap_dims({'time_ns': 'time'})
+            print('merge time psocake & smd = {:8.3f} sec'.format(time.time()-time_last))
+        except:
+            print('Cannot load and merge smd')
+
+    if load_moved_pvs:
+        try:
+            xdata = add_moved_pvs(xdata)
+            print('Adding moved pvs')
+        except:
+            print('Cannot add moved pvs')
+
+    #if save:
+    #    xdata.to_
+
+    return xdata
+
+
+def open_cxi_dataset(file_name, load_peakpos=False, add_time=False, **kwargs):
+    """
+    Read cxi format hdf5 file as xarray.  
+    Currently skips much and is first intended to retrieve psocake results_1.nPeaks
+    
+    Paarameters:
+    ------------
+    load_peakpos : bool
+        lood bragg peak positions in event images 
+    add_time : bool
+        add datetime64
+    """
+    import h5py
+    import xarray as xr
+    import pandas as pd
+    import numpy as np
+    import time
+    time0 = time.time() 
+    f5 = h5py.File(file_name, 'r')
+    f5keys = f5.keys()
+
+    xdata = xr.Dataset()
+
+    attrs = {}
+    try:
+        attr = 'cxi_version'
+        f5keys.remove(attr)
+        xdata.attrs[attr] = f5.get(attr).value
+    except:
+        print('Error getting cxi_version')
+
+    attr = 'psocake'
+    if attr in f5.keys():
+        f5keys.remove(attr)
+        try:
+            a = f5.get(attr+'/input')
+            psocake_attrs = {b.split(' ')[0]: b.split(' ')[1] for b in a.value[0].split('\n') if b}        
+        except:
+            print('Error getting {:} attrs'.format(attr))
+            psocake_attrs = {}
+
+    status_attrs = {}
+    attr = 'status'
+    if attr in f5.keys():
+        f5keys.remove(attr)
+        try:
+            for key in f5.get(attr).keys():
+                status_attrs[attr+'_'+key] = f5.get(attr).get(key)
+        except:
+            print('Error getting {:} attrs'.format(attr))
+
+    eventNumber = f5.get('LCLS').get('eventNumber').value
+    nevents = len(eventNumber)
+    print('Loading {:} events'.format(nevents))
+
+    for name in f5keys:
+        item = f5.get(name)
+        for attr in item.keys():
+            try:
+                data = item.get(attr)
+                if attr.startswith('data') and not load_data:
+                    print('Skipping {:} {:} {:} event data'.format(name, attr))
+                elif hasattr(data, 'keys'):
+                    time_next = time.time()
+                    for a in data.keys():
+                        adata = data.get(a)
+                        ashape = adata.shape
+                        try:
+                            if ashape[0] == nevents:
+                                if len(ashape) == 2 and load_peakpos:
+                                    val = adata.value
+                                    xdata[attr+'_'+a] = (('time_ns','peak'), val)
+                                elif len(ashape) == 1:
+                                    val = adata.value
+                                    if val[0].shape:
+                                        print('Skipping {:} {:} {:} {:}'.format(name, attr, a, adata))
+                                        continue
+                                    xdata[attr+'_'+a] = (('time_ns'), val)
+                                else:
+                                    print('Skipping {:} {:} {:} {:}'.format(name, attr, a, adata))
+                                    continue
+
+                            else:
+                                print('Skipping {:} {:} {:} {:}'.format(name, attr, a, adata))
+                        except:
+                            print('Error getting {:} {:} {:} event data'.format(name, attr, a))
+                
+                else:
+                    try:
+                        val = data.value
+                        if isinstance(val, str) or len(val) == 1:
+                            xdata.attrs[attr] = val
+                        else:
+                            xdata[attr] = (['time_ns',], val)
+                    except:
+                        print('Error getting {:} {:} {:} event data'.format(name, attr))
+
+            except:
+                print('Error getting {:} {:} event data'.format(name, attr))
+
+    try:
+        xdata.coords['sec'] = xdata.machineTime
+        xdata.coords['nsec'] = xdata.machineTimeNanoSeconds
+        xdata.coords['time_ns'] = np.int64(xdata.sec*1e9+xdata.nsec)
+        if add_time:
+            xdata['time'] = [np.datetime64(int(sec*1e9+nsec), 'ns') for sec,nsec in zip(xdata.sec,xdata.nsec)]
+    except:
+        print('Error making time from machintTime and machineTimeNanSeconds')
+
+    print('Load Time psocake hdf5 = {:8.3f} sec'.format(time.time()-time0))
+    return xdata
+
+def add_transmission(xdata, exp=None, run=None):
+    """
+    Add transmission from epicsArch attenuation pvs
+
+    Parameters
+    ----------
+    exp : str
+        Experiment name
+        Default use xdata.attrs['experiment'] or xdata.attrs['exp']
+    run : int
+        Run number
+        Default use xdata.attrs['run']
+
+    """
+    from exp_summary import get_exp_summary
+    if not exp:
+        if 'experiment' in xdata.attrs:
+            exp = str(xdata.attrs['experiment'])
+        elif 'exp' in xdata.attrs:
+            exp = str(xdata.attrs['exp'])
+        else:
+            print('exp must be specified or in Dataset attrs')
+            return
+    print exp
+    
+    if not run:
+        if 'run' in xdata.attrs:
+            run = int(xdata.attrs['run'])
+        else:
+            print('run must be specified or in Dataset attrs')
+            return
+
+    es = get_exp_summary(exp) 
+ 
+def add_moved_pvs(xdata, exp=None, run=None):
+    """
+    Add epics pvs that were moved during run to Dataset.
+    - Moved pvs are automatically determined from epicsArch data
+    loaded in PyDataSource.ExperimentSummary class.
+    - merge_fill method used to match moved pvs using timestamp info
+
+    Parameters
+    ----------
+    exp : str
+        Experiment name
+        Default use xdata.attrs['experiment'] or xdata.attrs['exp']
+    run : int
+        Run number
+        Default use xdata.attrs['run']
+
+    """
+    from exp_summary import get_exp_summary
+    if not exp:
+        if 'experiment' in xdata.attrs:
+            exp = str(xdata.attrs['experiment'])
+        elif 'exp' in xdata.attrs:
+            exp = str(xdata.attrs['exp'])
+        else:
+            print('exp must be specified or in Dataset attrs')
+            return
+    print exp
+    
+    if not run:
+        if 'run' in xdata.attrs:
+            run = int(xdata.attrs['run'])
+        else:
+            print('run must be specified or in Dataset attrs')
+            return
+
+    es = get_exp_summary(exp) 
+    xadd = es.get_scan_data(run)
+    xdata = merge_fill(xdata, xadd, bfill=True)
+    return xdata
+
+def merge_fill(xdata, xadd, bfill=True, 
+        keep_attrs=True, keep_new_times=False): 
+    """
+    Merge Datasets.  Fill second Dataset forward then backward unless bfill=False
+    Currently only 1D arrays with dim='time' are added.
+    """
+    import operator
+    import xarray as xr
+    if 'time_ns' not in xdata.coords:
+        xdata.coords['time_ns'] = (('time'), xdata.time.values.tolist())
+    da = xdata.swap_dims({'time': 'time_ns'}).reset_coords()[['time_ns']]
+    if not keep_new_times:
+        da.coords['_orig_data'] = (('time_ns'), xdata.time_ns > 0)
+
+    if 'time_ns' not in xadd.coords:
+        xadd.coords['time_ns'] = (('time'), xadd.time.values.tolist())
+
+    if 'time_ns' not in xadd.dims:
+        xadd = xadd.swap_dims({'time': 'time_ns'})
+
+    xmerge = da.combine_first(xadd)
+    xfill = xmerge.ffill(dim='time_ns')
+    if bfill:
+        xfill = xfill.bfill(dim='time_ns') 
+    if not keep_new_times:
+        xfill = xfill.where(xfill['_orig_data'] == 1, drop=True) 
+        del xfill['_orig_data']
+    xfill = xfill.swap_dims({'time_ns': 'time'})
+    # merge and concat are not efficient when already same dims
+    # may still be more clever way, but this is fast
+    for attr, item in xfill.data_vars.items():
+        if len(item.dims) == 1 and item.dims[0] == 'time':
+            xdata[attr] = (('time'), item.values)
+            for a, val in sorted(xadd[attr].attrs.items(),key=operator.itemgetter(0)):
+                xdata[attr].attrs[a] = val
+
+    if keep_attrs:
+        for attr, val in xadd.attrs.items():
+            if attr not in xdata.attrs:
+                xdata.attrs[attr] = val
+
+    return xdata
+
+def dataset_fill(xdata, time, bfill=True):
+    """
+    Dataset with time and fill forward then backward
+    """
+    import xarray as xr
+    import numpy as np
+    if 'time_ns' not in xdata.coords:
+        xdata.coords['time_ns'] = (('time'), xdata.time.values.tolist())
+    
+    if isinstance(time, np.datetime64):
+        dim = 'time'
+    else:
+        dim = 'time_ns'
+    xadd = xr.DataArray(time, dims=[dim])
+    xadd = xadd.to_dataset(name='time_stamp')
+
+    if 'time_ns' not in xadd.coords:
+        xadd.coords['time_ns'] = (('time'), xadd.time.values.tolist())
+
+    if 'time_ns' not in xadd.dims:
+        xadd = xadd.swap_dims({'time': 'time_ns'})
+
+    xmerge = xdata.swap_dims({'time': 'time_ns'}).merge(xadd).swap_dims({'time_ns': 'time'})
+    xfill = xmerge.ffill(dim='time').bfill(dim='time') 
+
+    return xfill
+
+# Placeholder to make independent of PyDataSource.get_dataset
+#def get_epics_dataset(exp=None, run=None, pvdict={}, fields=None,
+#            meta_attrs = {'units': 'EGU', 'PREC': 'PREC', 'pv': 'name'},
+#            tstart=None, tend=None, quiet=True, **kwargs):
+#        import time
+#        import numpy as np
+#        import pandas as pd
+#        import xarray as xr
+#        import xarray_utils
+#        if not fields:
+#            fields={
+#                    'description':            ('DESC', 'Description'), 
+#                    'slew_speed':             ('VELO', 'Velocity (EGU/s) '),
+#                    'acceleration':           ('ACCL', 'acceleration time'),
+#                    'step_size':              ('RES',  'Step Size (EGU)'),
+#                    'encoder_step':           ('ERES', 'Encoder Step Size '),
+#                    'resolution':             ('MRES', 'Motor Step Size (EGU)'),
+#                    'high_limit':             ('HLM',  'User High Limit'),
+#                    'low_limit':              ('LLM',  'User Low Limit'),
+#                    'units':                  ('EGU',  'Units'),
+#        #            'device_type':            ('DTYP', 'Device type'), 
+#        #            'record_type':            ('RTYP', 'Record Type'), 
+#                    }
+#        time0 = time.time()
+#        time_last = time0
+#       
+#        if load_default:
+#            trans_pvs = [a for a in _transmission_pvs.get('FEE', {}) if a.endswith('_trans')]
+#            trans_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith('_trans')]
+#            trans3_pvs = [a for a in _transmission_pvs.get('FEE', {}) if a.endswith('_trans3')]
+#            trans3_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith('_trans3')]
+#            pvdict.update(**_transmission_pvs.get('FEE',{}))
+#            pvdict.update(**_transmission_pvs.get(ds.instrument,{}))
+#        else:
+#            trans_pvs = []
+#            trans3_pvs = []
+#
+#        pvs = {alias: pv for alias, pv in pvdict.items() if configData._in_archive(pv)} 
+#        
+#        data_arrays = {} 
+#        data_fields = {}
+# 
+#        for alias, pv in pvs.items():
+#            data_fields[alias] = {}
+#            dat = configData._get_pv_from_arch(pv, tstart, tend)
+#            if not dat:
+#                print('WARNING:  {:} - {:} not archived'.format(alias, pv))
+#                continue
+#            
+#            try:
+#                attrs = {a: dat['meta'].get(val) for a,val in meta_attrs.items() if val in dat['meta']}
+#                for attr, item in fields.items():  
+#                    try:
+#                        field=item[0]
+#                        pv_desc = pv.split('.')[0]+'.'+field
+#                        if configData._in_archive(pv_desc):
+#                            desc = configData._get_pv_from_arch(pv_desc)
+#                            if desc:
+#                                vals = {}
+#                                fattrs = attrs.copy()
+#                                fattrs.update(**desc['meta'])
+#                                fattrs['doc'] = item[1]
+#                                val = None
+#                                # remove redundant data
+#                                for item in desc['data']:
+#                                    newval =  item.get('val')
+#                                    if not val or newval != val:
+#                                        val = newval
+#                                        vt = np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns')
+#                                        vals[vt] = val
+#                               
+#                                data_fields[alias][attr] = xr.DataArray(vals.values(), 
+#                                                                coords=[vals.keys()], dims=['time'], 
+#                                                                name=alias+'_'+attr, attrs=fattrs) 
+#                                attrs[attr] = val
+#         
+#                    except:
+#                        traceback.print_exc()
+#                        print('cannot get meta for', alias, attr)
+#                        pass
+#                vals = [item['val'] for item in dat['data']]
+#                if not vals:
+#                    print('No Data in archive for  {:} - {:}'.format(alias, pv))
+#                    continue
+#
+#                doc = attrs.get('description','')
+#                units = attrs.get('units', '')
+#                time_next = time.time()
+#              
+#                try:
+#                    if isinstance(vals[0],str):
+#                        if not quiet:
+#                            print(alias, 'string')
+#                        vals = np.array(vals, dtype=str)
+#                    else:
+#                        times = [np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns') for item in dat['data']]
+#                        dfs = pd.Series(vals, times).sort_index()
+#                        dfs = dfs[~dfs.index.duplicated()]
+#                        dfs = dfs[~(dfs.diff()==0)]
+#                        vals = dfs.values
+#                        dfs = dfs.to_xarray().rename({'index': 'time'})
+#                        data_arrays[alias] = dfs 
+#                        data_arrays[alias].name = alias
+#                        data_arrays[alias].attrs = attrs
+#                
+#                except:
+#                    traceback.print_exc()
+#                    if not quiet:
+#                        print('Error loadinig', alias)
+#
+#                if not quiet:
+#                    try:
+#                        print('{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}'.format(time_next-time_last, \
+#                                        gias, len(vals), np.array(vals).mean(), units, doc, pv))
+#                    except:
+#                        print('{:8.3f} {:28} {:8} {:>10} {:4} {:20} {:}'.format(time_next-time_last, \
+#                                        alias, len(vals), vals[0], units, doc, pv))
+#            
+#            except:
+#                traceback.print_exc()
+#                if not quiet:
+#                    print('Error loading', alias)
+#
+#        xdata = xr.merge(data_arrays.values())
+#        if trans_pvs:
+#            da = xdata.reset_coords()[trans_pvs].to_array() 
+#            xdata['trans'] = (('time'), da.prod(dim='variable'))
+#            xdata['trans'].attrs['doc'] = 'Total transmission: '+'*'.join(trans_pvs)
+#
+#
+#   

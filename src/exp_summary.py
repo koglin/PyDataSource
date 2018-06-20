@@ -7,6 +7,14 @@ import time
 import traceback
 from pylab import *
 
+instrument_transmission_pvs = {
+        'FEE': ['GATT:FEE1:310:R_ACT','SATT:FEE1:320:RACT'],
+        'XPP': ['XPP:ATT:COM:R_CUR'],
+        'XCS': ['XCS:ATT:COM:R_CUR'],
+        'MFX': ['MFX:ATT:COM:R_CUR'],
+        'CXI': ['CXI:DSB:ATT:COM:R_CUR','XRT:DIA:ATT:COM:R_CUR'],
+        }
+
 def write_exp_summary(self, file_name=None, path=None, **kwargs):
     """Write ExperimentSummary as pickle file.
     """
@@ -168,11 +176,10 @@ def read_exp_summary(exp=None, file_name=None, path=None, **kwargs):
         try:
             with open(full_file, 'rb') as pickle_file:
                 data = pickle.load(pickle_file)
-
-            print('pickle OK', path, file_name, full_file)
+            
             return pickle.loads(data)
+        
         except:
-            print('WHY')
             traceback.print_exc()
             print('Failes reading pickle file', full_file)
             return None
@@ -317,9 +324,12 @@ class ExperimentSummary(object):
         self.scratch_dir = os.path.join(self.exp_dir,'scratch')
 
         if init:
-            self._init(**kwargs)
+            self._init(save=save, **kwargs)
 
-    def _init(self, **kwargs):
+    def _init(self, save=False, **kwargs):
+        """
+        Initialize
+        """
         self._load_run_info()
         try:
             self._init_arch(**kwargs)
@@ -431,8 +441,15 @@ class ExperimentSummary(object):
         
         return aruns
 
-    def get_scan_data(self, run, **kwargs):
-        """Get scan dataframe.
+    def get_transmission_data(self, run, time=None, **kwargs):
+        """Get transmission dataframe.
+
+        Parameters
+        ----------
+        run : int
+            Run number
+        time : array
+            Array of times
         """
         df = self.get_scans(**kwargs).T
         if run in df:
@@ -440,9 +457,43 @@ class ExperimentSummary(object):
             attrs = df.where(df > 0).dropna().keys() 
             a = self.xruns.sel(run=run)
             t = self.xepics.time
-            return self.xepics[attrs].where(t>=a.begin_time).where(t<=a.end_time).dropna(dim='time',how='all')
+            xepics = self.xepics[attrs].where(t>=a.begin_time).where(t<=a.end_time).dropna(dim='time',how='all')
+            
         else:
+            print('No scan data for run {:}'.format(run))
             return None
+
+        if time:    
+            xepics = fill_times(xepics, time)
+        
+        return xepics
+
+    def get_scan_data(self, run, time=None, **kwargs):
+        """Get scan dataframe.
+
+        Parameters
+        ----------
+        run : int
+            Run number
+        time : array
+            Array of times
+        """
+        df = self.get_scans(**kwargs).T
+        if run in df:
+            df = df[run]
+            attrs = df.where(df > 0).dropna().keys() 
+            a = self.xruns.sel(run=run)
+            t = self.xepics.time
+            xepics = self.xepics[attrs].where(t>=a.begin_time).where(t<=a.end_time).dropna(dim='time',how='all')
+            
+        else:
+            print('No scan data for run {:}'.format(run))
+            return None
+
+        if time:    
+            xepics = fill_times(xepics, time)
+        
+        return xepics
 
     def plot_scan(self, run, style=None, linewidth=2,
             min_steps=4, attrs=None, device=None, min_motors=1,
@@ -534,15 +585,6 @@ class ExperimentSummary(object):
         else:
             return attrs
 
-#        attrs = []
-#        for a in df.keys()[df.count() > min_count]:
-#            #if a not in xepics.coords and (a in self.xset.data_vars or a in self.xscan.data_vars):
-#            if a not in xepics.coords:
-#                if False and a.endswith('_set'):
-#                    attrs.append(a.split('_set')[0])
-#                else:
-#                    attrs.append(a)
-        
         attrs = list(set(attrs))
 
         if group is not False:
@@ -582,7 +624,6 @@ class ExperimentSummary(object):
                 ylabel = attrs
                 print(attrs)
                 attrs = self.get_moved(attrs, run_min=run_min, run_max=run_max, group=False)
-                #attrs = [a for a in xepics.data_vars if a.startswith(attrs)]
             else:
                 ylabel = attrs
                 attrs = [attrs]
@@ -680,14 +721,13 @@ class ExperimentSummary(object):
         """Show the last time devices were set.
         """
         import pandas as pd
-        #print '{:30} {:10} {:>6}   {:30}'.format('Name','Value', 'Run', 'PV')
-        #print '-'*72
         avals = {}
         for attr in self.xset.data_vars:
             xvar = self.xset[attr].dropna(dim='run')
             avals[attr] = xvar.attrs
-            avals[attr].update({'value': float(xvar[-1].values),'run': xvar[-1].run.values, 'time': xvar[-1].begin_time.values})
-            #print '{:30} {:10.3f} {:>6}   {:30}'.format(attr, float(xvar[-1].values), xvar[-1].run.values, xvar.attrs.get('pv'))
+            avals[attr].update({'value': float(xvar[-1].values),
+                                'run': xvar[-1].run.values, 
+                                'time': xvar[-1].begin_time.values})
                 
         return pd.DataFrame(avals).T[attrs]
 
@@ -806,6 +846,7 @@ class ExperimentSummary(object):
         vals = self._arch._get_json(pv, tstart, tend, False)
         if vals:
             return vals[0]
+
 
     def _in_archive(self, pv):
         """
@@ -982,8 +1023,9 @@ class ExperimentSummary(object):
                                             vt = np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns')
                                             vals[vt] = val
                                    
-                                    data_fields[alias][attr] = xr.DataArray(vals.values(), coords=[vals.keys()], dims=['time'], 
-                                                                            name=alias+'_'+attr, attrs=fattrs) 
+                                    data_fields[alias][attr] = xr.DataArray(vals.values(), 
+                                                                    coords=[vals.keys()], dims=['time'], 
+                                                                    name=alias+'_'+attr, attrs=fattrs) 
                                     attrs[attr] = val
              
                         except:
@@ -1435,14 +1477,6 @@ class ExperimentSummary(object):
                     pass
             runs_list = runs_dict.values()
 
-#  Slower to glob for individual runs than glob all files in folder and then sort python list. 
-#            for item in runs_list:
-#                runnum = item['num']
-#                item['xtc_files'] = glob('{:}/*-r{:04d}*.xtc'.format(
-#                                        self.xtc_dir,runnum))
-#                item['h5_files'] = glob('{:}/*-r{:04d}*.h5'.format(
-#                                        self.h5_dir,runnum))
-#
         else:
             runs_list = []
 

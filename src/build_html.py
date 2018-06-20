@@ -7,7 +7,9 @@ import traceback
 import matplotlib as mpl
 mpl.use('Agg')
 
-from pylab import *
+#from pylab import *
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import xarray as xr
 

@@ -94,7 +94,9 @@ import time
 import traceback
 import inspect
 
-from pylab import *
+#from pylab import *
+#import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 # psana modules
@@ -131,6 +133,43 @@ _eventCodes_rate = {
         162: 'BYKIK',
         163: 'BAKIK',
         }
+
+_transmission_pvs = {
+                'FEE': {
+                        'fee_trans':     'SATT:FEE1:320:RACT', 
+                        'feegas_trans':     'GATT:FEE1:310:R_ACT', 
+                        #'fee_trans_set': 'SATT:FEE1:320:RDES', 
+                        #'feegas_trans_set': 'GATT:FEE1:310:R_DES', 
+                        },
+                'XPP': {
+                        'xpp_trans':        'XPP:ATT:COM:R_CUR',
+                        'xpp_trans3':        'XPP:ATT:COM:R3_CUR',
+                        #'xpp_trans_set':    'XPP:ATT:COM:R_DES',
+                        #'xpp_trans3_set':    'XPP:ATT:COM:R3_DES',
+                        },
+                'XCS': {
+                        'xcs_trans':        'XCS:ATT:COM:R_CUR',
+                        'xcs_trans3':        'XCS:ATT:COM:R3_CUR',
+                        #'xcs_trans_set':    'XCS:ATT:COM:R_DES',
+                        #'xcs_trans3_set':    'XCS:ATT:COM:R3_DES',
+                        },
+                'MFX': {
+                        'mfx_trans':        'MFX:ATT:COM:R_CUR',
+                        'mfx_trans3':        'MFX:ATT:COM:R3_CUR',
+                        #'mfx_trans_set':    'MFX:ATT:COM:R_DES',
+                        #'mfx_trans3_set':    'MFX:ATT:COM:R3_DES',
+                        },
+                'CXI': {
+                        'cxi_trans':        'CXI:DSB:ATT:COM:R_CUR', 
+                        'dsb_trans':        'XRT:DIA:ATT:COM:R_CUR',
+                        'cxi_trans3':        'CXI:DSB:ATT:COM:R3_CUR', 
+                        'dsb_trans3':        'XRT:DIA:ATT:COM:R3_CUR',
+                        #'cxi_trans_set':    'CXI:DSB:ATT:COM:R_DES', 
+                        #'dsb_trans_set':    'XRT:DIA:ATT:COM:R_DES',
+                        #'cxi_trans3_set':    'CXI:DSB:ATT:COM:R3_DES', 
+                        #'dsb_trans3_set':    'XRT:DIA:ATT:COM:R3_DES',
+                        },
+                }
 
 def getattr_complete(base, args):
     """
@@ -374,6 +413,12 @@ def _get_typ_func_attr(typ_func, attr, nolist=False):
     return info
 
 def psmon_publish(evt, quiet=True):
+    """
+    Publish psmon plots for an event
+    """
+    import numpy as np
+    from psmon import publish
+    from psmon.plots import Image, XYPlot, MultiPlot
     eventCodes = evt.Evr.eventCodes
     event_info = str(evt)
     for alias in evt._attrs:
@@ -454,14 +499,18 @@ class ScanData(object):
     _npv_attrs = ['npvControls', 'npvMonitors']
 
     def __init__(self, ds, quiet=True):
+        import numpy as np
         self._ds = ds
         self._attrs = sorted(ds.configData.ControlData._all_values.keys())
         self._scanData = {attr: [] for attr in self._attrs}
         ds.reload()
         self.nsteps = ds._idx_nsteps
-        start_times = []
-        ievent_end = []
         ievent_start = []
+        start_times = []
+        start_datetimes = []
+        ievent_end = []
+        end_times = []
+        end_datetimes = []
         self._ds._idx_istep = []
         istep = 0
         if not quiet:
@@ -480,6 +529,7 @@ class ScanData(object):
             if istep > 0:
                 ievent_end.append(ievent-1)
             start_times.append(evt.EventId.timef64) 
+            start_datetimes.append(evt.EventId.datetime64) 
  
             for attr in self._attrs:
                 self._scanData[attr].append(ds.configData.ControlData._all_values[attr])
@@ -487,9 +537,9 @@ class ScanData(object):
             istep += 1
 
         ievent_end.append(len(ds._idx_times_tuple)-1)       
-        end_times = []
         for istep, ievent in enumerate(ievent_end):
             end_times.append(ds.events.next(ievent).EventId.timef64)
+            end_datetimes.append(ds.events.next(ievent).EventId.datetime64)
         
         self._scanData['ievent_start'] = np.array(ievent_start)
         self._scanData['ievent_end'] = np.array(ievent_end)
@@ -497,6 +547,8 @@ class ScanData(object):
         self.start_times = np.array(start_times)
         self.end_times = np.array(end_times)
         self.step_times = np.array(end_times) - np.array(start_times)
+        self.start_datetimes = np.array(start_datetimes)
+        self.end_datetimes = np.array(end_datetimes)
         
         # Save lookup of step
         for istep, n in enumerate(self.nevents):
@@ -556,9 +608,30 @@ class ScanData(object):
 
         ds.reload()
 
+    @property
+    def dataset(self):
+        """
+        xarray Dataset of ScanData
+        """
+        import xarray as xr
+        nsteps = len(self.start_times)
+        xscan = xr.Dataset({'step': range(nsteps)})
+        xscan.coords['time'] = (('step'), self.start_datetimes) 
+        xscan.coords['time_ns'] = (('step'), xscan.time.values.tolist())
+        xscan['step_tstart'] = (('step'), self.start_datetimes) 
+        xscan['step_tend'] = (('step'), self.end_datetimes) 
+        xscan['step_istart'] = (('step'), self._scanData['ievent_start']) 
+        xscan['step_iend'] = (('step'), self._scanData['ievent_end']) 
+        xscan['step_events'] = (('step'), self.nevents) 
+        for alias, value in self.control_values.items():
+            xscan[alias] = (('step'), value)
+
+        return xscan
+
     def show_info(self, **kwargs):
         """Show scan information.
         """
+        import numpy as np
         message = Message(quiet=True, **kwargs)
         
         attrs = { 
@@ -693,6 +766,7 @@ class DataSource(object):
 
     def __init__(self, data_source=None, default_modules=None, **kwargs):
         #self._device_sets = {'DataSource': {}}
+        self._dataset = None
         self._exp_summary = None
         self._device_sets = {}
         self._current_data = {}
@@ -724,19 +798,6 @@ class DataSource(object):
                 traceback.print_exc()
                 print('Could not load first step in smd data.' )
 
-    # not robust -- orig alias used in other places
-#    def rename(self, **kwargs):
-#        """
-#        Rename detector.
-#        """
-#        for aold, anew in kwargs.items():
-#            self._aliases[anew] = self._aliases.pop(aold)   
-#            self._detectors[anew] = self._detectors.pop(aold)   
-#            self._device_sets[anew] = self._device_sets.pop(aold)
-#            self.configData._config_srcs[anew] = self.configData._config_srcs.pop(aold)
-#            self.configData.Sources._aliases[anew] = self.configData.Sources._aliases.pop(aold)
-#            self._detectors[anew]._alias = anew
-#
     def _get_exp_summary(self, reload=False, build_html=None, **kwargs):
         """
         Load experiment summary
@@ -784,6 +845,228 @@ class DataSource(object):
             return df.dropna().to_dict()
         else:
             return None
+
+    @property
+    def dataset(self):
+        """
+        xarray Dataset of small data from beam_stats analysis,
+        standard epics info for 'FEE' and instrument from _transmission_pvs,
+        scan data automatically determined from exp_summary and 
+        scan data from daq config of calib cycles.
+        """
+        if self._dataset is not None:
+            return self._dataset
+        else:
+            return self.get_dataset()
+
+    def get_dataset(self, pvdict={}, fields=None, 
+            meta_attrs = {'units': 'EGU', 'PREC': 'PREC', 'pv': 'name'},
+            load_default=True, load_scan=None, load_smd=None, load_psocake=None, 
+            tstart=None, tend=None, quiet=True, **kwargs):
+        """
+        Get dataset from epics PVs
+
+        Parameters
+        ----------
+        load_default : bool
+            Load default PVs including transmission
+        load_scan : bool
+            Load PVs that are scanned -- uses exp_summary
+        load_smd : bool
+            Load beam_stats small data file used in off-by-one analysis
+        load_psocake : bool
+            Load psocake peak index 
+        """
+        import time
+        import numpy as np
+        import pandas as pd
+        import xarray as xr
+        import xarray_utils
+        ds = self
+        experiment = ds.data_source.exp
+        run = ds.data_source.run
+        configData = ds.configData
+        xsmd = None
+        if load_smd is not False:
+            try:
+                import beam_stats
+                xsmd = beam_stats.load_small_xarray(ds) 
+                if 'time_ns' not in xsmd.coords:
+                    xsmd.coords['time_ns'] = (('time'), np.int64(xsmd.sec*1e9+xsmd.nsec))
+            except:
+                print('Cannot add smd data')
+
+        if not tstart:
+            tstart = configData._tstart
+        if not tend:
+            tend = configData._tend
+        if not fields:
+            fields={
+                    'description':            ('DESC', 'Description'), 
+                    'slew_speed':             ('VELO', 'Velocity (EGU/s) '),
+                    'acceleration':           ('ACCL', 'acceleration time'),
+                    'step_size':              ('RES',  'Step Size (EGU)'),
+                    'encoder_step':           ('ERES', 'Encoder Step Size '),
+                    'resolution':             ('MRES', 'Motor Step Size (EGU)'),
+                    'high_limit':             ('HLM',  'User High Limit'),
+                    'low_limit':              ('LLM',  'User Low Limit'),
+                    'units':                  ('EGU',  'Units'),
+        #            'device_type':            ('DTYP', 'Device type'), 
+        #            'record_type':            ('RTYP', 'Record Type'), 
+                    }
+        time0 = time.time()
+        time_last = time0
+       
+        if load_default:
+            trans_pvs = [a for a in _transmission_pvs.get('FEE', {}) if a.endswith('_trans')]
+            trans_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith('_trans')]
+            trans3_pvs = [a for a in _transmission_pvs.get('FEE', {}) if a.endswith('_trans3')]
+            trans3_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith('_trans3')]
+            pvdict.update(**_transmission_pvs.get('FEE',{}))
+            pvdict.update(**_transmission_pvs.get(ds.instrument,{}))
+        else:
+            trans_pvs = []
+            trans3_pvs = []
+
+        pvs = {alias: pv for alias, pv in pvdict.items() if configData._in_archive(pv)} 
+        
+        data_arrays = {} 
+        data_fields = {}
+ 
+        for alias, pv in pvs.items():
+            data_fields[alias] = {}
+            dat = configData._get_pv_from_arch(pv, tstart, tend)
+            if not dat:
+                print('WARNING:  {:} - {:} not archived'.format(alias, pv))
+                continue
+            
+            try:
+                attrs = {a: dat['meta'].get(val) for a,val in meta_attrs.items() if val in dat['meta']}
+                for attr, item in fields.items():  
+                    try:
+                        field=item[0]
+                        pv_desc = pv.split('.')[0]+'.'+field
+                        if configData._in_archive(pv_desc):
+                            desc = configData._get_pv_from_arch(pv_desc)
+                            if desc:
+                                vals = {}
+                                fattrs = attrs.copy()
+                                fattrs.update(**desc['meta'])
+                                fattrs['doc'] = item[1]
+                                val = None
+                                # remove redundant data
+                                for item in desc['data']:
+                                    newval =  item.get('val')
+                                    if not val or newval != val:
+                                        val = newval
+                                        vt = np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns')
+                                        vals[vt] = val
+                               
+                                data_fields[alias][attr] = xr.DataArray(vals.values(), 
+                                                                coords=[vals.keys()], dims=['time'], 
+                                                                name=alias+'_'+attr, attrs=fattrs) 
+                                attrs[attr] = val
+         
+                    except:
+                        traceback.print_exc()
+                        print('cannot get meta for', alias, attr)
+                        pass
+                vals = [item['val'] for item in dat['data']]
+                if not vals:
+                    print('No Data in archive for  {:} - {:}'.format(alias, pv))
+                    continue
+
+                doc = attrs.get('description','')
+                units = attrs.get('units', '')
+                time_next = time.time()
+              
+                try:
+                    if isinstance(vals[0],str):
+                        if not quiet:
+                            print(alias, 'string')
+                        vals = np.array(vals, dtype=str)
+                    else:
+                        times = [np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns') for item in dat['data']]
+                        dfs = pd.Series(vals, times).sort_index()
+                        dfs = dfs[~dfs.index.duplicated()]
+                        dfs = dfs[~(dfs.diff()==0)]
+                        vals = dfs.values
+                        dfs = dfs.to_xarray().rename({'index': 'time'})
+                        data_arrays[alias] = dfs 
+                        data_arrays[alias].name = alias
+                        data_arrays[alias].attrs = attrs
+                
+                except:
+                    traceback.print_exc()
+                    if not quiet:
+                        print('Error loadinig', alias)
+
+                if not quiet:
+                    try:
+                        print('{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}'.format(time_next-time_last, \
+                                        gias, len(vals), np.array(vals).mean(), units, doc, pv))
+                    except:
+                        print('{:8.3f} {:28} {:8} {:>10} {:4} {:20} {:}'.format(time_next-time_last, \
+                                        alias, len(vals), vals[0], units, doc, pv))
+            
+            except:
+                traceback.print_exc()
+                if not quiet:
+                    print('Error loading', alias)
+
+        xdata = xr.merge(data_arrays.values())
+        if trans_pvs:
+            da = xdata.reset_coords()[trans_pvs].to_array() 
+            xdata['trans'] = (('time'), da.prod(dim='variable'))
+            xdata['trans'].attrs['doc'] = 'Total transmission: '+'*'.join(trans_pvs)
+
+        if load_psocake:
+            import xarray_utils
+            xsmd = xarray_utils.open_cxi_psocake(experiment, run, 
+                    load_smd=True, load_moved_pvs=False, **kwargs)
+            for attr, item in xsmd.data_vars.items():
+                if len(item.dims) > 1:
+                    del xsmd[attr]
+            xdata = xarray_utils.merge_fill(xsmd, xdata)
+            #xdata = xdata.swap_dims({'time': 'time_ns'}).merge(xpsocake).swap_dims({'time_ns': 'time'})
+        elif xsmd is not None:
+            xdata = xarray_utils.merge_fill(xsmd, xdata)
+        
+        xtimes = xr.Dataset({'time': ds._idx_datetime64})
+        xdata = xarray_utils.merge_fill(xtimes, xdata) 
+        
+        if load_scan is not False:
+            try:
+                xscan = ds.exp_summary.get_scan_data(run)
+                xdata = xarray_utils.merge_fill(xdata, xscan)
+            except:
+                print('Cannot add exp_summary scan data')
+            try:
+                xscan = ds.configData.ScanData.dataset
+                if load_scan or xscan.step.size > 1:
+                    xdata = xarray_utils.merge_fill(xdata, xscan)
+            except:
+                print('Cannot add exp_summary scan data')
+      
+        self._dataset = xarray_utils.resort(xdata)
+
+        return self._dataset
+
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            attr_dict = {key: pdict for key,pdict in self._pv_dict.items()
+                         if pdict['components'][0] == attr}
+            return PvData(attr_dict, self._ds, level=1)
+        
+        if attr in dir(self._ds.env().epicsStore()):
+            return getattr(self._ds.env().epicsStore(),attr)
+
+    def __dir__(self):
+        all_attrs = set(self._attrs +
+                        dir(self._ds.env().epicsStore()) +
+                        self.__dict__.keys() + dir(EpicsData))
+        return list(sorted(all_attrs))
+
 
     def load_run(self, data_source=None, reload=False, 
             try_idx=None, wait=True, timeout=20., 
@@ -1626,6 +1909,7 @@ class DataSource(object):
         path : str
             Path of file
         """
+        import pandas as pd
         if not file_name:
             #file_name = self._get_config_file(run=self.data_source.run, path=path)
             if not path:
@@ -1663,6 +1947,7 @@ class DataSource(object):
         user : str, optional
             Name of user to load config file
         """
+        import pandas as pd
         if not file_name:
             file_name = self._get_config_file(run=run, path=path, user=user)
 
@@ -2190,7 +2475,7 @@ class PsanaTypeList(object):
     """
 
     def __init__(self, type_list):
-
+        import numpy as np
         self._type_list = type_list
         typ_func = type_list[0]._typ_func
         module = typ_func.__module__.lstrip('psana.')
@@ -3568,7 +3853,7 @@ class EventId(object):
     _properties = ['datetime64', 'EventTime', 'timef64', 'nsec', 'sec']
 
     def __init__(self, evt):
-
+        import numpy as np
         self._EventId = evt.get(psana.EventId)
 
     @property
@@ -3797,6 +4082,7 @@ class Detector(object):
         """
         Update default xarray information
         """
+        import numpy as np
         # attrs -- not valid yet for bld but should fix this to avoid try/except here
         self._xarray_init = True
         try:
@@ -3980,6 +4266,7 @@ class Detector(object):
         """
         Add evtData xarray information.
         """
+        import numpy as np
         dims_dict = {}
         for attr in attrs:
             if attr in self.evtData._all_values:
@@ -4405,6 +4692,7 @@ class Detector(object):
         """
         Returns histogram as defined by AddOn.
         """
+        import numpy as np
         if attr in self._det_config['histogram']:
             item = self._det_config['histogram'][attr]
             img = getattr_complete(self, item['attr'])
@@ -4803,6 +5091,7 @@ class AddOn(object):
             Make psplot of roi data
  
         """
+        import numpy as np
         _methods = ['sum', 'mean', 'std', 'min', 'max', 'var']
         _cartesian_axes = ['x', 'y']
         _polar_axes = ['r', 'az']
@@ -5045,6 +5334,8 @@ class AddOn(object):
             Select roi interactively
 
         """
+        import matplotlib.pyplot as plt
+        import numpy as np
         if not attr:
             if sensor is not None:
                 attr = 'calib'
@@ -5413,6 +5704,7 @@ class AddOn(object):
 #            so that the integral of the density over the range remains 1
 #            (used with np.histogram)
 
+        import numpy as np
         if gain:
             if not unit:
                 unit = 'ADUx{:}'.format(gain)
@@ -5751,6 +6043,7 @@ class AddOn(object):
             Plot if eventCode is present
 
         """
+        import numpy as np
         plot_error = '' 
         alias = self._alias
 
@@ -6526,6 +6819,7 @@ class ImageCalibData(object):
     def _get_point_indexes(self, **kwargs):
         """
         """
+        import numpy as np
         ixo, iyo = self._det.point_indexes(self._evt, **kwargs)
         if self.indexes_y is not None:
             ny = self.indexes_y.max()+1
@@ -6806,21 +7100,6 @@ class EpicsData(object):
         self._pv_dict = pv_dict
         self._attrs = list(set([val['components'][0] for val in self._pv_dict.values()]))
 
-    def __getattr__(self, attr):
-        if attr in self._attrs:
-            attr_dict = {key: pdict for key,pdict in self._pv_dict.items()
-                         if pdict['components'][0] == attr}
-            return PvData(attr_dict, self._ds, level=1)
-        
-        if attr in dir(self._ds.env().epicsStore()):
-            return getattr(self._ds.env().epicsStore(),attr)
-
-    def __dir__(self):
-        all_attrs = set(self._attrs +
-                        dir(self._ds.env().epicsStore()) +
-                        self.__dict__.keys() + dir(EpicsData))
-        return list(sorted(all_attrs))
-
 
 class PvData(object):
     """
@@ -6945,6 +7224,7 @@ class EpicsStorePV(object):
             return None
 
     def __str__(self):
+        import numpy as np
         if len(self.data) > 1 and isinstance(self.data, np.ndarray):
             value = '<{:}>'.format(mean(self.data))
         else:

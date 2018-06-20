@@ -1057,10 +1057,17 @@ def build_beam_stats(exp=None, run=None,
     return b
 
 
-def load_small_xarray(ds, path=None, filename=None, refresh=False, 
+def load_small_xarray(ds, path=None, filename=None, refresh=None, 
         engine='h5netcdf', **kwargs):
     """Load small xarray Dataset with PyDataSource.DataSource. 
-    
+
+    Parameters
+    ----------
+    refresh : bool
+        True = reload
+        False = load from file, return None if file does not exist
+        None = load from file or make new if file does not exist [default] 
+         
     """
     import xarray as xr
     import glob
@@ -1073,12 +1080,17 @@ def load_small_xarray(ds, path=None, filename=None, refresh=False,
     if not filename:
         filename = 'run{:04}_smd.nc'.format(ds.data_source.run)
 
-    if refresh or not glob.glob(os.path.join(path, filename)):
-        x = make_small_xarray(ds, path=path, filename=filename, **kwargs)
-    else:
-        x = xr.open_dataset(os.path.join(path,filename), engine='h5netcdf')
+    smd_file = os.path.join(path, filename)
+    file_available = os.path.isfile(smd_file)
+    if refresh is None and not file_available: 
+        refresh = True
 
-    return x
+    if refresh:
+        return make_small_xarray(ds, path=path, filename=filename, **kwargs)
+    elif file_available:
+        return xr.open_dataset(os.path.join(path,filename), engine='h5netcdf')
+    else:
+        return None
 
 def make_small_xarray(self, auto_update=True,
         add_dets=True, add_counts=False, add_1d=True,
