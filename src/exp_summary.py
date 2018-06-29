@@ -524,12 +524,13 @@ class ExperimentSummary(object):
                 if aunits[attr]:
                     lab += ' [{:}]'.format(aunits[attr])
                 
-                df = x[attr].dropna(dim='time').to_pandas()
+                df = x[attr].dropna(dim='time').to_pandas().tz_localize('UTC').tz_convert('US/Pacific')
                 if style:
                     df.plot(style=style, linewidth=linewidth, label=lab, ax=ax)
                 else:
                     df.plot(drawstyle='steps', linewidth=linewidth, label=lab, ax=ax)
                 
+            ax.set_xlabel('time (US Pacific)')
             legend = ax.legend(loc=loc)
 
     def get_epics(self, attrs=None, run_min=None, run_max=None):
