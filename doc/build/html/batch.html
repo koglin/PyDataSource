@@ -169,18 +169,18 @@
 <p>The submit_summary bash script takes the experiment name and run number as arguments
 followed by the batch queue and type of processing.</p>
 <p>For mpi processing (12 nodes):</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
 submit_summary cxitut13 <span class="m">20</span> psanaq mpi
 </pre></div>
 </div>
 <p>For single core batch processing:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
 submit_summary cxitut13 <span class="m">20</span> psanaq batch
 </pre></div>
 </div>
 <p>Change the last parameter to ‘epics’ in order to create an updated experiment summary,
 which will be updated to include the most recent run independent of the specified run parameter.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>submit_summary cxitut13 <span class="m">20</span> psanaq epics
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>submit_summary cxitut13 <span class="m">20</span> psanaq epics
 </pre></div>
 </div>
 <p>The resulting reports are available under the Workflow top tab, and then the Data Summary tab to the lef.</p>
@@ -250,8 +250,8 @@ place it in the experiment results/src subfolder and add the name of the file as
 </table>
 <p>Note for older experiments like cxitut13, the results folder in named ‘res’ instead of ‘results’.
 The submit_summary summary will use the res folder when the results folder is not present.</p>
-<p><a class="reference download internal" href="_downloads/cxitut13.py" download=""><code class="xref download docutils literal"><span class="pre">Open</span> <span class="pre">cxitut13.py</span> <span class="pre">example</span></code></a>.</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
+<p><a class="reference download internal" href="_downloads/cxitut13.py" download=""><code class="xref download docutils literal notranslate"><span class="pre">Open</span> <span class="pre">cxitut13.py</span> <span class="pre">example</span></code></a>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
 <span class="n">exp</span> <span class="o">=</span> <span class="s1">&#39;cxitut13&#39;</span>

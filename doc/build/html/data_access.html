@@ -178,7 +178,7 @@
 <div class="section" id="analysis-environment">
 <h2>Analysis Environment<a class="headerlink" href="#analysis-environment" title="Permalink to this headline">¶</a></h2>
 <p>Use the following environment Setup from psana machine.  Start ipython with the –pylab option (or if youy prefer import numpy and matplotlib as needed).</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
 ipython --pylab
 </pre></div>
 </div>
@@ -186,7 +186,7 @@ ipython --pylab
 <div class="section" id="data-source">
 <h2>Data Source<a class="headerlink" href="#data-source" title="Permalink to this headline">¶</a></h2>
 <p>Use run and exp keywords to access your data using <strong>PyDataSource.DataSource</strong>.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="gp">In [2]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
 
@@ -210,7 +210,7 @@ ipython --pylab
 </pre></div>
 </div>
 <p>Get the first event and press tab to see detectors in event (according to aliases defined in daq).</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">evt</span><span class="o">.&lt;</span><span class="n">TAB</span><span class="o">&gt;</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [4]: </span><span class="n">evt</span><span class="o">.&lt;</span><span class="n">TAB</span><span class="o">&gt;</span>
 <span class="go">         evt.cspad           evt.Evr             evt.keys            evt.PhaseCavity     evt.XppSb3_Ipm</span>
 <span class="go">         evt.EBeam           evt.FEEGasDetEnergy evt.L3T             evt.XppEnds_Ipm0    evt.yag2</span>
 <span class="go">         evt.EventId         evt.get             evt.next            evt.XppSb2_Ipm      evt.yag_lom</span>
@@ -229,7 +229,7 @@ ipython --pylab
 </dd>
 </dl>
 <p>Tab on the evt.cspad object to see the attributes available and use the show_info method to print a summary table.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.&lt;</span><span class="n">TAB</span><span class="o">&gt;</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.&lt;</span><span class="n">TAB</span><span class="o">&gt;</span>
 <span class="gp">   ...: </span>            <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">add</span>        <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">epicsData</span>  <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">L3T</span>        <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">set_cmpars</span>
 <span class="gp">   ...: </span>            <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">calib</span>      <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">EventId</span>    <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">monitor</span>    <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">shape</span>
 <span class="gp">   ...: </span>            <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">calibData</span>  <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">Evr</span>        <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">next</span>       <span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">show_all</span>   <span class="o">&gt;</span>
@@ -239,7 +239,7 @@ ipython --pylab
 </pre></div>
 </div>
 <p>See example below of plotting an image with the matplotlib plotting library</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
 
@@ -259,7 +259,7 @@ ipython --pylab
 <h2>Event Iteration<a class="headerlink" href="#event-iteration" title="Permalink to this headline">¶</a></h2>
 <p>One can iterate events from the ds.events object, the evt object, or a detector object.  Each of these are python iterators.</p>
 <p>The representation of each of these provides details of the event including the event codes present.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
 
 <span class="gp">In [7]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
 <span class="gh">Out[7]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 54, Step 0, Event 1, 11:37:12.4599, [140, 40] &gt;</span>
@@ -282,7 +282,7 @@ ipython --pylab
 <div class="section" id="event-codes">
 <h2>Event Codes<a class="headerlink" href="#event-codes" title="Permalink to this headline">¶</a></h2>
 <p>To check if an event codes is present:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="mi">40</span><span class="p">)</span>
 <span class="gh">Out[10]: </span><span class="go">True</span>
 
 <span class="gp">In [11]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="mi">41</span><span class="p">)</span>
@@ -295,7 +295,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <div class="section" id="beamline-data">
 <h2>Beamline Data<a class="headerlink" href="#beamline-data" title="Permalink to this headline">¶</a></h2>
 <p>The following Electron and Photon Beam data are generally recorded for all experiments.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
 <span class="gh">Out[12]: </span><span class="go"></span>
 <span class="gt">--------------------------------------------------------------------------------</span>
 <span class="n">EBeam</span> <span class="n">xpptut15</span><span class="p">,</span> <span class="n">Run</span> <span class="mi">54</span><span class="p">,</span> <span class="n">Step</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Event</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">11</span><span class="p">:</span><span class="mi">37</span><span class="p">:</span><span class="mf">12.5019</span><span class="p">,</span> <span class="p">[</span><span class="mi">140</span><span class="p">,</span> <span class="mi">141</span><span class="p">,</span> <span class="mi">142</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
@@ -349,7 +349,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <div class="section" id="epics-data">
 <h2>Epics Data<a class="headerlink" href="#epics-data" title="Permalink to this headline">¶</a></h2>
 <p>The LCLS DAQ includes many slowly changing quantities (e.g. voltages, temperatures, motor positions) that are recorded with software called EPICS.  These can either be accessed by aliases or PV name.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">59</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">59</span><span class="p">)</span>
 
 <span class="gp">In [16]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
 
@@ -363,7 +363,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 </pre></div>
 </div>
 <p>Epics data associated with detectors (using the convention of using an alias starting with the detector name) can be accessed either from the ds.epicsData object or more conveniently from the epicsData object in the detector.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">yag2</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="n">ds</span><span class="o">.</span><span class="n">epicsData</span><span class="o">.</span><span class="n">yag2</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
 <span class="gh">Out[18]: </span><span class="go"></span>
 <span class="go">yag2_focus                           -1.151 -- XPP:SB3:CLF:01.RBV                       </span>
 <span class="go">yag2_zoom                                65 -- XPP:SB3:CLZ:01.RBV                       </span>
@@ -386,7 +386,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 </ul>
 </dd>
 </dl>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">280</span><span class="p">)</span>
 
@@ -410,7 +410,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <div class="section" id="anlyzing-scans">
 <h2>Anlyzing Scans<a class="headerlink" href="#anlyzing-scans" title="Permalink to this headline">¶</a></h2>
 <p>Information about daq scans (where things like motor positions are changed during a run in “steps” or “calibcycles”) is accessible from the ds.configData.  The ScanData object may take dozens of seconds to load the first time depending on the length of the scan.  Once loaded you have access to the scan information as lists the length of the number of steps in the scan.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="gp">In [22]: </span><span class="n">ds</span>  <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 
@@ -478,7 +478,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 </pre></div>
 </div>
 <p>Here is a quick way to iterate over steps:</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [24]: </span> <span class="k">for</span> <span class="n">istep</span><span class="p">,</span> <span class="n">stepevts</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">steps</span><span class="p">):</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [24]: </span> <span class="k">for</span> <span class="n">istep</span><span class="p">,</span> <span class="n">stepevts</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">steps</span><span class="p">):</span>
 <span class="go">    ...:     evt = stepevts.next()</span>
 <span class="go">    ...:     print istep, evt</span>
 <span class="go">    ...:</span>
@@ -494,7 +494,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <div class="section" id="reloading-datasource">
 <h2>Reloading DataSource<a class="headerlink" href="#reloading-datasource" title="Permalink to this headline">¶</a></h2>
 <p>Use the reload method to start back at the beginning of a run.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
 
 <span class="gp">In [21]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
 
@@ -510,7 +510,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 <h2>Jump Quickly to Specific Event<a class="headerlink" href="#jump-quickly-to-specific-event" title="Permalink to this headline">¶</a></h2>
 <p>Time stamps can be used to jump to specific event in the next method.  Alternatively an interger event number can be supplied to goto event number in DataSource (although it may not be exactly same event depending on how the data_source string is corresponding keywords to define the data_source is defined and also may differ for fast feedback and offline analysis environments).</p>
 <p>This example shows jumping to event 200, saving the EventTime, going back to event 0, and then using the saved EventTime to jump back to event 200.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [24]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [24]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
 <span class="gh">Out[24]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step 0, Event 2, 15:11:48.5766, [40] &gt;</span>
 
 <span class="gp">In [25]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
@@ -526,7 +526,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 </pre></div>
 </div>
 <p>If nothing is passed in the next method, then the next event goes to the next event before we started jumping to specific events.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [29]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [29]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
 <span class="gh">Out[29]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step 0, Event 3, 15:11:48.5849, [41, 40] &gt;</span>
 </pre></div>
 </div>

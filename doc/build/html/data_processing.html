@@ -191,7 +191,7 @@
 <div class="section" id="tutorial-data">
 <h2>Tutorial Data<a class="headerlink" href="#tutorial-data" title="Permalink to this headline">¶</a></h2>
 <p>We start by loading XPP cspad data that shows powder rings from LaB6 sample</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="gp">In [2]: </span><span class="n">ds</span>  <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">320</span><span class="p">)</span>
 
@@ -223,7 +223,7 @@
 <div class="section" id="data-visualization">
 <h2>Data visualization<a class="headerlink" href="#data-visualization" title="Permalink to this headline">¶</a></h2>
 <p>The cspad image can be visualized using the add.psplot method.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">psplot</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [5]: </span><span class="n">evt</span><span class="o">.</span><span class="n">cspad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">psplot</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
 <span class="go">  psmon plot added -- use the following to view:</span>
 <span class="go">  --&gt; psplot -s psanaphi108 -p 12301 cspad_image</span>
 <span class="go">  WARNING -- see notice when adding for -p PORT specification</span>
@@ -235,7 +235,7 @@
 <img alt="_images/xpptut15_run320_cspad_rings.jpg" src="_images/xpptut15_run320_cspad_rings.jpg" />
 </div>
 <p>To view this plot on another machine, first set the environment and then copy the line in the ipython output from above.</p>
-<div class="highlight-bash"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/ana_env.sh
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/ana_env.sh
 <span class="nb">source</span> conda_setup
 psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 </pre></div>
@@ -246,7 +246,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 </div>
 <p>These plots will be automatically updated for each next event.  This real-time monitoring is generated using the psana psmon package (based on PyQtGraph).  These plots can be viewed on multiple other machines as well as locally (using the zmq protocal).</p>
 <p>For another plotting example, open cxi lysozyme crystallography tutorial data.  Plot the image for the DscCsPad (i.e., the front CSpad detector for the CXI 1 um focus SC1 chamber).  Jump to event 14, which has extra background so that there are multiple photons in many of the detector pixels.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [6]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 
 <span class="gp">In [7]: </span><span class="n">ds</span><span class="o">.</span><span class="n">configData</span>
 <span class="gh">Out[7]: </span><span class="go">&lt; ConfigData: exp=cxitut13:run=10:smd &gt;</span>
@@ -280,7 +280,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <div class="section" id="make-a-histogram">
 <h2>Make a Histogram<a class="headerlink" href="#make-a-histogram" title="Permalink to this headline">¶</a></h2>
 <p>Use the add.histogram method to make a histogram to determain the detector gain.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">publish</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [11]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">publish</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="go">psmon plot added -- use the following to view:</span>
 <span class="go">--&gt; psplot -s psanaphi103 -p 12301 DscCsPad_calib_hist</span>
 <span class="go">WARNING -- see notice when adding for -p PORT specification</span>
@@ -295,7 +295,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <h2>Setting Parameters<a class="headerlink" href="#setting-parameters" title="Permalink to this headline">¶</a></h2>
 <p>To set a parameters in the detector object for use later, use the add.parameter method.  These parameters can be output in a config file along with all the other actions described in this section, and they will persists for example if the DataSource is reloaded or a module is added or updated.</p>
 <p>Moving the cursor to the top of the second peak from the left in the histogram, we find the 1-photon peak is at an x position of ~23 ADU.  Use the add.parameter method to set the gain attribute and use it in making a new photon counts histogram.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">parameter</span><span class="p">(</span><span class="n">gain</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mf">23.</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">parameter</span><span class="p">(</span><span class="n">gain</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mf">23.</span><span class="p">)</span>
 
 <span class="gp">In [13]: </span><span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span><span class="mi">150</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">gain</span>
 
@@ -314,7 +314,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <div class="section" id="count-photons">
 <h2>Count Photons<a class="headerlink" href="#count-photons" title="Permalink to this headline">¶</a></h2>
 <p>Using limist of 12 to 10,000 ADU, and the gain factor of 23 ADU/photon we previously found, we can count the number of X-rays.  First jump to event 22 where there is less background.  Then use the add.count method to count the photons within the limits=(12,10000).  Use the show_info method to print a table of the current event information including results from the histogram and count methods.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">limits</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">10000</span><span class="p">),</span> <span class="n">gain</span><span class="o">=</span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;photons&#39;</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Photon Count&#39;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [15]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">limits</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">10000</span><span class="p">),</span> <span class="n">gain</span><span class="o">=</span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;photons&#39;</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Photon Count&#39;</span><span class="p">)</span>
 
 <span class="gp">In [16]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="mi">22</span><span class="p">)</span>
 <span class="gh">Out[16]: </span><span class="go">&lt; EvtDetectors: cxitut13, Run 10, Step -1, Event 22, 04:38:41.4259, [140, 40, 42] &gt;</span>
@@ -348,7 +348,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <div class="section" id="make-projections">
 <h2>Make Projections<a class="headerlink" href="#make-projections" title="Permalink to this headline">¶</a></h2>
 <p>Use the add.projection method to make a radial projection of the CSpad data.  Note that it is more accurate as well as faster to compute the radial projection from the calib “unassembled data” rather than the assembled image.  The publish keyword opens a plot, in which we clearly see several diffraction rings.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">publish</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="s1">&#39;calib&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">publish</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="go">psmon plot added -- use the following to view:</span>
 <span class="go">--&gt; psplot -s psanaphi103 -p 12301 DscCsPad_calib_r</span>
 <span class="go">WARNING -- see notice when adding for -p PORT specification</span>
@@ -359,7 +359,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <img alt="_images/cxitut13_run10_DscCsPad_calib_r_22.jpg" src="_images/cxitut13_run10_DscCsPad_calib_r_22.jpg" />
 </div>
 <p>For another example we go back to the xpptut15 and open up a plot of the ‘opal_1’ camera.  Note that here we use ‘raw’ for the camera data since most cameras are already internally calibrated and do not need pedestal or common mode corrections and are already uniform 2D images, so do not need geometry files to create images.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">evt</span><span class="o">.</span><span class="n">opal_1</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">psplot</span><span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">evt</span><span class="o">.</span><span class="n">opal_1</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">psplot</span><span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">)</span>
 <span class="go">psmon plot added -- use the following to view:</span>
 <span class="go">--&gt; psplot -s psanaphi108 -p 12301 opal_1_raw</span>
 <span class="go">WARNING -- see notice when adding for -p PORT specification</span>
@@ -370,7 +370,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <img alt="_images/xpptut15_run320_opal_1_raw.jpg" src="_images/xpptut15_run320_opal_1_raw.jpg" />
 </div>
 <p>Now make a horizontal projection of the spectrum across the full horizontal range between 300-400 vertically.  i.e., roi = ((0,300),(1024,400))</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">ds</span>  <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">320</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">ds</span>  <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">320</span><span class="p">)</span>
 <span class="gp">In [22]: </span><span class="n">evt</span><span class="o">.</span><span class="n">opal_1</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">roi</span><span class="o">=</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">300</span><span class="p">),(</span><span class="mi">1024</span><span class="p">,</span><span class="mi">400</span><span class="p">)),</span> <span class="n">publish</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 <span class="go">psmon plot added -- use the following to view:</span>
 <span class="go">--&gt; psplot -s psanaphi108 -p 12301 opal_1_raw_x</span>
@@ -386,7 +386,7 @@ psplot -s psanaphi108 -p <span class="m">12301</span> cspad_image
 <h2>Custom Module<a class="headerlink" href="#custom-module" title="Permalink to this headline">¶</a></h2>
 <p>For more advanced processing, an instance of the PyDataSource.Detector class can be created allowing
 for flexibility in writing advanced methods.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="k">class</span> <span class="nc">Example</span><span class="p">(</span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">Detector</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Example module.</span>
@@ -400,7 +400,7 @@ for flexibility in writing advanced methods.</p>
 <p>A module can then be added to a detector with the add.module method, as in the example below for a
 module to process an ‘Imp’ waveform detector.  This module creates filtered waveform numpy arrays
 from the waveforms and calculates the peak amplitudes of the filtered waveforms.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
 <span class="gp">In [2]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
 
@@ -453,7 +453,7 @@ from the waveforms and calculates the peak amplitudes of the filtered waveforms.
 </div>
 <p>The first plot below is the raw input waveforms for the four channels, and the second plot shows the filtered waveforms.
 The amplitudes of the filtered waveforms are given in the table above from the show_info method.</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">PyDataSource</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
 <span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
@@ -473,7 +473,7 @@ The amplitudes of the filtered waveforms are given in the table above from the s
 </div>
 <p>You could copy this module from the PyDataSource package to your work area, modify as desired and reload with the
 path keyword pointing to your work area. e.g.,</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">module</span><span class="p">(</span><span class="s1">&#39;impbox&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;~username/work/&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">module</span><span class="p">(</span><span class="s1">&#39;impbox&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;~username/work/&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -485,7 +485,7 @@ path keyword pointing to your work area. e.g.,</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.html#PyDataSource.AddOn" title="PyDataSource.AddOn"><code class="xref py py-obj docutils literal"><span class="pre">AddOn</span></code></a>(ds,&nbsp;alias)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.html#PyDataSource.AddOn" title="PyDataSource.AddOn"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn</span></code></a>(ds,&nbsp;alias)</td>
 <td>Collection of methods to add parameters, properties, and reduction/proccesing of data with roi, projection, histogram methods.</td>
 </tr>
 </tbody>
@@ -499,28 +499,28 @@ path keyword pointing to your work area. e.g.,</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.count.html#PyDataSource.AddOn.count" title="PyDataSource.AddOn.count"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.count</span></code></a>([attr,&nbsp;gain,&nbsp;unit,&nbsp;doc,&nbsp;roi,&nbsp;…])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.count.html#PyDataSource.AddOn.count" title="PyDataSource.AddOn.count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.count</span></code></a>([attr,&nbsp;gain,&nbsp;unit,&nbsp;doc,&nbsp;roi,&nbsp;…])</td>
 <td>Count (i.e., sum) of detector within optional roi.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.histogram.html#PyDataSource.AddOn.histogram" title="PyDataSource.AddOn.histogram"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.histogram</span></code></a>([attr,&nbsp;bins,&nbsp;gain,&nbsp;unit,&nbsp;…])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.histogram.html#PyDataSource.AddOn.histogram" title="PyDataSource.AddOn.histogram"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.histogram</span></code></a>([attr,&nbsp;bins,&nbsp;gain,&nbsp;unit,&nbsp;…])</td>
 <td>Make a histogram.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.module.html#PyDataSource.AddOn.module" title="PyDataSource.AddOn.module"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.module</span></code></a>([module])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.module.html#PyDataSource.AddOn.module" title="PyDataSource.AddOn.module"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.module</span></code></a>([module])</td>
 <td>Add detector module</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.parameter.html#PyDataSource.AddOn.parameter" title="PyDataSource.AddOn.parameter"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.parameter</span></code></a>(**kwargs)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.parameter.html#PyDataSource.AddOn.parameter" title="PyDataSource.AddOn.parameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.parameter</span></code></a>(**kwargs)</td>
 <td>Add parameters as keword arguments.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.peak.html#PyDataSource.AddOn.peak" title="PyDataSource.AddOn.peak"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.peak</span></code></a>([attr,&nbsp;ichannel,&nbsp;name,&nbsp;xaxis,&nbsp;…])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.peak.html#PyDataSource.AddOn.peak" title="PyDataSource.AddOn.peak"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.peak</span></code></a>([attr,&nbsp;ichannel,&nbsp;name,&nbsp;xaxis,&nbsp;…])</td>
 <td>Simple 1D peak locator.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection" title="PyDataSource.AddOn.projection"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.projection</span></code></a>([attr,&nbsp;axis,&nbsp;roi,&nbsp;sensor,&nbsp;…])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection" title="PyDataSource.AddOn.projection"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.projection</span></code></a>([attr,&nbsp;axis,&nbsp;roi,&nbsp;sensor,&nbsp;…])</td>
 <td>Make a projection along an axis.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.property.html#PyDataSource.AddOn.property" title="PyDataSource.AddOn.property"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.property</span></code></a>(func_name[,&nbsp;attr])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.AddOn.property.html#PyDataSource.AddOn.property" title="PyDataSource.AddOn.property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.property</span></code></a>(func_name[,&nbsp;attr])</td>
 <td>Add a property that operates on this detector object.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.psplot.html#PyDataSource.AddOn.psplot" title="PyDataSource.AddOn.psplot"><code class="xref py py-obj docutils literal"><span class="pre">AddOn.psplot</span></code></a>(*attrs,&nbsp;**kwargs)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.AddOn.psplot.html#PyDataSource.AddOn.psplot" title="PyDataSource.AddOn.psplot"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AddOn.psplot</span></code></a>(*attrs,&nbsp;**kwargs)</td>
 <td>Add psplot.</td>
 </tr>
 </tbody>

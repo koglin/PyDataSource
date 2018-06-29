@@ -193,15 +193,15 @@
 name of the function unless attr is provided.</p>
 <p class="rubric">Examples</p>
 <p>Import or create a method acting on self as the Detector object and add it as a property</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">myfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">myfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="go">        return self.ebeamL3Energy</span>
 </pre></div>
 </div>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">property</span><span class="p">(</span><span class="n">myfunc</span><span class="p">,</span> <span class="s1">&#39;energy&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">property</span><span class="p">(</span><span class="n">myfunc</span><span class="p">,</span> <span class="s1">&#39;energy&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Or alternatively using lambda:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ebeamL3Energy</span><span class="p">,</span> <span class="s1">&#39;energy&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">evt</span><span class="o">.</span><span class="n">EBeam</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">property</span><span class="p">(</span><span class="k">lambda</span> <span class="bp">self</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ebeamL3Energy</span><span class="p">,</span> <span class="s1">&#39;energy&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>

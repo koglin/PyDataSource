@@ -185,7 +185,7 @@
 <h1>PyDataSource.DataSource<a class="headerlink" href="#pydatasource-datasource" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
 <dt id="PyDataSource.DataSource">
-<em class="property">class </em><code class="descclassname">PyDataSource.</code><code class="descname">DataSource</code><span class="sig-paren">(</span><em>data_source=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#DataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.DataSource" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">PyDataSource.</code><code class="descname">DataSource</code><span class="sig-paren">(</span><em>data_source=None</em>, <em>default_modules=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#DataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.DataSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Python version of psana.DataSource with support for event and config
 data as well as PyDetector functions to access calibrated data.</p>
 <p>data_source string is build by DataSourceInfo object if not passed
@@ -230,8 +230,9 @@ directly as data_source string.</p>
 
 <dl class="method">
 <dt id="PyDataSource.DataSource.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>data_source=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#DataSource.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.DataSource.__init__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">__init__</code><span class="sig-paren">(</span><em>data_source=None</em>, <em>default_modules=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/PyDataSource.html#DataSource.__init__"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.DataSource.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>x.__init__(…) initializes x; see help(type(x)) for signature</p>
+</dd></dl>
 
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
@@ -240,25 +241,25 @@ directly as data_source string.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#PyDataSource.DataSource.__init__" title="PyDataSource.DataSource.__init__"><code class="xref py py-obj docutils literal"><span class="pre">__init__</span></code></a>([data_source])</td>
-<td></td>
+<tr class="row-odd"><td><a class="reference internal" href="#PyDataSource.DataSource.__init__" title="PyDataSource.DataSource.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>([data_source,&nbsp;default_modules])</td>
+<td>x.__init__(…) initializes x; see help(type(x)) for signature</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">add_detector</span></code>([srcstr,&nbsp;alias,&nbsp;module,&nbsp;path,&nbsp;…])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_detector</span></code>([srcstr,&nbsp;alias,&nbsp;module,&nbsp;path,&nbsp;…])</td>
 <td>Add a detector</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config" title="PyDataSource.DataSource.load_config"><code class="xref py py-obj docutils literal"><span class="pre">load_config</span></code></a>([run,&nbsp;exp,&nbsp;user,&nbsp;file_name,&nbsp;…])</td>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config" title="PyDataSource.DataSource.load_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_config</span></code></a>([run,&nbsp;exp,&nbsp;user,&nbsp;file_name,&nbsp;…])</td>
 <td>Load DataSource configuration.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">load_run</span></code>([data_source,&nbsp;reload,&nbsp;try_idx])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_run</span></code>([data_source,&nbsp;reload,&nbsp;try_idx,&nbsp;…])</td>
 <td>Load a run with psana.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">reload</span></code>([reset_stats])</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">reload</span></code>([reset_stats])</td>
 <td>Reload the current run.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="PyDataSource.DataSource.save_config.html#PyDataSource.DataSource.save_config" title="PyDataSource.DataSource.save_config"><code class="xref py py-obj docutils literal"><span class="pre">save_config</span></code></a>([file_name,&nbsp;path])</td>
+<tr class="row-even"><td><a class="reference internal" href="PyDataSource.DataSource.save_config.html#PyDataSource.DataSource.save_config" title="PyDataSource.DataSource.save_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_config</span></code></a>([file_name,&nbsp;path])</td>
 <td>Save DataSource configuration.</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">show_info</span></code>(**kwargs)</td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">show_info</span></code>(**kwargs)</td>
 <td>Show DataSource information.</td>
 </tr>
 </tbody>
@@ -270,13 +271,13 @@ directly as data_source string.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.DataSource.configData.html#PyDataSource.DataSource.configData" title="PyDataSource.DataSource.configData"><code class="xref py py-obj docutils literal"><span class="pre">configData</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="PyDataSource.DataSource.configData.html#PyDataSource.DataSource.configData" title="PyDataSource.DataSource.configData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configData</span></code></a></td>
 <td>Configuration Data from ds.env().configStore().</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal"><span class="pre">scanData</span></code></td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">scanData</span></code></td>
 <td>ScanData</td>
 </tr>
-<tr class="row-odd"><td><code class="xref py py-obj docutils literal"><span class="pre">sources</span></code></td>
+<tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">sources</span></code></td>
 <td>Detector sources</td>
 </tr>
 </tbody>

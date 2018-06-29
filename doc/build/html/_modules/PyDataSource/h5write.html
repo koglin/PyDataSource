@@ -376,13 +376,13 @@
         <span class="n">h5folder</span><span class="o">=</span><span class="s1">&#39;scratch&#39;</span><span class="p">,</span> <span class="n">subfolder</span><span class="o">=</span><span class="s1">&#39;nc&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Write hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">xdat</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">xdat</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">xdat</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;DataSource&#39;</span><span class="p">:</span>
             <span class="c1"># 1st arg is actually PyDataSource.DataSource</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="n">xdat</span>
             <span class="n">xdat</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">xdat</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">xdat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">ds</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">PyDataSource</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -420,6 +420,9 @@
     <span class="sd">&quot;&quot;&quot;Load one file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+    <span class="kn">import</span> <span class="nn">os</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
+        <span class="k">return</span>
     <span class="c1"># use a context manager, to ensure the file gets closed after use</span>
     <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span> <span class="k">as</span> <span class="n">ds</span><span class="p">:</span>
         <span class="k">if</span> <span class="s1">&#39;nevents&#39;</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span> <span class="ow">and</span> <span class="s1">&#39;time&#39;</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
@@ -442,7 +445,7 @@
         <span class="k">return</span> <span class="n">ds</span>
 
 <span class="k">def</span> <span class="nf">merge_datasets</span><span class="p">(</span><span class="n">file_names</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;h5netcdf&#39;</span><span class="p">,</span> 
-            <span class="n">save_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">save_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
@@ -453,16 +456,18 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="nb">print</span> <span class="s1">&#39;processing&#39;</span><span class="p">,</span> <span class="n">file_name</span>
             <span class="n">xo</span> <span class="o">=</span> <span class="n">process_one_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
-            <span class="n">det</span> <span class="o">=</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alias&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">det</span><span class="p">:</span>
-                <span class="n">det</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="c1">#skip files with no data</span>
+            <span class="k">if</span> <span class="n">xo</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">det</span> <span class="o">=</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alias&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">det</span><span class="p">:</span>
+                    <span class="n">det</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-            <span class="k">if</span> <span class="n">det</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xattrs</span><span class="p">:</span>
-                <span class="n">xattrs</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span>
+                <span class="k">if</span> <span class="n">det</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xattrs</span><span class="p">:</span>
+                    <span class="n">xattrs</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span>
 
-            <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xo</span><span class="p">)</span>
-            <span class="c1">#if file_name == min(paths, key=len):</span>
-            <span class="c1">#    xattrs = xo.attrs</span>
+                <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xo</span><span class="p">)</span>
+                <span class="c1">#if file_name == min(paths, key=len):</span>
+                <span class="c1">#    xattrs = xo.attrs</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
             <span class="nb">print</span> <span class="s1">&#39;Cannot open </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
@@ -515,10 +520,13 @@
                 <span class="n">exp</span><span class="p">,</span><span class="n">h5folder</span><span class="p">,</span><span class="n">subfolder</span><span class="p">,</span><span class="n">run</span><span class="p">)</span>
     
     <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">/run</span><span class="si">{:04}</span><span class="s1">_*stats.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">run</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">files</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
     <span class="n">xdata</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">ifile</span><span class="p">,</span> <span class="n">file_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="s1">&#39;Loading stats &#39;</span><span class="p">,</span> <span class="n">file</span> 
+            <span class="nb">print</span> <span class="s1">&#39;Loading stats </span><span class="si">{:}</span><span class="s1"> of </span><span class="si">{:}</span><span class="s1">: </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ifile</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">),</span><span class="n">file_name</span><span class="p">)</span>
         <span class="n">xdat</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
        
         <span class="n">steps</span> <span class="o">=</span> <span class="n">xdat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
@@ -532,6 +540,12 @@
                 <span class="k">if</span> <span class="n">step</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xdata</span><span class="p">:</span>
                     <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
                 <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># make sure each has the same event codes</span>
+                    <span class="k">if</span> <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">x</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                        <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span> <span class="o">=</span> <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">reindex_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">x</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reindex_like</span><span class="p">(</span><span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">])</span>
+
                     <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">xdata</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                         <span class="k">if</span> <span class="n">attr</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;events&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
                             <span class="n">item</span><span class="o">.</span><span class="n">values</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
@@ -561,6 +575,9 @@
                             <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">xmean</span><span class="o">/</span><span class="n">xvar</span><span class="o">+</span><span class="n">smean</span><span class="o">/</span><span class="n">svar</span><span class="p">)</span><span class="o">*</span><span class="n">sxvar</span>
                             <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="s1">&#39;std&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sxvar</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">xdata</span> <span class="ow">is</span> <span class="p">{}:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
     <span class="n">x</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">dim</span><span class="p">)</span>
     
     <span class="k">return</span> <span class="n">x</span>
@@ -571,7 +588,7 @@
         <span class="n">make_cuts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">merge</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">cleanup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
         <span class="n">transform_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;h5netcdf&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Read netcdf files and return concatenated xarray Dataset object</span>
@@ -589,8 +606,10 @@
 <span class="sd">        Engine for loading files.  default = &#39;h5netcdf&#39;</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#exp=&#39;cxilr6716&#39;;run=121;dim=&#39;time&#39;;h5folder=&#39;scratch&#39;;subfolder=&#39;nc&#39;;omit_attrs=[&#39;ichunk&#39;, &#39;nevents&#39;];make_cuts=True;merge=False;quiet=False;save=False;save_path=None;cleanup=False;transform_func=None</span>
     <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
     <span class="kn">import</span> <span class="nn">glob</span>
+    <span class="kn">import</span> <span class="nn">os</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;run must be provided&#39;</span><span class="p">)</span>
 
@@ -618,14 +637,16 @@
     <span class="n">axattrs</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">:</span>
         <span class="n">merge_chunk</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">merge</span><span class="p">:</span>
-            <span class="n">file_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">//run</span><span class="si">{:04}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">run</span><span class="p">,</span><span class="n">chunk</span><span class="p">)</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">//run</span><span class="si">{:04}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="n">run</span><span class="p">,</span><span class="n">chunk</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">merge</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_name</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
                     <span class="nb">print</span> <span class="s1">&#39;Loading chunk&#39;</span><span class="p">,</span> <span class="n">chunk</span>
                 <span class="n">x</span> <span class="o">=</span> <span class="n">process_one_file</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
             <span class="k">except</span><span class="p">:</span>
                 <span class="n">merge_chunk</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">merge_chunk</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="k">if</span> <span class="n">merge</span> <span class="ow">or</span> <span class="n">merge_chunk</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">quiet</span><span class="p">:</span>
@@ -656,7 +677,13 @@
             <span class="k">return</span> <span class="n">datachunks</span>
 
         <span class="k">if</span> <span class="n">xattrs</span><span class="p">:</span>
-            <span class="n">x</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">xattrs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">xattrs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="nb">print</span> <span class="s1">&#39;Cannot add run attrs&#39;</span>
+                <span class="nb">print</span> <span class="n">xattrs</span>
+
     <span class="k">try</span><span class="p">:</span> 
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">set_coords</span><span class="p">([</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;present&#39;</span><span class="p">)])</span> 
     <span class="k">except</span><span class="p">:</span>
@@ -692,10 +719,22 @@
             <span class="nb">print</span> <span class="s1">&#39;Cannot make default cuts&#39;</span>
 
     <span class="nb">print</span> <span class="s1">&#39;... merge stats chunks&#39;</span><span class="p">,</span> <span class="n">run</span><span class="p">,</span> <span class="n">path</span>
-    <span class="n">xstats</span> <span class="o">=</span> <span class="n">merge_stats</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+    <span class="n">xstats</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">xstats</span> <span class="o">=</span> <span class="n">merge_stats</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+        <span class="nb">print</span> <span class="s1">&#39;Cannot merge stats chunks&#39;</span>
+        <span class="n">cleanup</span> <span class="o">=</span> <span class="kc">False</span>
+    
     <span class="k">if</span> <span class="n">xstats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">print</span> <span class="s1">&#39;... merge stats with event data&#39;</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">xstats</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">xstats</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="nb">print</span> <span class="s1">&#39;Cannot merge stats into overall run Dataset&#39;</span>
+            <span class="n">cleanup</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
         <span class="nb">print</span> <span class="s1">&#39;Saving data&#39;</span>
@@ -727,7 +766,13 @@
 
     <span class="k">return</span> <span class="n">x</span>
 
-<span class="k">def</span> <span class="nf">to_hdf5_mpi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">build_html</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">to_hdf5_mpi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">build_html</span><span class="o">=</span><span class="s1">&#39;basic&#39;</span><span class="p">,</span> 
+            <span class="n">default_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    MPI wrapper for write_hdf5</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">time</span>
     <span class="n">time0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
@@ -741,6 +786,11 @@
     <span class="n">size</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
 
     <span class="n">path</span><span class="p">,</span> <span class="n">file_base</span> <span class="o">=</span> <span class="n">write_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="c1"># Free up memory for mpi DataSource objects after writing stats to h5 at end of write_hdf5</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;reset_stats ...&#39;</span><span class="p">,</span> <span class="n">rank</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
+
+    <span class="nb">print</span> <span class="s1">&#39;Rank&#39;</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="s1">&#39;, mpi time&#39;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">time0</span>
     
     <span class="n">files</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">file_base</span><span class="p">)</span>
 
@@ -756,14 +806,20 @@
         
         <span class="k">if</span> <span class="n">build_html</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="kn">import</span> <span class="nn">build_html</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">html</span> <span class="o">=</span> <span class="n">build_html</span><span class="o">.</span><span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> 
+                <span class="kn">from</span> <span class="nn">PyDataSource</span> <span class="k">import</span> <span class="n">Build_html</span>    
+                <span class="k">if</span> <span class="n">build_html</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">html</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">auto</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> 
+                <span class="k">else</span><span class="p">:</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">html</span> <span class="o">=</span> <span class="n">Build_html</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">basic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> 
             <span class="k">except</span><span class="p">:</span>
                 <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
                 <span class="nb">print</span> <span class="s1">&#39;Could not build html run summary for&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="n">MPI</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span>
-
+    <span class="n">total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">time0</span>
+    <span class="n">nevents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevents</span>
+    <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span> <span class="s1">&#39;*** Total time </span><span class="si">{:8.1f}</span><span class="s1"> sec for </span><span class="si">{:}</span><span class="s1"> events -- </span><span class="si">{:8.1f}</span><span class="s1"> events/sec using </span><span class="si">{:}</span><span class="s1"> cores ***&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">total_time</span><span class="p">,</span> <span class="n">nevents</span><span class="p">,</span> <span class="n">nevents</span><span class="o">/</span><span class="n">total_time</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
 
 <div class="viewcode-block" id="to_hdf5"><a class="viewcode-back" href="../../generated/PyDataSource.to_hdf5.html#PyDataSource.to_hdf5">[docs]</a><span class="k">def</span> <span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -855,7 +911,7 @@
         <span class="n">mpio</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
         <span class="n">no_events</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">default_stats</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">min_all_save</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
         <span class="n">auto_update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">auto_pvs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -882,13 +938,11 @@
 <span class="sd">        Default is all event codes in DataSource</span>
 <span class="sd">    drop_unused_codes : bool</span>
 <span class="sd">        If true drop unused eventCodes [default=True]</span>
-<span class="sd">    default_stats : bool</span>
-<span class="sd">        If true include stats for waveforms and calib image data.</span>
 <span class="sd">    min_all_save : int</span>
 <span class="sd">        Min number of events where all &#39;calib&#39; data saved.  Sets max_size = 1e10</span>
 <span class="sd">    default_stats : bool</span>
-<span class="sd">        If true automatically add default stats for all detectors that do not already</span>
-<span class="sd">        have stats added</span>
+<span class="sd">        If true automatically add default stats for all waveforms and area detector calib </span>
+<span class="sd">        image data that do not already have stats added</span>
 <span class="sd">    auto_update : bool</span>
 <span class="sd">        If true automatically update xarray info for all detectors</span>
 <span class="sd">    auto_pvs : bool</span>
@@ -936,17 +990,18 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">nevents</span><span class="p">:</span>
         <span class="n">nevents_total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevents</span>
         <span class="k">if</span> <span class="n">ichunk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># steps and chunks start with 0</span>
             <span class="k">if</span> <span class="n">chunk_steps</span> <span class="ow">and</span> <span class="n">nsteps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">istep</span> <span class="o">=</span> <span class="n">ichunk</span><span class="o">-</span><span class="mi">1</span>
+                <span class="n">istep</span> <span class="o">=</span> <span class="n">ichunk</span>
                 <span class="n">ievent_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">ScanData</span><span class="o">.</span><span class="n">_scanData</span><span class="p">[</span><span class="s1">&#39;ievent_start&#39;</span><span class="p">][</span><span class="n">istep</span><span class="p">]</span>
                 <span class="n">ievent_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">ScanData</span><span class="o">.</span><span class="n">_scanData</span><span class="p">[</span><span class="s1">&#39;ievent_end&#39;</span><span class="p">][</span><span class="n">istep</span><span class="p">]</span>
                 <span class="n">nevents</span> <span class="o">=</span> <span class="n">ievent_end</span><span class="o">-</span><span class="n">ievent_start</span><span class="o">+</span><span class="mi">1</span>
                 <span class="n">ievent0</span> <span class="o">=</span> <span class="n">ievent_start</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">nevents</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nevents</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">nchunks</span><span class="p">)))</span>
-                <span class="n">ievent0</span> <span class="o">=</span> <span class="p">(</span><span class="n">ichunk</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nevents</span>
+                <span class="n">ievent0</span> <span class="o">=</span> <span class="n">ichunk</span><span class="o">*</span><span class="n">nevents</span>
             
-            <span class="nb">print</span> <span class="s1">&#39;Do </span><span class="si">{:}</span><span class="s1"> of </span><span class="si">{:}</span><span class="s1"> events for chunk </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nevents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevents</span><span class="p">,</span> <span class="n">ichunk</span><span class="p">)</span>
+            <span class="nb">print</span> <span class="s1">&#39;Do </span><span class="si">{:}</span><span class="s1"> of </span><span class="si">{:}</span><span class="s1"> events startine with </span><span class="si">{:}</span><span class="s1"> for chunk </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nevents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevents</span><span class="p">,</span> <span class="n">ievent0</span><span class="p">,</span> <span class="n">ichunk</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">nevents</span> <span class="o">=</span> <span class="n">nevents_total</span>
     
@@ -966,7 +1021,14 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">exp</span><span class="p">,</span><span class="n">h5folder</span><span class="p">,</span><span class="n">subfolder</span><span class="p">,</span><span class="n">run</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="nb">print</span> <span class="s1">&#39;INFO: directory was already created by another thread </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="nb">print</span> <span class="s1">&#39;ERROR making </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">file_base</span><span class="p">:</span>
         <span class="k">if</span> <span class="kc">True</span><span class="p">:</span>
@@ -984,19 +1046,19 @@
 
     <span class="k">if</span> <span class="n">no_events</span><span class="p">:</span>
         <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="s1">&#39;config&#39;</span><span class="p">))</span>
-        <span class="n">xbase</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">xbase</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">ntime</span> <span class="o">=</span> <span class="n">nevents_total</span>
     <span class="k">elif</span> <span class="n">mpio</span><span class="p">:</span> 
         <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="s1">&#39;base&#39;</span><span class="p">))</span>
-        <span class="n">xbase</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;mpio&#39;</span><span class="p">,</span> <span class="n">comm</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="p">)</span>
+        <span class="n">xbase</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;mpio&#39;</span><span class="p">,</span> <span class="n">comm</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="p">)</span>
         <span class="n">ntime</span> <span class="o">=</span> <span class="n">nevents_total</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">ichunk</span><span class="p">,</span><span class="s1">&#39;base&#39;</span><span class="p">))</span>
-        <span class="n">xbase</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">xbase</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">ntime</span> <span class="o">=</span> <span class="n">nevents</span>
 
     <span class="n">xbase</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntime</span>
-    <span class="c1">#xbase = h5netcdf.File(file_name, &#39;w&#39;)</span>
+    <span class="c1">#xbase = h5netcdf.File(file_name, &#39;w&#39;, invalid_netcdf=True)</span>
 
     <span class="n">neventCodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eventCodes</span><span class="p">)</span>
 
@@ -1135,31 +1197,25 @@
     <span class="n">xbase</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;scan_variables&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan_variables</span>
   
     <span class="k">for</span> <span class="n">srcstr</span><span class="p">,</span> <span class="n">src_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">det0</span> <span class="o">=</span> <span class="n">src_info</span><span class="p">[</span><span class="s1">&#39;alias&#39;</span><span class="p">]</span>
-        <span class="n">det</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">det0</span><span class="p">,</span> <span class="n">det0</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">ichunk</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="nb">print</span> <span class="s1">&#39;configuring&#39;</span><span class="p">,</span> <span class="n">det</span>
-        <span class="n">nmaxevents</span> <span class="o">=</span> <span class="mi">100</span>
-        <span class="n">ievt</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">mpio</span><span class="p">:</span>
-                <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
-                <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;mpio&#39;</span><span class="p">,</span> <span class="n">comm</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">ichunk</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
-                <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
-            
-            <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntime</span>
-            
         <span class="k">try</span><span class="p">:</span>
+            <span class="n">det0</span> <span class="o">=</span> <span class="n">src_info</span><span class="p">[</span><span class="s1">&#39;alias&#39;</span><span class="p">]</span>
+            <span class="n">det</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">det0</span><span class="p">,</span> <span class="n">det0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ichunk</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;configuring&#39;</span><span class="p">,</span> <span class="n">det</span>
+            <span class="n">nmaxevents</span> <span class="o">=</span> <span class="mi">1000</span>
+            <span class="n">ievt</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">while</span> <span class="n">det</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">evt</span><span class="o">.</span><span class="n">_attrs</span> <span class="ow">and</span> <span class="n">ievt</span> <span class="o">&lt;</span> <span class="n">nmaxevents</span><span class="p">:</span>
                 <span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="n">publish</span><span class="o">=</span><span class="n">publish</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">publish</span><span class="p">)</span>
                 <span class="n">ievt</span> <span class="o">+=</span> <span class="mi">1</span>
             
             <span class="n">detector</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">evt</span><span class="p">,</span><span class="n">det0</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">auto_update</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">detector</span><span class="p">,</span> <span class="s1">&#39;_update_xarray_info&#39;</span><span class="p">):</span>
-                <span class="n">detector</span><span class="o">.</span><span class="n">_update_xarray_info</span><span class="p">()</span>
-            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">auto_update</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">detector</span><span class="p">,</span> <span class="s1">&#39;_update_xarray_info&#39;</span><span class="p">):</span>
+                    <span class="n">detector</span><span class="o">.</span><span class="n">_update_xarray_info</span><span class="p">()</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;Error updating xarray info for &#39;</span><span class="p">,</span> <span class="n">det0</span>
+                <span class="k">continue</span>
+
             <span class="n">config_info</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="c1"># make sure not objects -- should be moved into PyDataSoruce</span>
             <span class="k">for</span> <span class="n">config_attr</span><span class="p">,</span> <span class="n">config_item</span> <span class="ow">in</span> <span class="n">detector</span><span class="o">.</span><span class="n">_xarray_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attrs&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1181,6 +1237,16 @@
             <span class="n">src_info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">detector</span><span class="o">.</span><span class="n">_source_info</span><span class="p">)</span>
             <span class="c1">#if &#39;src&#39; in src_info:</span>
             <span class="c1">#    src_info[&#39;src&#39;] = str(src_info[&#39;src&#39;])</span>
+ 
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">mpio</span><span class="p">:</span>
+                    <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
+                    <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;mpio&#39;</span><span class="p">,</span> <span class="n">comm</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">ichunk</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
+                    <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            
+            <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntime</span>
             
             <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span><span class="p">:</span>
 <span class="c1">#                axdat[det].attrs.update(**config_info)</span>
@@ -1315,7 +1381,13 @@
         <span class="k">except</span><span class="p">:</span>
             <span class="nb">print</span> <span class="s1">&#39;ERROR loading&#39;</span><span class="p">,</span> <span class="n">srcstr</span><span class="p">,</span> <span class="n">det</span>
             <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+
+    <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
+    <span class="nb">print</span> <span class="s1">&#39;detector objects: &#39;</span><span class="p">,</span> <span class="n">axdat</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
 <span class="c1"># Need to fix handling of detector image axis</span>
+
+    <span class="c1">#return xbase, axcoords, axfuncs, axdat, adat</span>
 
     <span class="k">if</span> <span class="n">default_stats</span><span class="p">:</span>
         <span class="nb">print</span> <span class="s1">&#39;Add default stats&#39;</span>
@@ -1350,11 +1422,12 @@
             <span class="c1">#print &#39;Analyzing {:} events&#39;.format(nevents)</span>
             <span class="n">xbase</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;ichunk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ichunk</span>
             <span class="c1"># Need to update to jump to event.</span>
-            <span class="k">if</span> <span class="n">ichunk</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">chunk_steps</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ichunk</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">chunk_steps</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s1">&#39;skipping ahead to event </span><span class="si">{:}</span><span class="s1"> for chunk </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ievent0</span><span class="p">,</span><span class="n">ichunk</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ievent0</span><span class="p">):</span>
                     <span class="n">evt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
                 
-                <span class="nb">print</span> <span class="s1">&#39;reset_stats ...&#39;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;reset_stats ...&#39;</span><span class="p">,</span> <span class="n">ichunk</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
                 
             
@@ -1380,7 +1453,7 @@
                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ichunk</span><span class="p">):</span>
                         <span class="n">step_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">steps</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
                 
-                    <span class="nb">print</span> <span class="s1">&#39;reset_stats ...&#39;</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;reset_stats ...&#39;</span><span class="p">,</span> <span class="n">ichunk</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">reset_stats</span><span class="p">()</span>
                 
                 <span class="k">try</span><span class="p">:</span>
@@ -1405,7 +1478,7 @@
                 <span class="k">continue</span>
            
             <span class="n">dtime</span> <span class="o">=</span> <span class="n">evt</span><span class="o">.</span><span class="n">EventId</span>
-            <span class="k">if</span> <span class="n">dtime</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dtime</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dtime</span><span class="p">,</span> <span class="s1">&#39;sec&#39;</span><span class="p">):</span>
                 <span class="k">continue</span>
             
             <span class="k">if</span> <span class="n">igood</span><span class="o">+</span><span class="mi">1</span> <span class="o">==</span> <span class="n">nevents</span><span class="p">:</span>
@@ -1426,17 +1499,20 @@
                 <span class="n">xbase</span><span class="p">[</span><span class="n">attr</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dtime</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
             
             <span class="c1">#for ec in evt.Evr.eventCodes:</span>
-            <span class="k">for</span> <span class="n">iec</span><span class="p">,</span> <span class="n">ec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">fifoEvents</span><span class="o">.</span><span class="n">eventCode</span><span class="p">):</span>
+            <span class="c1">#for iec, ec in enumerate(evt.Evr.fifoEvents.eventCode):</span>
+            <span class="k">for</span> <span class="n">iec</span><span class="p">,</span> <span class="n">ec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">eventCodes_strict</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">ec</span> <span class="ow">in</span> <span class="n">eventCodes</span><span class="p">:</span>
                     <span class="n">xbase</span><span class="p">[</span><span class="s1">&#39;ec</span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ec</span><span class="p">)][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span> 
 
-            <span class="n">fevr</span> <span class="o">=</span> <span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">fifoEvents</span>
-            <span class="n">thigh</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">fevr</span><span class="o">.</span><span class="n">eventCode</span><span class="p">,</span> <span class="n">fevr</span><span class="o">.</span><span class="n">timestampHigh</span><span class="p">))</span>
-            <span class="n">tshigh</span> <span class="o">=</span> <span class="p">[</span><span class="n">thigh</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">ec</span> <span class="ow">in</span> <span class="n">eventCodes</span><span class="p">]</span>
-            <span class="n">tlow</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">fevr</span><span class="o">.</span><span class="n">eventCode</span><span class="p">,</span> <span class="n">fevr</span><span class="o">.</span><span class="n">timestampLow</span><span class="p">))</span>
-            <span class="n">tslow</span> <span class="o">=</span> <span class="p">[</span><span class="n">tlow</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">ec</span> <span class="ow">in</span> <span class="n">eventCodes</span><span class="p">]</span>
-            <span class="n">xbase</span><span class="p">[</span><span class="s1">&#39;timestampLow&#39;</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="n">tslow</span>
-            <span class="n">xbase</span><span class="p">[</span><span class="s1">&#39;timestampHigh&#39;</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="n">tshigh</span>
+            <span class="n">xbase</span><span class="p">[</span><span class="s1">&#39;timestampLow&#39;</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">timestampLow</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">ec</span> <span class="ow">in</span> <span class="n">eventCodes</span><span class="p">]</span>
+            <span class="n">xbase</span><span class="p">[</span><span class="s1">&#39;timestampHigh&#39;</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">timestampHigh</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">ec</span> <span class="ow">in</span> <span class="n">eventCodes</span><span class="p">]</span>
+<span class="c1">#            fevr = evt.Evr.fifoEvents</span>
+<span class="c1">#            thigh = dict(zip(fevr.eventCode, fevr.timestampHigh))</span>
+<span class="c1">#            tshigh = [thigh.get(ec,0) for ec in eventCodes]</span>
+<span class="c1">#            tlow = dict(zip(fevr.eventCode, fevr.timestampLow))</span>
+<span class="c1">#            tslow = [tlow.get(ec,0) for ec in eventCodes]</span>
+<span class="c1">#            xbase[&#39;timestampLow&#39;][iwrite] = tslow</span>
+<span class="c1">#            xbase[&#39;timestampHigh&#39;][iwrite] = tshigh</span>
             
             <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">codes</span> <span class="ow">in</span> <span class="n">code_flags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="n">codes</span><span class="p">):</span>
@@ -1464,6 +1540,8 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">det0</span> <span class="ow">in</span> <span class="n">evt</span><span class="o">.</span><span class="n">_attrs</span><span class="p">:</span>
                     <span class="n">det</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">det0</span><span class="p">,</span> <span class="n">det0</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">det</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axdat</span><span class="p">:</span>
+                        <span class="k">continue</span>
                     <span class="n">detector</span> <span class="o">=</span> <span class="n">evt</span><span class="o">.</span><span class="n">_dets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">det0</span><span class="p">)</span>
                     <span class="n">aievt</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span> 
                     <span class="n">iwrite</span> <span class="o">=</span> <span class="n">aievt</span><span class="p">[</span><span class="n">det</span><span class="p">]</span>
@@ -1471,14 +1549,25 @@
                         <span class="n">iwrite</span> <span class="o">+=</span> <span class="n">ievent0</span>
                     <span class="n">aievents</span><span class="p">[</span><span class="n">det</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ievent</span><span class="p">)</span>
                     <span class="c1">#axdat[det][det+&#39;_present&#39;][iwrite] = True</span>
+                    <span class="k">if</span> <span class="s1">&#39;sec&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]:</span>
+                        <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
+                        <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
+                        <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
+                        <span class="nb">print</span> <span class="s1">&#39;WARNING&#39;</span><span class="p">,</span> <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span>
+                        <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
+                        <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
+                        <span class="nb">print</span> <span class="s1">&#39;********&#39;</span>
                     <span class="k">try</span><span class="p">:</span>
                         <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sec&#39;</span><span class="p">,</span> <span class="s1">&#39;nsec&#39;</span><span class="p">,</span> <span class="s1">&#39;fiducials&#39;</span><span class="p">,</span> <span class="s1">&#39;ticks&#39;</span><span class="p">]:</span>
                             <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">][</span><span class="n">attr</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dtime</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
                     <span class="k">except</span><span class="p">:</span>
                         <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                        <span class="nb">print</span> <span class="s1">&#39;Bad time&#39;</span>
                         <span class="nb">print</span> <span class="n">dtime</span><span class="p">,</span> <span class="n">det</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">iwrite</span>
-                        <span class="nb">print</span> <span class="n">axdat</span>
-                        <span class="k">return</span> <span class="n">axdat</span><span class="p">,</span> <span class="n">dtime</span><span class="p">,</span> <span class="n">det</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">iwrite</span>
+                        <span class="nb">print</span> <span class="s1">&#39;axdat keys:&#39;</span><span class="p">,</span> <span class="n">axdat</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                        <span class="nb">print</span> <span class="s1">&#39;axdat[det] keys:&#39;</span><span class="p">,</span> <span class="n">axdat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">det</span><span class="p">,{})</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                        <span class="nb">print</span> <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">][</span><span class="n">attr</span><span class="p">]</span>
+                        <span class="k">continue</span>
 
                     <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">][</span><span class="s1">&#39;step&#39;</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="n">istep</span>
                     <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">][</span><span class="s1">&#39;run&#39;</span><span class="p">][</span><span class="n">iwrite</span><span class="p">]</span> <span class="o">=</span> <span class="n">run</span>
@@ -1543,8 +1632,9 @@
  
     <span class="n">det</span> <span class="o">=</span> <span class="s1">&#39;stats&#39;</span>
     <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">ichunk</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
-    <span class="nb">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stats</span><span class="p">(</span><span class="n">aliases</span><span class="o">=</span><span class="n">aliases</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">save_stats</span><span class="p">(</span><span class="n">file_name</span><span class="o">=</span><span class="n">file_name</span><span class="p">,</span> <span class="n">aliases</span><span class="o">=</span><span class="n">aliases</span><span class="p">)</span>
+    <span class="n">data_sets</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">_get_stats</span><span class="p">(</span><span class="n">aliases</span><span class="o">=</span><span class="n">aliases</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data_sets</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_stats</span><span class="p">(</span><span class="n">file_name</span><span class="o">=</span><span class="n">file_name</span><span class="p">,</span> <span class="n">aliases</span><span class="o">=</span><span class="n">aliases</span><span class="p">)</span>
 
     <span class="n">xbase</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
@@ -1776,12 +1866,12 @@
         <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">xx</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">yy</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
 
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base</span><span class="o">+</span><span class="s1">&#39;_ximage&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ix0</span><span class="p">:</span>
                 <span class="n">ix0</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mf">2.</span>
             <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">-</span><span class="n">ix0</span><span class="p">)</span><span class="o">*</span><span class="n">pixel</span>
         <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base</span><span class="o">+</span><span class="s1">&#39;_yimage&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">y</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">iy0</span><span class="p">:</span>
                 <span class="n">iy0</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mf">2.</span>
             <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">-</span><span class="n">iy0</span><span class="p">)</span><span class="o">*</span><span class="n">pixel</span>
@@ -1843,16 +1933,20 @@
 <span class="c1">#        x[&#39;PulseEnergy&#39;].attrs[&#39;doc&#39;] = &quot;Energy measurement normalized by attenuators&quot;</span>
 <span class="c1">#</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">gasdetcut</span> <span class="o">=</span>  <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Gasdet_pre_atten</span><span class="o">.</span><span class="n">values</span> <span class="o">&gt;</span> <span class="n">gasdetcut_mJ</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">byte</span><span class="p">)</span>
-        <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Gasdet_cut&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">gasdetcut</span><span class="p">)</span>
-        <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Gasdet_cut&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Gas detector cut.  Gasdet_pre_atten &gt; </span><span class="si">{:}</span><span class="s2"> mJ&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gasdetcut_mJ</span><span class="p">)</span>
+        <span class="c1">#gasdetcut =  np.array(x.Gasdet_pre_atten.values &gt; gasdetcut_mJ, dtype=np.byte)</span>
+        <span class="c1">#x.coords[&#39;Gasdet_cut&#39;] = ([&#39;time&#39;], gasdetcut)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Gasdet_cut&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">Gasdet_pre_atten</span> <span class="o">&gt;</span> <span class="n">gasdetcut_mJ</span>
+        <span class="n">doc</span> <span class="o">=</span> <span class="s2">&quot;Gas detector cut.  Gasdet_pre_atten &gt; </span><span class="si">{:}</span><span class="s2"> mJ&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">gasdetcut_mJ</span><span class="p">)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Gasdet_cut&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">doc</span> 
     <span class="k">except</span><span class="p">:</span>
         <span class="n">gasdetcut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
 <span class="c1">#    damagecut = np.array(phasecut &amp; gasdetcut &amp; (x.EBeam_damageMask.values == 0), dtype=np.byte)</span>
-    <span class="n">damagecut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gasdetcut</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">byte</span><span class="p">)</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Damage_cut&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="n">damagecut</span><span class="p">)</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Damage_cut&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Combined Gas detector, Phase cavity and EBeam damage cut&quot;</span>
+    <span class="c1">#damagecut = np.array(gasdetcut, dtype=np.byte)</span>
+    <span class="c1">#x.coords[&#39;Damage_cut&#39;] = ([&#39;time&#39;], damagecut)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Damage_cut&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;Gasdet_cut&#39;</span><span class="p">]</span>
+    <span class="c1">#doc = &quot;Combined Gas detector, Phase cavity and EBeam damage cut&quot;</span>
+    <span class="c1">#x.coords[&#39;Damage_cut&#39;].attrs[&#39;doc&#39;] = doc </span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span> <span class="p">{</span><span class="s1">&#39;EBeam_ebeamPhotonEnergy&#39;</span><span class="p">:</span> <span class="s1">&#39;PhotonEnergy&#39;</span><span class="p">}</span> <span class="p">)</span>

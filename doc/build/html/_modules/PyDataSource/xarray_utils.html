@@ -358,6 +358,8 @@
     <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>   
 
+    <span class="k">return</span> <span class="n">corr</span>
+
 <div class="viewcode-block" id="xy_ploterr"><a class="viewcode-back" href="../../generated/PyDataSource.xy_ploterr.html#PyDataSource.xy_ploterr">[docs]</a><span class="k">def</span> <span class="nf">xy_ploterr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">xaxis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
         <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="p">(</span><span class="o">.</span><span class="mi">1</span><span class="p">,</span><span class="o">.</span><span class="mi">2</span><span class="p">,</span><span class="o">.</span><span class="mi">8</span><span class="p">,</span><span class="o">.</span><span class="mi">7</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Plot summary data with error bars, e.g.,</span>
@@ -457,10 +459,886 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="nb">print</span> <span class="s1">&#39;Too many dims to plot&#39;</span></div>
 
+<span class="k">def</span> <span class="nf">ttest_groupby</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="s1">&#39;ec162&#39;</span><span class="p">,</span> <span class="n">ishot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nearest</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    nearest neighbors compare with</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">stats</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Select DataArray for attr with groupby as coord</span>
+        <span class="n">da</span> <span class="o">=</span> <span class="n">xo</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()[[</span><span class="n">attr</span><span class="p">,</span><span class="n">groupby</span><span class="p">]]</span><span class="o">.</span><span class="n">set_coords</span><span class="p">(</span><span class="n">groupby</span><span class="p">)[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">load</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">ntime</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span><span class="o">.</span><span class="n">groups</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">nearest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">k0</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">inear</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">nearest</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">nearest</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">itest</span> <span class="ow">in</span> <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">itest</span><span class="o">+</span><span class="n">inear</span>
+                    <span class="k">if</span> <span class="n">a</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">a</span><span class="o">&lt;</span><span class="n">ntime</span><span class="p">:</span>
+                        <span class="n">k0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">k0</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">+</span><span class="n">ishot</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">ishot</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">ishot</span><span class="p">)</span><span class="o">&lt;</span><span class="n">ntime</span><span class="p">]</span>
+        <span class="n">k1</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">+</span><span class="n">ishot</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">ishot</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">ishot</span><span class="p">)</span><span class="o">&lt;</span><span class="n">ntime</span><span class="p">]</span>
+        <span class="n">df1</span> <span class="o">=</span> <span class="n">da</span><span class="p">[</span><span class="n">k1</span><span class="p">]</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="n">df0</span> <span class="o">=</span> <span class="n">da</span><span class="p">[</span><span class="n">k0</span><span class="p">]</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="n">ttest</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">ttest_ind</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span><span class="n">df0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ttest</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1"> has only one group -- cannot compare&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+<span class="k">def</span> <span class="nf">test_correlation</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">attr0</span><span class="p">,</span> <span class="n">attr1</span><span class="o">=</span><span class="s1">&#39;Gasdet_post_atten&#39;</span><span class="p">,</span> <span class="n">cut</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">stats</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="n">xds</span> <span class="o">=</span> <span class="n">x</span><span class="p">[[</span><span class="n">attr0</span><span class="p">,</span><span class="n">attr1</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="n">cut</span> <span class="ow">and</span> <span class="n">cut</span> <span class="ow">in</span> <span class="n">xds</span><span class="p">:</span>
+        <span class="n">xds</span> <span class="o">=</span> <span class="n">xds</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">cut</span><span class="p">])</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">cut</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">dim</span><span class="p">:</span><span class="o">-</span><span class="n">shift</span><span class="p">}))</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> 
+
+    <span class="n">xds</span> <span class="o">=</span> <span class="n">xds</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()</span>
+    
+    <span class="n">df0</span> <span class="o">=</span> <span class="n">xds</span><span class="p">[</span><span class="n">attr0</span><span class="p">]</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">shift</span><span class="p">:</span>
+        <span class="n">df0</span> <span class="o">=</span> <span class="n">df0</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="n">shift</span><span class="p">)</span>
+    <span class="n">df1</span> <span class="o">=</span> <span class="n">xds</span><span class="p">[</span><span class="n">attr1</span><span class="p">]</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+    <span class="n">kind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">df1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">df0</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">pearsonr</span><span class="p">(</span><span class="n">df0</span><span class="p">[</span><span class="n">kind</span><span class="p">],</span><span class="n">df1</span><span class="p">[</span><span class="n">kind</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+<span class="k">def</span> <span class="nf">set_delta_beam</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="s1">&#39;ec162&#39;</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="s1">&#39;delta_drop&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Find the number of beam codes to nearest code</span>
+<span class="sd">       using time stamps</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">traceback</span>
+    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="k">if</span> <span class="n">code</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">df0</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()[</span><span class="n">code</span><span class="p">]</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">df0</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="n">df_beam</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()</span><span class="o">.</span><span class="n">fiducials</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span><span class="o">/</span><span class="mi">3</span>
+                <span class="n">df_drop</span> <span class="o">=</span> <span class="n">df_beam</span><span class="p">[</span><span class="n">df0</span><span class="p">]</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_beam</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">df_beam</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">b</span><span class="o">-</span><span class="n">df_drop</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">df_drop</span><span class="o">.</span><span class="n">index</span><span class="o">-</span><span class="n">a</span><span class="p">))]</span>
+                    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># Not robust way to get rid of outliers </span>
+                <span class="c1">#dbeam_max = df_beam.diff().max()</span>
+                <span class="c1">#x.coords[attr][abs(x.coords[attr]) &gt; dbeam_max] = dbeam_max</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;number of beam codes to nearest </span><span class="si">{:}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="p">)</span> 
+                <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No event code </span><span class="si">{:}</span><span class="s1"> to drop&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">(</span><span class="s1">&#39;Cannot set drop_code = &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="p">))</span>
 
 
+<span class="k">def</span> <span class="nf">find_beam_correlations</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">pvalue</span><span class="o">=</span><span class="mf">1e-20</span><span class="p">,</span> <span class="n">pvalue0_ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">corr_pvalue</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>
+            <span class="n">adet_pvalue0_ratio</span><span class="o">=</span><span class="mf">0.33</span><span class="p">,</span> <span class="n">adet_pvalue</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+            <span class="n">groupby</span><span class="o">=</span><span class="s1">&#39;ec162&#39;</span><span class="p">,</span> <span class="n">nearest</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">corr_coord</span><span class="o">=</span><span class="s1">&#39;delta_drop&#39;</span><span class="p">,</span>
+            <span class="n">pulse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">sigma0</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+            <span class="n">percentiles</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">],</span> 
+            <span class="n">save_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">cut</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">traceback</span>
+    <span class="n">xcoor_coord</span> <span class="o">=</span> <span class="n">set_delta_beam</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">groupby</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">corr_coord</span><span class="p">)</span>
+    <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+    <span class="n">xstats</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">()</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">xo</span><span class="o">.</span><span class="n">variables</span> <span class="k">if</span> <span class="n">xo</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,)]</span>
+    <span class="n">xds</span> <span class="o">=</span> <span class="n">xo</span><span class="p">[</span><span class="n">attrs</span><span class="p">]</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+    <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;drop_shot_detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;timing_error_detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_warning_detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_corr_detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">area_detectors</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">xds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;area_detectors&#39;</span><span class="p">,[])]</span>
+    <span class="n">wf_detectors</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">xds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wf_detectors&#39;</span><span class="p">,[])]</span>
+    <span class="n">adets</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">area_detectors</span> <span class="o">+</span> <span class="n">wf_detectors</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">adets</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">xds</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="n">adets</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">adets</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;EBeam_damageMask&#39;</span> <span class="ow">in</span> <span class="n">xds</span><span class="p">:</span>
+        <span class="n">xds</span> <span class="o">=</span> <span class="n">xds</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;EBeam_damageMask&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pulse</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xds</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;FEEGasDetEnergy_f_21_ENRC&#39;</span> <span class="ow">in</span> <span class="n">xds</span><span class="p">:</span>
+            <span class="n">pulse</span> <span class="o">=</span> <span class="s1">&#39;FEEGasDetEnergy_f_21_ENRC&#39;</span>
+            <span class="k">if</span> <span class="n">xds</span><span class="p">[</span><span class="n">pulse</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">pulse</span> <span class="o">=</span> <span class="s1">&#39;FEEGasDetEnergy_f_11_ENRC&#39;</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pulse</span> <span class="o">=</span> <span class="s1">&#39;GasDet_f21&#39;</span>
+    <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_corr_attr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pulse</span>
+    <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_corr_confidence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">confidence</span> 
+    <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;drop_attr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">groupby</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Analyzing beam correlations for </span><span class="si">{:}</span><span class="s1"> Run </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xo</span><span class="o">.</span><span class="n">experiment</span><span class="p">,</span> <span class="n">xo</span><span class="o">.</span><span class="n">run</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">xds</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="n">xds</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,)]:</span>
+        <span class="n">adf</span> <span class="o">=</span> <span class="n">xds</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">adf</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">{:}</span><span class="s1"> -- too few events&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+            <span class="k">continue</span>
+        <span class="n">adf_unique</span> <span class="o">=</span> <span class="n">adf</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">adf_unique</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">{:}</span><span class="s1"> -- only one unique value in data&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+            <span class="k">continue</span>
+
+        <span class="c1">#if verbose:</span>
+        <span class="nb">print</span> <span class="s1">&#39;*****&#39;</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="s1">&#39;*******&#39;</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">attr</span><span class="p">,</span> <span class="n">groupby</span><span class="p">,</span> <span class="n">pulse</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">cut</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cut</span> <span class="ow">in</span> <span class="n">xds</span><span class="p">:</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cut</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Ommitting cut: </span><span class="si">{:}</span><span class="s1"> not valid cut&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cut</span><span class="p">))</span>
+                <span class="n">cut</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># use lower threshold for area detector</span>
+        <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">adets</span><span class="p">:</span>
+            <span class="n">pvalue_thresh</span> <span class="o">=</span> <span class="n">adet_pvalue</span>
+            <span class="n">pval0_ratio</span> <span class="o">=</span> <span class="n">adet_pvalue0_ratio</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pvalue_thresh</span> <span class="o">=</span> <span class="n">pvalue</span>
+            <span class="n">pval0_ratio</span> <span class="o">=</span> <span class="n">pvalue0_ratio</span>
+        
+        <span class="n">x</span> <span class="o">=</span> <span class="n">xds</span><span class="p">[</span><span class="n">attrs</span><span class="p">]</span>
+        <span class="n">alias</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alias&#39;</span><span class="p">)</span>
+        <span class="n">attest</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">actest</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1">#ashots = range(-nearest,nearest+1)</span>
+        <span class="c1">#for ishot in ashots:</span>
+        <span class="c1"># Need to rework ttest_groupby and test_correlation</span>
+        <span class="c1"># to handle non 120Hz data in a more natural way</span>
+        <span class="c1"># This fixes timing errors but not necessarily robustly</span>
+        <span class="n">ashots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">xo</span><span class="p">[</span><span class="n">corr_coord</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">nearest</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">iashot</span><span class="p">,</span><span class="n">idelta</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ashots</span><span class="p">):</span>
+            <span class="n">ishot</span> <span class="o">=</span> <span class="n">iashot</span><span class="o">-</span><span class="n">ashots</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="n">pulse</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alias&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;alias&#39;</span><span class="p">):</span>
+                <span class="c1"># if FEEGasDetEnergy detector then test agains all other with shifted drops</span>
+                <span class="n">tnearest</span> <span class="o">=</span> <span class="kc">None</span> 
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tnearest</span> <span class="o">=</span> <span class="n">nearest</span>
+            <span class="n">ttest</span> <span class="o">=</span> <span class="n">ttest_groupby</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">,</span> <span class="n">ishot</span><span class="o">=</span><span class="n">ishot</span><span class="p">,</span> 
+                                    <span class="n">nearest</span><span class="o">=</span><span class="n">tnearest</span><span class="p">)</span>
+            <span class="n">attest</span><span class="p">[</span><span class="n">idelta</span><span class="p">]</span> <span class="o">=</span> <span class="n">ttest</span>
+            <span class="k">if</span> <span class="n">ttest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span> <span class="n">attr</span><span class="p">,</span> <span class="n">groupby</span><span class="p">,</span> <span class="s1">&#39;Not valid test&#39;</span>
+                <span class="k">continue</span>
+         
+            <span class="c1"># Do not test correlation of same attr</span>
+            <span class="n">ctest</span> <span class="o">=</span> <span class="n">test_correlation</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">pulse</span><span class="p">,</span> <span class="n">cut</span><span class="o">=</span><span class="n">cut</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="n">ishot</span><span class="p">)</span>
+            <span class="n">actest</span><span class="p">[</span><span class="n">idelta</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctest</span>
+
+        <span class="n">xstd</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+        <span class="n">xmean</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Statistics for delta_drop</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">xo</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()[[</span><span class="n">attr</span><span class="p">,</span><span class="n">corr_coord</span><span class="p">]]</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+            <span class="n">df_nearest</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">corr_coord</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="n">nearest</span><span class="p">)</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+            <span class="n">df_table</span> <span class="o">=</span> <span class="n">df_nearest</span><span class="p">[[</span><span class="n">attr</span><span class="p">,</span><span class="n">corr_coord</span><span class="p">]]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">corr_coord</span><span class="p">)</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">percentiles</span><span class="o">=</span><span class="n">percentiles</span><span class="p">)[</span><span class="n">attr</span><span class="p">]</span>
+
+            <span class="c1"># T-test for the means of *two independent* samples of scores.</span>
+            <span class="c1"># see scipy.stats.ttest_ind</span>
+            <span class="c1"># The calculated t-statistic, The two-tailed p-value</span>
+            <span class="n">df_ttest</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">attest</span><span class="p">,</span><span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;t_stat&#39;</span><span class="p">,</span><span class="s1">&#39;t_pvalue&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+            <span class="c1"># Pearson correlation coefficient and the p-value for testing non-correlation.</span>
+            <span class="c1"># see scipy.stats.pearsonr</span>
+            <span class="c1"># Pearson&#39;s correlation coefficient, 2-tailed p-value</span>
+            <span class="n">df_ctest</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">actest</span><span class="p">,</span><span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;beam_corr&#39;</span><span class="p">,</span><span class="s1">&#39;c_pvalue&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>        
+            <span class="n">df_stats</span> <span class="o">=</span> <span class="n">df_table</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">df_ctest</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">df_ttest</span><span class="p">)</span>
+            
+            <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">t_pvalue0</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;t_pvalue&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">((</span><span class="n">xmean</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">xmean</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">xstd</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">&gt;</span> <span class="n">sigma0</span> <span class="ow">or</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">sigma0</span><span class="p">:</span>
+                <span class="c1"># First check if dropped shot and regular shot mean values differ by &gt; sigma0 </span>
+                <span class="n">ishot</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Otherwise choose shot with greatest ttest significance</span>
+                <span class="n">ishot</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;t_stat&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">idxmax</span><span class="p">()</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># ishot can be nan when t_stat are nan</span>
+                <span class="n">t_pvalue</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;t_pvalue&#39;</span><span class="p">][</span><span class="n">ishot</span><span class="p">]</span>
+                <span class="n">sig_significance</span> <span class="o">=</span> <span class="p">(</span><span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;std&#39;</span><span class="p">])[</span><span class="n">ishot</span><span class="p">]</span>
+                <span class="c1"># Check pvalue valid and if not timed with drop_code then</span>
+                <span class="c1"># check ratio of found ishot pvalue is less than pvalue on drop code</span>
+                <span class="c1"># Ignore if mean/std for time detected is too big to be reasonable</span>
+                <span class="k">if</span> <span class="n">sig_significance</span> <span class="o">&lt;</span> <span class="mf">1.e10</span> <span class="ow">and</span> <span class="n">t_pvalue0</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">t_pvalue</span> <span class="o">&lt;=</span> <span class="n">pvalue_thresh</span> \
+                            <span class="ow">and</span> <span class="p">(</span><span class="n">t_pvalue</span><span class="o">/</span><span class="n">t_pvalue0</span> <span class="o">&lt;</span> <span class="n">pval0_ratio</span> <span class="ow">or</span> <span class="n">ishot</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">t_pvalue</span> <span class="o">=</span> <span class="kc">None</span>
+
+           
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">shot_corr_detected</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">shot_corr</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;beam_corr&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">idxmax</span><span class="p">()</span>
+                <span class="n">c_pvalue</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;c_pvalue&#39;</span><span class="p">][</span><span class="n">shot_corr</span><span class="p">]</span>
+                <span class="n">beam_corr</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;beam_corr&#39;</span><span class="p">][</span><span class="n">shot_corr</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">shot_corr</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">c_pvalue0</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;c_pvalue&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">beam_corr0</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;beam_corr&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="c1"># default to correlated with X-rays if not clear correlation on timing error</span>
+                    <span class="k">if</span> <span class="n">c_pvalue</span> <span class="o">&lt;</span> <span class="n">corr_pvalue</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">beam_corr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.2</span><span class="p">:</span>
+                        <span class="n">shot_corr_detected</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="c1"># Make sure shot correlation is not also OK on drop shot</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">beam_corr0</span> <span class="o">&gt;</span> <span class="n">beam_corr</span><span class="o">/</span><span class="mf">2.</span> <span class="ow">or</span> <span class="p">(</span><span class="n">c_pvalue</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">c_pvalue0</span><span class="o">/</span><span class="n">c_pvalue</span> <span class="o">&gt;=</span> <span class="n">pval0_ratio</span><span class="p">)):</span>
+                            <span class="n">shot_corr</span> <span class="o">=</span> <span class="mi">0</span>
+                            <span class="n">beam_corr</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;beam_corr&#39;</span><span class="p">][</span><span class="n">shot_corr</span><span class="p">]</span>
+                            <span class="n">c_pvalue</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;c_pvalue&#39;</span><span class="p">][</span><span class="n">shot_corr</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dfs</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;c_pvalue&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">dfs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">c_pvalue0</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                    <span class="n">dfs</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;beam_corr&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">dfs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">beam_corr0</span> <span class="o">=</span> <span class="n">dfs</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                    <span class="c1">#beam_corr = df_stats[&#39;beam_corr&#39;][shot_corr]</span>
+                    <span class="c1"># If off-by-one make sure not beam correlated on ec162</span>
+                    <span class="k">if</span> <span class="n">ishot</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">c_pvalue</span> <span class="o">&lt;</span> <span class="n">corr_pvalue</span> <span class="ow">and</span> \
+                                <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">beam_corr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.2</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">beam_corr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">beam_corr0</span><span class="p">)</span><span class="o">*</span><span class="mf">2.</span><span class="p">):</span>
+                        <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">elif</span> <span class="n">ishot</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">c_pvalue</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">c_pvalue0</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">False</span>
+
+                    <span class="c1"># Make checks to be sure beam_corr is valid </span>
+                    <span class="k">if</span> <span class="n">c_pvalue0</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">c_pvalue</span><span class="o">/</span><span class="n">c_pvalue0</span> <span class="o">&gt;</span> <span class="mf">1.</span><span class="o">/</span><span class="n">pval0_ratio</span><span class="p">:</span>
+                        <span class="n">shot_corr_detected</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">elif</span> <span class="n">c_pvalue</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">c_pvalue0</span> <span class="o">&lt;</span> <span class="n">pvalue</span><span class="o">**</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">beam_corr0</span><span class="o">&gt;</span><span class="n">beam_corr</span><span class="o">/</span><span class="mf">2.</span><span class="p">:</span>
+                        <span class="n">shot_corr_detected</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="k">elif</span> <span class="n">c_pvalue</span> <span class="o">&lt;</span> <span class="n">corr_pvalue</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">beam_corr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.2</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">beam_corr</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">beam_corr0</span><span class="p">)</span><span class="o">*</span><span class="mf">2.</span><span class="p">):</span>
+                        <span class="n">shot_corr_detected</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="c1"># Make sure beam correlation is consistent with drop shot detection</span>
+                <span class="c1"># If beam_corr is on ec162 then do not tag</span>
+                <span class="k">if</span> <span class="n">shot_corr_detected</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">tag_shot_corr</span> <span class="ow">and</span> <span class="n">ishot</span> <span class="o">!=</span> <span class="n">shot_corr</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">shot_corr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">False</span>
+                            <span class="n">ishot</span> <span class="o">=</span> <span class="n">shot_corr</span>
+                            <span class="n">t_pvalue</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;t_pvalue&#39;</span><span class="p">][</span><span class="n">ishot</span><span class="p">]</span>
+                    
+                    <span class="n">xo</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_corr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beam_corr</span>
+                    <span class="n">xo</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;shot_corr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">shot_corr</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_corr_detected&#39;</span><span class="p">]:</span>
+                        <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_corr_detected&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+                    <span class="n">note</span> <span class="o">=</span> <span class="s1">&#39;Beam-corr  of </span><span class="si">{:5.3f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">beam_corr</span><span class="p">)</span>
+                    <span class="n">corr_note</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1"> on </span><span class="si">{:2}</span><span class="s1"> shot for </span><span class="si">{:}</span><span class="s1"> detector </span><span class="si">{:}</span><span class="s1"> (corr = </span><span class="si">{:}</span><span class="s1">, c_pvalue = </span><span class="si">{:}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">note</span><span class="p">,</span> <span class="n">shot_corr</span><span class="p">,</span> 
+                                <span class="n">alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">beam_corr</span><span class="p">,</span> <span class="n">c_pvalue</span><span class="p">)</span>
+                    <span class="nb">print</span> <span class="n">corr_note</span>
+
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">shot_corr</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">c_pvalue</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">beam_corr</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">shot_corr_detected</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Tag shot correlation after checking beam correlation</span>
+            <span class="k">if</span> <span class="n">tag_shot_corr</span><span class="p">:</span> 
+                <span class="n">xo</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;delta_beam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ishot</span> 
+                <span class="n">xo</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;delta_beam_pvalue&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t_pvalue</span>
+                <span class="k">if</span> <span class="n">ishot</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">note</span> <span class="o">=</span> <span class="s1">&#39;Drop-shot detected &#39;</span>
+                    <span class="n">xo</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;drop_shot_detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;drop_shot_detected&#39;</span><span class="p">]:</span>
+                        <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;drop_shot_detected&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">alias</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;EBeam&#39;</span><span class="p">,</span><span class="s1">&#39;PhaseCavity&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">attr</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;xpos&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">attr</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;ypos&#39;</span><span class="p">):</span>
+                    <span class="n">note</span> <span class="o">=</span> <span class="s1">&#39;Beam-warning detected&#39;</span>
+                    <span class="n">xo</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_warning_detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_warning_detected&#39;</span><span class="p">]:</span>
+                        <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;beam_warning_detected&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">note</span> <span class="o">=</span> <span class="s1">&#39;Time-error detected&#39;</span>
+                    <span class="n">xo</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;timing_error_detected&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;timing_error_detected&#39;</span><span class="p">]:</span>
+                        <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;timing_error_detected&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+                
+                <span class="n">shot_note</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1"> on </span><span class="si">{:2}</span><span class="s1"> shot for </span><span class="si">{:}</span><span class="s1"> detector </span><span class="si">{:}</span><span class="s1"> (t_pvalue=</span><span class="si">{:}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">note</span><span class="p">,</span> <span class="n">ishot</span><span class="p">,</span> 
+                        <span class="n">alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">t_pvalue</span><span class="p">)</span>
+                <span class="nb">print</span> <span class="n">shot_note</span>
 
 
+            <span class="c1">#xstats[attr] = ((corr_coord,&#39;drop_stats&#39;), df_stats)</span>
+            <span class="n">xstats</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_stats</span>
+
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="nb">print</span> <span class="s1">&#39;xmean&#39;</span><span class="p">,</span> <span class="n">xmean</span>
+            <span class="nb">print</span> <span class="s1">&#39;xstd&#39;</span><span class="p">,</span> <span class="n">xstd</span>
+            <span class="nb">print</span> <span class="s1">&#39;Cannot calc stats for&#39;</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">ishot</span>
+        
+    <span class="k">for</span> <span class="n">avar</span><span class="p">,</span> <span class="n">da</span> <span class="ow">in</span> <span class="n">xo</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">avar</span> <span class="ow">in</span> <span class="n">xstats</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;doc&#39;</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">,</span> <span class="s1">&#39;alias&#39;</span><span class="p">]:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">xo</span><span class="p">[</span><span class="n">avar</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> 
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="n">xstats</span><span class="p">[</span><span class="n">avar</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span> 
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot add attrs for </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">avar</span><span class="p">))</span>
+    
+    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">xo</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">unicode</span><span class="p">):</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="n">xstats</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot add attrs for </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="s1">&#39;dim_1&#39;</span> <span class="ow">in</span> <span class="n">xstats</span><span class="p">:</span>
+        <span class="n">xstats</span> <span class="o">=</span> <span class="n">xstats</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s1">&#39;dim_1&#39;</span><span class="p">:</span><span class="s1">&#39;drop_stats&#39;</span><span class="p">})</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No Drop stats&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">save_file</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">xstats</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">save_file</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;h5netcdf&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Save drop summary file: </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">save_file</span><span class="p">))</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot save file: </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">save_file</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">xstats</span>
+
+<span class="k">def</span> <span class="nf">clean_dict</span><span class="p">(</span><span class="n">attrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Replace unicode with str in dict </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">clean_item</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+                    <span class="n">clean_item</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">clean_item</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">clean_item</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">item</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
+
+    <span class="k">return</span> <span class="n">attrs</span>
+
+<span class="k">def</span> <span class="nf">clean_dataset</span><span class="p">(</span><span class="n">xds</span><span class="p">):</span>
+    <span class="n">xds</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">clean_dict</span><span class="p">(</span><span class="n">xds</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">xds</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">xcoord</span> <span class="o">=</span> <span class="n">xds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">clean_dict</span><span class="p">(</span><span class="n">xcoord</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+        <span class="n">xcoord</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+            <span class="k">del</span> <span class="n">xds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="n">xds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">xcoord</span>
+    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">xdata</span> <span class="ow">in</span> <span class="n">xds</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="n">clean_dict</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+        <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+            <span class="k">del</span> <span class="n">xds</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span>
+            <span class="n">attr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="n">xds</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">xdata</span>
+    <span class="k">return</span> <span class="n">xds</span>
+
+    <span class="k">return</span> <span class="n">xds</span>
+
+<span class="k">def</span> <span class="nf">open_cxi_psocake</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">run</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+        <span class="n">load_smd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">load_moved_pvs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">refresh</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    load psocake cxidb formatted hdf5 file and return xarray</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    load_smd : bool</span>
+<span class="sd">        load small data from </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">os</span>
+    <span class="kn">import</span> <span class="nn">glob</span>
+    <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="n">instrument</span> <span class="o">=</span> <span class="n">exp</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">base_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;/reg/d/psdm&#39;</span><span class="p">,</span><span class="n">instrument</span><span class="p">,</span><span class="n">exp</span><span class="p">)</span>
+    <span class="n">file_nc</span><span class="o">=</span><span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">folder</span><span class="p">:</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">base_path</span><span class="o">+</span><span class="s1">&#39;/*/*/psocake/r</span><span class="si">{:04}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:04}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">run</span><span class="p">,</span><span class="n">exp</span><span class="p">,</span><span class="n">run</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">file_nc</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">file_nc</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_path</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;r</span><span class="si">{:04}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">run</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:04}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span><span class="n">run</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">file_nc</span><span class="p">):</span>
+            <span class="n">file_nc</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">refresh</span> <span class="ow">and</span> <span class="n">file_nc</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">xdata</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file_nc</span><span class="p">,</span><span class="n">engine</span><span class="o">=</span><span class="s1">&#39;h5netcdf&#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading netcdf4 file </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_nc</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">xdata</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Could not open netcdf4 file </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_nc</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">file_name</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">folder</span><span class="p">:</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">base_path</span><span class="o">+</span><span class="s1">&#39;/*/*/psocake/r</span><span class="si">{:04}</span><span class="s1">/</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:04}</span><span class="s1">.cxi&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">run</span><span class="p">,</span><span class="n">exp</span><span class="p">,</span><span class="n">run</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">files</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+                <span class="n">file_name</span> <span class="o">=</span> <span class="n">files</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;...choosing </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_name</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;use folder keyword to select a different psocake file&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No psocake files available&#39;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_path</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;r</span><span class="si">{:04}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">run</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:04}</span><span class="s1">.cxi&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span><span class="n">run</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">file_nc</span><span class="p">:</span>
+        <span class="n">file_nc</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;cxi&#39;</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;nc&#39;</span>
+
+    <span class="n">xdata</span> <span class="o">=</span> <span class="n">open_cxi_dataset</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">exp</span>
+    <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">run</span>
+    <span class="k">if</span> <span class="n">load_smd</span><span class="p">:</span>
+        <span class="n">time_last</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> 
+        <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_path</span><span class="p">,</span> <span class="s1">&#39;results&#39;</span><span class="p">,</span> <span class="s1">&#39;nc&#39;</span><span class="p">,</span> <span class="s1">&#39;run</span><span class="si">{:04}</span><span class="s1">_smd.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">run</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;... opening </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_name</span><span class="p">))</span>
+        <span class="n">xsmd</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;h5netcdf&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;time_ns&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xsmd</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="n">xsmd</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;time_ns&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time&#39;</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="n">xsmd</span><span class="o">.</span><span class="n">sec</span><span class="o">*</span><span class="mf">1e9</span><span class="o">+</span><span class="n">xsmd</span><span class="o">.</span><span class="n">nsec</span><span class="p">))</span>
+        <span class="c1"># datetime64 not consistent at the us time level so need to recreate it</span>
+        <span class="c1"># datetime64 is curriosly slow to calculate -- ~16 ms each time point</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;... recalculating datetime64 for smd&#39;</span><span class="p">)</span>
+        <span class="c1">#xsmd[&#39;time&#39;] = [np.datetime64(int(sec*1e9+nsec), &#39;ns&#39;) for sec,nsec in zip(xsmd.sec,xsmd.nsec)]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Load Time smd hdf5 = </span><span class="si">{:8.3f}</span><span class="s1"> sec&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">time_last</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">time_last</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> 
+            <span class="n">xdata</span> <span class="o">=</span> <span class="n">xsmd</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="s1">&#39;time_ns&#39;</span><span class="p">})</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">xdata</span><span class="p">)</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time_ns&#39;</span><span class="p">:</span> <span class="s1">&#39;time&#39;</span><span class="p">})</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;merge time psocake &amp; smd = </span><span class="si">{:8.3f}</span><span class="s1"> sec&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">time_last</span><span class="p">))</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot load and merge smd&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">load_moved_pvs</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">xdata</span> <span class="o">=</span> <span class="n">add_moved_pvs</span><span class="p">(</span><span class="n">xdata</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Adding moved pvs&#39;</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot add moved pvs&#39;</span><span class="p">)</span>
+
+    <span class="c1">#if save:</span>
+    <span class="c1">#    xdata.to_</span>
+
+    <span class="k">return</span> <span class="n">xdata</span>
+
+
+<span class="k">def</span> <span class="nf">open_cxi_dataset</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">load_peakpos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_time</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read cxi format hdf5 file as xarray.  </span>
+<span class="sd">    Currently skips much and is first intended to retrieve psocake results_1.nPeaks</span>
+<span class="sd">    </span>
+<span class="sd">    Paarameters:</span>
+<span class="sd">    ------------</span>
+<span class="sd">    load_peakpos : bool</span>
+<span class="sd">        lood bragg peak positions in event images </span>
+<span class="sd">    add_time : bool</span>
+<span class="sd">        add datetime64</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">h5py</span>
+    <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+    <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="n">time0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> 
+    <span class="n">f5</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">f5keys</span> <span class="o">=</span> <span class="n">f5</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+    <span class="n">xdata</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">()</span>
+
+    <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;cxi_version&#39;</span>
+        <span class="n">f5keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">f5</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error getting cxi_version&#39;</span><span class="p">)</span>
+
+    <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;psocake&#39;</span>
+    <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">f5</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">f5keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">f5</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="o">+</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
+            <span class="n">psocake_attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">b</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">b</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">a</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">b</span><span class="p">}</span>        
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error getting </span><span class="si">{:}</span><span class="s1"> attrs&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+            <span class="n">psocake_attrs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">status_attrs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">attr</span> <span class="o">=</span> <span class="s1">&#39;status&#39;</span>
+    <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">f5</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">f5keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">f5</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">status_attrs</span><span class="p">[</span><span class="n">attr</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">f5</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error getting </span><span class="si">{:}</span><span class="s1"> attrs&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attr</span><span class="p">))</span>
+
+    <span class="n">eventNumber</span> <span class="o">=</span> <span class="n">f5</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;LCLS&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;eventNumber&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">nevents</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eventNumber</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Loading </span><span class="si">{:}</span><span class="s1"> events&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nevents</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">f5keys</span><span class="p">:</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">f5</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">attr</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">load_data</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> event data&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;keys&#39;</span><span class="p">):</span>
+                    <span class="n">time_next</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">adata</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                        <span class="n">ashape</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">shape</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">ashape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">nevents</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ashape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">load_peakpos</span><span class="p">:</span>
+                                    <span class="n">val</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">value</span>
+                                    <span class="n">xdata</span><span class="p">[</span><span class="n">attr</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time_ns&#39;</span><span class="p">,</span><span class="s1">&#39;peak&#39;</span><span class="p">),</span> <span class="n">val</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ashape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                                    <span class="n">val</span> <span class="o">=</span> <span class="n">adata</span><span class="o">.</span><span class="n">value</span>
+                                    <span class="k">if</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">adata</span><span class="p">))</span>
+                                        <span class="k">continue</span>
+                                    <span class="n">xdata</span><span class="p">[</span><span class="n">attr</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time_ns&#39;</span><span class="p">),</span> <span class="n">val</span><span class="p">)</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">adata</span><span class="p">))</span>
+                                    <span class="k">continue</span>
+
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">adata</span><span class="p">))</span>
+                        <span class="k">except</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error getting </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> event data&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">a</span><span class="p">))</span>
+                
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">value</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">xdata</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span><span class="s1">&#39;time_ns&#39;</span><span class="p">,],</span> <span class="n">val</span><span class="p">)</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error getting </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> event data&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error getting </span><span class="si">{:}</span><span class="s1"> </span><span class="si">{:}</span><span class="s1"> event data&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">xdata</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;sec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xdata</span><span class="o">.</span><span class="n">machineTime</span>
+        <span class="n">xdata</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;nsec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xdata</span><span class="o">.</span><span class="n">machineTimeNanoSeconds</span>
+        <span class="n">xdata</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;time_ns&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">sec</span><span class="o">*</span><span class="mf">1e9</span><span class="o">+</span><span class="n">xdata</span><span class="o">.</span><span class="n">nsec</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">add_time</span><span class="p">:</span>
+            <span class="n">xdata</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">sec</span><span class="o">*</span><span class="mf">1e9</span><span class="o">+</span><span class="n">nsec</span><span class="p">),</span> <span class="s1">&#39;ns&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">sec</span><span class="p">,</span><span class="n">nsec</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">sec</span><span class="p">,</span><span class="n">xdata</span><span class="o">.</span><span class="n">nsec</span><span class="p">)]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error making time from machintTime and machineTimeNanSeconds&#39;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Load Time psocake hdf5 = </span><span class="si">{:8.3f}</span><span class="s1"> sec&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">-</span><span class="n">time0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">xdata</span>
+
+<span class="k">def</span> <span class="nf">add_transmission</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add transmission from epicsArch attenuation pvs</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    exp : str</span>
+<span class="sd">        Experiment name</span>
+<span class="sd">        Default use xdata.attrs[&#39;experiment&#39;] or xdata.attrs[&#39;exp&#39;]</span>
+<span class="sd">    run : int</span>
+<span class="sd">        Run number</span>
+<span class="sd">        Default use xdata.attrs[&#39;run&#39;]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">exp_summary</span> <span class="k">import</span> <span class="n">get_exp_summary</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exp</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;experiment&#39;</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="s1">&#39;exp&#39;</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;exp&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;exp must be specified or in Dataset attrs&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+    <span class="nb">print</span> <span class="n">exp</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;run&#39;</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">run</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;run must be specified or in Dataset attrs&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+    <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">)</span> 
+ 
+<span class="k">def</span> <span class="nf">add_moved_pvs</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">exp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add epics pvs that were moved during run to Dataset.</span>
+<span class="sd">    - Moved pvs are automatically determined from epicsArch data</span>
+<span class="sd">    loaded in PyDataSource.ExperimentSummary class.</span>
+<span class="sd">    - merge_fill method used to match moved pvs using timestamp info</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    exp : str</span>
+<span class="sd">        Experiment name</span>
+<span class="sd">        Default use xdata.attrs[&#39;experiment&#39;] or xdata.attrs[&#39;exp&#39;]</span>
+<span class="sd">    run : int</span>
+<span class="sd">        Run number</span>
+<span class="sd">        Default use xdata.attrs[&#39;run&#39;]</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">exp_summary</span> <span class="k">import</span> <span class="n">get_exp_summary</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exp</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;experiment&#39;</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;experiment&#39;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="s1">&#39;exp&#39;</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;exp&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;exp must be specified or in Dataset attrs&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+    <span class="nb">print</span> <span class="n">exp</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">run</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;run&#39;</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+            <span class="n">run</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;run must be specified or in Dataset attrs&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+    <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">)</span> 
+    <span class="n">xadd</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">get_scan_data</span><span class="p">(</span><span class="n">run</span><span class="p">)</span>
+    <span class="n">xdata</span> <span class="o">=</span> <span class="n">merge_fill</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">xadd</span><span class="p">,</span> <span class="n">bfill</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xdata</span>
+
+<span class="k">def</span> <span class="nf">merge_fill</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">xadd</span><span class="p">,</span> <span class="n">bfill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+        <span class="n">keep_attrs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">keep_new_times</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span> 
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Merge Datasets.  Fill second Dataset forward then backward unless bfill=False</span>
+<span class="sd">    Currently only 1D arrays with dim=&#39;time&#39; are added.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">operator</span>
+    <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+    <span class="k">if</span> <span class="s1">&#39;time_ns&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="n">xdata</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;time_ns&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time&#39;</span><span class="p">),</span> <span class="n">xdata</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">da</span> <span class="o">=</span> <span class="n">xdata</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="s1">&#39;time_ns&#39;</span><span class="p">})</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()[[</span><span class="s1">&#39;time_ns&#39;</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">keep_new_times</span><span class="p">:</span>
+        <span class="n">da</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;_orig_data&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time_ns&#39;</span><span class="p">),</span> <span class="n">xdata</span><span class="o">.</span><span class="n">time_ns</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;time_ns&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xadd</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="n">xadd</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;time_ns&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time&#39;</span><span class="p">),</span> <span class="n">xadd</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="s1">&#39;time_ns&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xadd</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+        <span class="n">xadd</span> <span class="o">=</span> <span class="n">xadd</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="s1">&#39;time_ns&#39;</span><span class="p">})</span>
+
+    <span class="n">xmerge</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">combine_first</span><span class="p">(</span><span class="n">xadd</span><span class="p">)</span>
+    <span class="n">xfill</span> <span class="o">=</span> <span class="n">xmerge</span><span class="o">.</span><span class="n">ffill</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time_ns&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bfill</span><span class="p">:</span>
+        <span class="n">xfill</span> <span class="o">=</span> <span class="n">xfill</span><span class="o">.</span><span class="n">bfill</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time_ns&#39;</span><span class="p">)</span> 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">keep_new_times</span><span class="p">:</span>
+        <span class="n">xfill</span> <span class="o">=</span> <span class="n">xfill</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">xfill</span><span class="p">[</span><span class="s1">&#39;_orig_data&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> 
+        <span class="k">del</span> <span class="n">xfill</span><span class="p">[</span><span class="s1">&#39;_orig_data&#39;</span><span class="p">]</span>
+    <span class="n">xfill</span> <span class="o">=</span> <span class="n">xfill</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time_ns&#39;</span><span class="p">:</span> <span class="s1">&#39;time&#39;</span><span class="p">})</span>
+    <span class="c1"># merge and concat are not efficient when already same dims</span>
+    <span class="c1"># may still be more clever way, but this is fast</span>
+    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">xfill</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">item</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;time&#39;</span><span class="p">:</span>
+            <span class="n">xdata</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time&#39;</span><span class="p">),</span> <span class="n">item</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">xadd</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span><span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+                <span class="n">xdata</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">if</span> <span class="n">keep_attrs</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">xadd</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+                <span class="n">xdata</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">return</span> <span class="n">xdata</span>
+
+<span class="k">def</span> <span class="nf">dataset_fill</span><span class="p">(</span><span class="n">xdata</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">bfill</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset with time and fill forward then backward</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="k">if</span> <span class="s1">&#39;time_ns&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xdata</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="n">xdata</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;time_ns&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time&#39;</span><span class="p">),</span> <span class="n">xdata</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">):</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="s1">&#39;time&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="s1">&#39;time_ns&#39;</span>
+    <span class="n">xadd</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="n">dim</span><span class="p">])</span>
+    <span class="n">xadd</span> <span class="o">=</span> <span class="n">xadd</span><span class="o">.</span><span class="n">to_dataset</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;time_stamp&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;time_ns&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xadd</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="n">xadd</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="s1">&#39;time_ns&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;time&#39;</span><span class="p">),</span> <span class="n">xadd</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="s1">&#39;time_ns&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">xadd</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+        <span class="n">xadd</span> <span class="o">=</span> <span class="n">xadd</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="s1">&#39;time_ns&#39;</span><span class="p">})</span>
+
+    <span class="n">xmerge</span> <span class="o">=</span> <span class="n">xdata</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="s1">&#39;time_ns&#39;</span><span class="p">})</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">xadd</span><span class="p">)</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="s1">&#39;time_ns&#39;</span><span class="p">:</span> <span class="s1">&#39;time&#39;</span><span class="p">})</span>
+    <span class="n">xfill</span> <span class="o">=</span> <span class="n">xmerge</span><span class="o">.</span><span class="n">ffill</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">bfill</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span> 
+
+    <span class="k">return</span> <span class="n">xfill</span>
+
+<span class="c1"># Placeholder to make independent of PyDataSource.get_dataset</span>
+<span class="c1">#def get_epics_dataset(exp=None, run=None, pvdict={}, fields=None,</span>
+<span class="c1">#            meta_attrs = {&#39;units&#39;: &#39;EGU&#39;, &#39;PREC&#39;: &#39;PREC&#39;, &#39;pv&#39;: &#39;name&#39;},</span>
+<span class="c1">#            tstart=None, tend=None, quiet=True, **kwargs):</span>
+<span class="c1">#        import time</span>
+<span class="c1">#        import numpy as np</span>
+<span class="c1">#        import pandas as pd</span>
+<span class="c1">#        import xarray as xr</span>
+<span class="c1">#        import xarray_utils</span>
+<span class="c1">#        if not fields:</span>
+<span class="c1">#            fields={</span>
+<span class="c1">#                    &#39;description&#39;:            (&#39;DESC&#39;, &#39;Description&#39;), </span>
+<span class="c1">#                    &#39;slew_speed&#39;:             (&#39;VELO&#39;, &#39;Velocity (EGU/s) &#39;),</span>
+<span class="c1">#                    &#39;acceleration&#39;:           (&#39;ACCL&#39;, &#39;acceleration time&#39;),</span>
+<span class="c1">#                    &#39;step_size&#39;:              (&#39;RES&#39;,  &#39;Step Size (EGU)&#39;),</span>
+<span class="c1">#                    &#39;encoder_step&#39;:           (&#39;ERES&#39;, &#39;Encoder Step Size &#39;),</span>
+<span class="c1">#                    &#39;resolution&#39;:             (&#39;MRES&#39;, &#39;Motor Step Size (EGU)&#39;),</span>
+<span class="c1">#                    &#39;high_limit&#39;:             (&#39;HLM&#39;,  &#39;User High Limit&#39;),</span>
+<span class="c1">#                    &#39;low_limit&#39;:              (&#39;LLM&#39;,  &#39;User Low Limit&#39;),</span>
+<span class="c1">#                    &#39;units&#39;:                  (&#39;EGU&#39;,  &#39;Units&#39;),</span>
+<span class="c1">#        #            &#39;device_type&#39;:            (&#39;DTYP&#39;, &#39;Device type&#39;), </span>
+<span class="c1">#        #            &#39;record_type&#39;:            (&#39;RTYP&#39;, &#39;Record Type&#39;), </span>
+<span class="c1">#                    }</span>
+<span class="c1">#        time0 = time.time()</span>
+<span class="c1">#        time_last = time0</span>
+<span class="c1">#       </span>
+<span class="c1">#        if load_default:</span>
+<span class="c1">#            trans_pvs = [a for a in _transmission_pvs.get(&#39;FEE&#39;, {}) if a.endswith(&#39;_trans&#39;)]</span>
+<span class="c1">#            trans_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith(&#39;_trans&#39;)]</span>
+<span class="c1">#            trans3_pvs = [a for a in _transmission_pvs.get(&#39;FEE&#39;, {}) if a.endswith(&#39;_trans3&#39;)]</span>
+<span class="c1">#            trans3_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith(&#39;_trans3&#39;)]</span>
+<span class="c1">#            pvdict.update(**_transmission_pvs.get(&#39;FEE&#39;,{}))</span>
+<span class="c1">#            pvdict.update(**_transmission_pvs.get(ds.instrument,{}))</span>
+<span class="c1">#        else:</span>
+<span class="c1">#            trans_pvs = []</span>
+<span class="c1">#            trans3_pvs = []</span>
+<span class="c1">#</span>
+<span class="c1">#        pvs = {alias: pv for alias, pv in pvdict.items() if configData._in_archive(pv)} </span>
+<span class="c1">#        </span>
+<span class="c1">#        data_arrays = {} </span>
+<span class="c1">#        data_fields = {}</span>
+<span class="c1"># </span>
+<span class="c1">#        for alias, pv in pvs.items():</span>
+<span class="c1">#            data_fields[alias] = {}</span>
+<span class="c1">#            dat = configData._get_pv_from_arch(pv, tstart, tend)</span>
+<span class="c1">#            if not dat:</span>
+<span class="c1">#                print(&#39;WARNING:  {:} - {:} not archived&#39;.format(alias, pv))</span>
+<span class="c1">#                continue</span>
+<span class="c1">#            </span>
+<span class="c1">#            try:</span>
+<span class="c1">#                attrs = {a: dat[&#39;meta&#39;].get(val) for a,val in meta_attrs.items() if val in dat[&#39;meta&#39;]}</span>
+<span class="c1">#                for attr, item in fields.items():  </span>
+<span class="c1">#                    try:</span>
+<span class="c1">#                        field=item[0]</span>
+<span class="c1">#                        pv_desc = pv.split(&#39;.&#39;)[0]+&#39;.&#39;+field</span>
+<span class="c1">#                        if configData._in_archive(pv_desc):</span>
+<span class="c1">#                            desc = configData._get_pv_from_arch(pv_desc)</span>
+<span class="c1">#                            if desc:</span>
+<span class="c1">#                                vals = {}</span>
+<span class="c1">#                                fattrs = attrs.copy()</span>
+<span class="c1">#                                fattrs.update(**desc[&#39;meta&#39;])</span>
+<span class="c1">#                                fattrs[&#39;doc&#39;] = item[1]</span>
+<span class="c1">#                                val = None</span>
+<span class="c1">#                                # remove redundant data</span>
+<span class="c1">#                                for item in desc[&#39;data&#39;]:</span>
+<span class="c1">#                                    newval =  item.get(&#39;val&#39;)</span>
+<span class="c1">#                                    if not val or newval != val:</span>
+<span class="c1">#                                        val = newval</span>
+<span class="c1">#                                        vt = np.datetime64(long(item[&#39;secs&#39;]*1e9+item[&#39;nanos&#39;]), &#39;ns&#39;)</span>
+<span class="c1">#                                        vals[vt] = val</span>
+<span class="c1">#                               </span>
+<span class="c1">#                                data_fields[alias][attr] = xr.DataArray(vals.values(), </span>
+<span class="c1">#                                                                coords=[vals.keys()], dims=[&#39;time&#39;], </span>
+<span class="c1">#                                                                name=alias+&#39;_&#39;+attr, attrs=fattrs) </span>
+<span class="c1">#                                attrs[attr] = val</span>
+<span class="c1">#         </span>
+<span class="c1">#                    except:</span>
+<span class="c1">#                        traceback.print_exc()</span>
+<span class="c1">#                        print(&#39;cannot get meta for&#39;, alias, attr)</span>
+<span class="c1">#                        pass</span>
+<span class="c1">#                vals = [item[&#39;val&#39;] for item in dat[&#39;data&#39;]]</span>
+<span class="c1">#                if not vals:</span>
+<span class="c1">#                    print(&#39;No Data in archive for  {:} - {:}&#39;.format(alias, pv))</span>
+<span class="c1">#                    continue</span>
+<span class="c1">#</span>
+<span class="c1">#                doc = attrs.get(&#39;description&#39;,&#39;&#39;)</span>
+<span class="c1">#                units = attrs.get(&#39;units&#39;, &#39;&#39;)</span>
+<span class="c1">#                time_next = time.time()</span>
+<span class="c1">#              </span>
+<span class="c1">#                try:</span>
+<span class="c1">#                    if isinstance(vals[0],str):</span>
+<span class="c1">#                        if not quiet:</span>
+<span class="c1">#                            print(alias, &#39;string&#39;)</span>
+<span class="c1">#                        vals = np.array(vals, dtype=str)</span>
+<span class="c1">#                    else:</span>
+<span class="c1">#                        times = [np.datetime64(long(item[&#39;secs&#39;]*1e9+item[&#39;nanos&#39;]), &#39;ns&#39;) for item in dat[&#39;data&#39;]]</span>
+<span class="c1">#                        dfs = pd.Series(vals, times).sort_index()</span>
+<span class="c1">#                        dfs = dfs[~dfs.index.duplicated()]</span>
+<span class="c1">#                        dfs = dfs[~(dfs.diff()==0)]</span>
+<span class="c1">#                        vals = dfs.values</span>
+<span class="c1">#                        dfs = dfs.to_xarray().rename({&#39;index&#39;: &#39;time&#39;})</span>
+<span class="c1">#                        data_arrays[alias] = dfs </span>
+<span class="c1">#                        data_arrays[alias].name = alias</span>
+<span class="c1">#                        data_arrays[alias].attrs = attrs</span>
+<span class="c1">#                </span>
+<span class="c1">#                except:</span>
+<span class="c1">#                    traceback.print_exc()</span>
+<span class="c1">#                    if not quiet:</span>
+<span class="c1">#                        print(&#39;Error loadinig&#39;, alias)</span>
+<span class="c1">#</span>
+<span class="c1">#                if not quiet:</span>
+<span class="c1">#                    try:</span>
+<span class="c1">#                        print(&#39;{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}&#39;.format(time_next-time_last, \</span>
+<span class="c1">#                                        gias, len(vals), np.array(vals).mean(), units, doc, pv))</span>
+<span class="c1">#                    except:</span>
+<span class="c1">#                        print(&#39;{:8.3f} {:28} {:8} {:&gt;10} {:4} {:20} {:}&#39;.format(time_next-time_last, \</span>
+<span class="c1">#                                        alias, len(vals), vals[0], units, doc, pv))</span>
+<span class="c1">#            </span>
+<span class="c1">#            except:</span>
+<span class="c1">#                traceback.print_exc()</span>
+<span class="c1">#                if not quiet:</span>
+<span class="c1">#                    print(&#39;Error loading&#39;, alias)</span>
+<span class="c1">#</span>
+<span class="c1">#        xdata = xr.merge(data_arrays.values())</span>
+<span class="c1">#        if trans_pvs:</span>
+<span class="c1">#            da = xdata.reset_coords()[trans_pvs].to_array() </span>
+<span class="c1">#            xdata[&#39;trans&#39;] = ((&#39;time&#39;), da.prod(dim=&#39;variable&#39;))</span>
+<span class="c1">#            xdata[&#39;trans&#39;].attrs[&#39;doc&#39;] = &#39;Total transmission: &#39;+&#39;*&#39;.join(trans_pvs)</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="c1">#   </span>
 </pre></div>
 
            </div>

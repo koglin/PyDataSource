@@ -191,7 +191,7 @@
 <div class="section" id="generating-run-data-sets">
 <h2>Generating Run Data Sets<a class="headerlink" href="#generating-run-data-sets" title="Permalink to this headline">¶</a></h2>
 <p>We start with the basic data processing previously outlined for the cxi lysozyme crystallography data.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="o">%</span><span class="k">pylab</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="o">%</span><span class="k">pylab</span>
 
 <span class="gp">In [2]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
 
@@ -211,7 +211,7 @@
 </pre></div>
 </div>
 <p>Now load the first 10 events into an xarray Dataset.  The max_size keyword sets the maximum array size to be saved.  By default max_size=10001, which is about the size of data in the ‘smd’ Daq small data files that is most quickly retrieved from file.  By setting this to a large number (1e9), even large CSpad images are loaded.  Note that for tutorial data set auto_pvs=False and either save=False or set path keyword to a folder in your home directory since you will not necessarily have write permission to the tutorial experiment folders.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">nevents</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mf">1e9</span><span class="p">,</span> <span class="n">auto_pvs</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [10]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">nevents</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_size</span><span class="o">=</span><span class="mf">1e9</span><span class="p">,</span> <span class="n">auto_pvs</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 <span class="go">updating DetInfo(CxiDs1.0:Cspad.0) DscCsPad</span>
 <span class="go">updating BldInfo(FEEGasDetEnergy) FEEGasDetEnergy</span>
 <span class="go">updating BldInfo(PhaseCavity) PhaseCavity</span>
@@ -310,7 +310,7 @@
 <div class="section" id="using-xarray">
 <h2>Using xarray<a class="headerlink" href="#using-xarray" title="Permalink to this headline">¶</a></h2>
 <p>Now use the data processing and plotting methods built into xarray to plot the mean of the assembled CSpad images.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">x</span><span class="o">.</span><span class="n">DscCsPad_image</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">vmax</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [12]: </span><span class="n">x</span><span class="o">.</span><span class="n">DscCsPad_image</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">vmax</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
 <span class="gh">Out[12]: </span><span class="go">&lt;matplotlib.collections.QuadMesh at 0x7f8e801a1090&gt;</span>
 </pre></div>
 </div>
@@ -319,7 +319,7 @@
 </div>
 <p>Note that if instead of using the ipython magic method %pylab or start ipython with –pylab you prefer you will need to execute plt.show() after making plots (first “import matplotlib.pyplot as plt”).</p>
 <p>Now plot the mean of the CSpad photon histogram.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">x</span><span class="o">.</span><span class="n">DscCsPad_photon_hist</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [13]: </span><span class="n">x</span><span class="o">.</span><span class="n">DscCsPad_photon_hist</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
 <span class="gh">Out[13]: </span><span class="go">[&lt;matplotlib.lines.Line2D at 0x7f8e5b9982d0&gt;]</span>
 </pre></div>
 </div>
@@ -331,7 +331,7 @@
 <div class="section" id="using-pandas">
 <h2>Using pandas<a class="headerlink" href="#using-pandas" title="Permalink to this headline">¶</a></h2>
 <p>It is often more convenient to use the features of Pandas DataFrame objects.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;FEEGasDetEnergy&#39;</span><span class="p">)]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [14]: </span><span class="n">attrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;FEEGasDetEnergy&#39;</span><span class="p">)]</span>
 
 <span class="gp">In [15]: </span><span class="n">df</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reset_coords</span><span class="p">()[</span><span class="n">attrs</span><span class="p">]</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
 
@@ -343,20 +343,20 @@
 <img alt="_images/cxitut13_run10_df_FEEGasDetEnergy_plot.jpg" src="_images/cxitut13_run10_df_FEEGasDetEnergy_plot.jpg" />
 </div>
 <p>There are many plot options built into <a class="reference external" href="http://pandas.pydata.org">pandas</a> with excellent documentation.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">subplots</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">))</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [17]: </span><span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">subplots</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">))</span>
 </pre></div>
 </div>
 <div class="figure align-center">
 <img alt="_images/cxitut13_run10_df_FEEGasDetEnergy_subplots.jpg" src="_images/cxitut13_run10_df_FEEGasDetEnergy_subplots.jpg" />
 </div>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">))</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [18]: </span><span class="n">ax</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">))</span>
 </pre></div>
 </div>
 <div class="figure align-center">
 <img alt="_images/cxitut13_run10_df_FEEGasDetEnergy_hist.jpg" src="_images/cxitut13_run10_df_FEEGasDetEnergy_hist.jpg" />
 </div>
 <p>pandas also offers powerful and convenient statistical methods.  For example, the describe method can be used to easily generate statistics of a group of data.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">percentiles</span><span class="o">=</span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [19]: </span><span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">(</span><span class="n">percentiles</span><span class="o">=</span><span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
 <span class="gh">Out[19]:</span>
 <span class="go">                           count      mean       std       min        5%  \</span>
 <span class="go">FEEGasDetEnergy_f_11_ENRC    9.0  2.813320  0.144863  2.605316  2.625602</span>
@@ -379,7 +379,7 @@
 <div class="section" id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
 <p>The DataSource object has save and load config methods, which are can be used to save the Data Processing AddOn methods for later use and/or other runs.  For example, save the config for the current run and then open run 11 for the ‘cxitut13’ experiment.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [20]: </span><span class="n">ds</span><span class="o">.</span><span class="n">save_config</span><span class="p">()</span>
 
 <span class="gp">In [21]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;cxitut13&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
 
@@ -398,7 +398,7 @@
 </pre></div>
 </div>
 <p>The load_config method will automatically load the config saved for the run specified.  If no run is specified, it will automatically look to find a config file for the next eariliest run available.  In this case ommitting run=10 in the load_config method will have the same result.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">ds</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">ds</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="n">run</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 
 <span class="gp">In [26]: </span><span class="n">evt</span><span class="o">.</span><span class="n">DscCsPad</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>
 <span class="gh">Out[26]:</span>
@@ -435,10 +435,10 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_hdf5.html#PyDataSource.to_hdf5" title="PyDataSource.to_hdf5"><code class="xref py py-obj docutils literal"><span class="pre">to_hdf5</span></code></a>(self[,&nbsp;save,&nbsp;cleanup])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_hdf5.html#PyDataSource.to_hdf5" title="PyDataSource.to_hdf5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_hdf5</span></code></a>(self[,&nbsp;save,&nbsp;cleanup])</td>
 <td>Write PyDataSource.DataSource to hdf5 file.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.DataSource.xarray_kwargs.html#PyDataSource.DataSource.xarray_kwargs" title="PyDataSource.DataSource.xarray_kwargs"><code class="xref py py-obj docutils literal"><span class="pre">DataSource.xarray_kwargs</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.DataSource.xarray_kwargs.html#PyDataSource.DataSource.xarray_kwargs" title="PyDataSource.DataSource.xarray_kwargs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataSource.xarray_kwargs</span></code></a></td>
 <td>Dictionary of keywords passed to to_xarray.</td>
 </tr>
 </tbody>
@@ -448,7 +448,7 @@
 <h2>Reading and writing xarray DataSets<a class="headerlink" href="#reading-and-writing-xarray-datasets" title="Permalink to this headline">¶</a></h2>
 <p>While various file formats are supported by xarray, PyDataSource uses the HDF5 by default in the netCDF format in the to_h5netcdf method.  This save method is automatically executed with the save=True in the to_hdf5 method.</p>
 <p>Reading DataSets saved in this way is done with the open_h5netcdf method.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [48]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [48]: </span><span class="n">x</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;xpptut15&#39;</span><span class="p">,</span><span class="n">run</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
 
 <span class="gp">In [49]: </span><span class="n">x</span>
 <span class="gh">Out[49]:</span>
@@ -480,7 +480,7 @@
 </pre></div>
 </div>
 <p>In this example there may be data that is not of interest including many of the event codes that were automatically built with to to_hdf5 method.  One may want to reduce the data and save it to another location.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">ec_keep</span> <span class="o">=</span> <span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">162</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">92</span><span class="p">,</span> <span class="mi">191</span><span class="p">,</span> <span class="mi">192</span><span class="p">,</span> <span class="mi">215</span><span class="p">]</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [21]: </span><span class="n">ec_keep</span> <span class="o">=</span> <span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">162</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">92</span><span class="p">,</span> <span class="mi">191</span><span class="p">,</span> <span class="mi">192</span><span class="p">,</span> <span class="mi">215</span><span class="p">]</span>
 
 <span class="gp">In [22]: </span><span class="n">ec_drop</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ec&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ec_keep</span><span class="p">]</span>
 
@@ -491,7 +491,7 @@
 </pre></div>
 </div>
 <p>This can be opened again at a later time with the open_h5netcdf method.</p>
-<div class="highlight-ipython"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="s1">&#39;my_dir/my_file.nc&#39;</span><span class="p">)</span>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [25]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">open_h5netcdf</span><span class="p">(</span><span class="s1">&#39;my_dir/my_file.nc&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <table border="1" class="longtable docutils">
@@ -500,10 +500,10 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html#PyDataSource.to_h5netcdf" title="PyDataSource.to_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">to_h5netcdf</span></code></a>([xdat,&nbsp;ds,&nbsp;file_name,&nbsp;path,&nbsp;…])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.to_h5netcdf.html#PyDataSource.to_h5netcdf" title="PyDataSource.to_h5netcdf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_h5netcdf</span></code></a>([xdat,&nbsp;ds,&nbsp;file_name,&nbsp;path,&nbsp;…])</td>
 <td>Write hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html#PyDataSource.open_h5netcdf" title="PyDataSource.open_h5netcdf"><code class="xref py py-obj docutils literal"><span class="pre">open_h5netcdf</span></code></a>([file_name,&nbsp;path,&nbsp;file_base,&nbsp;…])</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.open_h5netcdf.html#PyDataSource.open_h5netcdf" title="PyDataSource.open_h5netcdf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_h5netcdf</span></code></a>([file_name,&nbsp;path,&nbsp;file_base,&nbsp;…])</td>
 <td>Open hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.</td>
 </tr>
 </tbody>
