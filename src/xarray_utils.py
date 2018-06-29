@@ -742,10 +742,14 @@ def open_cxi_psocake(exp, run, folder=None, file_name=None,
     if not file_name:
         if not folder:
             files = glob.glob(base_path+'/*/*/psocake/r{:04}/{:}_{:04}.cxi'.format(run,exp,run))
-            print(files)
-            file_name = files[-1]
-            print('...choosing {:}'.format(file_name))
-            print('use folder keyword to select a different psocake file')
+            if files:
+                print(files)
+                file_name = files[-1]
+                print('...choosing {:}'.format(file_name))
+                print('use folder keyword to select a different psocake file')
+            else:
+                print('No psocake files available')
+                return None
         else:
             file_name = os.path.join(base_path, folder, 'r{:04}'.format(run), '{:}_{:04}.cxi'.format(exp,run))
 

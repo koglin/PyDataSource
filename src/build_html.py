@@ -265,7 +265,7 @@ class Build_experiment(object):
         """
         es = self._es
         df = es.get_scans(min_steps=min_steps)
-        if df is e:
+        if df is None:
             return
 
         if dets:
@@ -446,17 +446,17 @@ class Build_experiment(object):
         self.html.page.p('Report time: {:}'.format(time.ctime()))
         self.html.end_subblock()
 
-        self._make_ExperimentInfo_html()
+        self._make_ExperimentSummary_html()
 
         self.html.end_block()         
  
-    def _make_ExperimentInfo_html(self, **kwargs):
-        """Make html notes for accessing ExperimentInfo.
+    def _make_ExperimentSummary_html(self, **kwargs):
+        """Make html notes for accessing ExperimentSummary.
         """
         self.html.start_subblock('Access the Experiment Information')
         self.html.page.p('Access overall experiment information:')
         text = ['import PyDataSource']
-        text.append('es = PyDataSource.ExperimentInfo("{:}")'.format(self.exp))
+        text.append('es = PyDataSource.get_exp_summary("{:}")'.format(self.exp))
         self.html.add_textblock(text)
         self.html.end_subblock()
 
@@ -621,7 +621,7 @@ class Build_html(object):
     Class to build an html RunSummary report.
     """
 
-    def __init__(self, xdat=None, ds=None, auto=False, basic=False, 
+    def __init__(self, xdat=None, ds=None, auto=None, basic=None, 
             title=None, 
             logger=None, **kwargs):
         """
@@ -718,15 +718,21 @@ class Build_html(object):
         self.weblink='http://pswww.slac.stanford.edu/experiment_results/{:}/{:}-{:}/{:}/{:}'.format(*webattrs)
         
         if auto:
+            print('Auto configure')
+            print('...add_all')
             self.add_all(**kwargs)
-        
+        else:
+            print('No auto config')
+
         if basic or auto:
             # Add Timing error and drop shot analysis 
             try:
+                print('...add_delta_beam')
                 self.add_delta_beam()
             except:
                 print('Cannot add Timing Error and Drop Shot Detection')
-
+            
+            print('...to_html')
             self.to_html(**kwargs)
 
     def _init_output(self, path=default_path, filename=None, **kwargs):
@@ -925,13 +931,15 @@ class Build_html(object):
 
         xdat = self._xdat
         if 'codes' in xdat.coords and len(xdat['codes']) > 0:
-            attrs = [a for a in self._xdat.data_vars.keys() if 'stat' in self._xdat[a].dims and len(self._xdat[a].dims) in [5,6]]
+            attrs = [a for a in self._xdat.data_vars.keys() \
+                    if 'stat' in self._xdat[a].dims and len(self._xdat[a].dims) in [5,6]]
             for attr in attrs:
                 print('adding stats for ', attr)
                 if nevents > 4:
                     self.add_stats(attr, **kwargs)
 
-        attrs = [a for a in self._xdat.data_vars.keys() if 'time' in self._xdat[a].dims and len(self._xdat[a].dims) == 3]
+        attrs = [a for a in self._xdat.data_vars.keys() \
+                if 'time' in self._xdat[a].dims and len(self._xdat[a].dims) == 3]
         if nevents <= 100:
             self.add_event(attrs)
         plt.cla()
@@ -957,13 +965,21 @@ class Build_html(object):
         from xarray_utils import find_beam_correlations, ttest_groupby
         import seaborn as sns
         x = self._xdat
+        if code not in x:
+            if 'XrayOff' in x:
+                code = 'XrayOff'
+            else:
+                print('No code = {:} in data for add_delta_beam analysis'.format(code))
+                return
+        
         ncode = int(x[code].sum())
         if ncode < min_codes:
             print('WARNING only {:} {:} found -- not enought data to find beam correlations'.format(ncode, code) )
             return None
 
         if save:
-            save_file = os.path.join('/reg/d/psdm/',self.instrument,self.exp,'results','nc', 'run{:04}_drop_sum.nc'.format(self.run))
+            save_file = os.path.join('/reg/d/psdm/',self.instrument,self.exp, \
+                    'results','nc', 'run{:04}_drop_sum.nc'.format(self.run))
 
         xstats = find_beam_correlations(x, groupby=code, nearest=nearest, 
                     cut=beam_on, save_file=save_file, **kwargs)
@@ -1472,8 +1488,14 @@ class Build_html(object):
                 layout = (nrows,ncolumns)
             if not figsize:
                 figsize = (max([ncolumns*4,8]),max([nrows*3.0,6]))
-            
-            xselect = x[attrs]
+           
+            try:
+                xselect = x[attrs]
+            except:
+                traceback.print_exc()
+                print('Could not add {:} attrs: {:} '.format(alias,attrs))
+                return
+
             tselect = 'time'
             if cut:
                 tselect = 'points'

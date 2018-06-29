@@ -9,7 +9,7 @@ unset LD_LIBRARY_PATH
 unset DISPLAY XAUTHORITY
 export PYTHONPATH=
 echo "$@"
-source /reg/g/psdm/etc/psconda.sh 
+source /reg/g/psdm/etc/psconda.sh  > /dev/null
 
 SOURCE="${BASH_SOURCE[0]}"
 # resolve $SOURCE until the file is no longer a symlink
@@ -21,6 +21,7 @@ while [ -h "$SOURCE" ]; do
 done
 
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
 cd $DIR
 
 EXP=$1
@@ -33,35 +34,45 @@ if [[ $1 ]]; then
   QUEUEREQ=$1
   shift
   if [[ $1 ]]; then
-    CONFIG=$1
+    RUNFILE=$1
     shift
   fi
 fi
 
-PSANA=`which psana`
-PSANADIR=`dirname $PSANA`
-PYDSDIR="$PSANADIR/../lib/python2.7/site-packages/PyDataSource"
-RUNNUM=`python "$PYDSDIR/get_run_from_runid.py" $EXP $RUN`
-RUNSTR="Run$RUNNUM"
+: ${DIRNAME:="$DIR/../lib/python2.7/site-packages/PyDataSource/"}
+if [[ ! -a $DIRNAME ]]; then
+    DIRNAME="$DIR/../python/PyDataSource/"
+fi
+
+: ${MAX_SIZE:="10001"}
+: ${QUEUEREQ:="psanaq"}
+OUTDIR="/reg/d/psdm/$INSTRUMENT/$EXP/scratch/nc"
+RUNSTR=Run`python "$DIRNAME/get_run_from_runid.py" $EXP $RUN`
 EXPRUN="$EXP$RUNSTR"
 BATCHUSER=`whoami`
-OPRNAME="$INSTRUMENT"opr
-#OUTLOG="/reg/neh/operator/$OPRNAME/experiments/$EXP/arplogs/$BATCHUSER/$RUNSTR"
-OUTLOG="/reg/neh/operator/$OPRNAME/experiments/$EXP/logs/$RUNSTR"
+OUTLOG="/reg/neh/home/$BATCHUSER/logs/$EXP/$RUNSTR"
+OUTFOLDER="/reg/neh/home/$BATCHUSER/logs/$EXP/"
 if [[ ! -a $OUTLOG ]];  then
     mkdir -p $OUTLOG
 fi
 
-: ${QUEUEREQ:="psanaq"}
-: ${CONFIG:="wfs"}
 JOBNAME="$EXPRUN"h5
-RUNFILE="/reg/d/psdm/$INSTRUMENT/$EXP/results/src/to_hdf5.py"
+RUNDIR="/reg/d/psdm/$INSTRUMENT/$EXP/results/src"
+: ${RUNFILE:="$RUNDIR/to_hdf5_mpi.py"}
+if [[ ! -a $RUNFILE ]];  then
+    echo No experiment specific file:  $RUNFILE 
+    RUNDIR=$DIRNAME
+    RUNFILE="$RUNDIR/to_hdf5_mpi.py"
+    echo Using default file:  $RUNFILE 
+fi
 
-cd /reg/d/psdm/$INSTRUMENT/$EXP/results/src/
+# Use mpi by default
+PYOPT='mpi'
 
 echo Processing $EXP Run $RUN
 
-LOGSUM=/reg/neh/operator/$OPRNAME/experiments/"$EXP"/logs/batch_jobs.log
+# Add job to overall arp jobs log
+LOGSUM=/reg/g/psdm/utils/arp/logs/arp_to_hdf5_jobs.log
 echo '--------------------------------' >> $LOGSUM
 date >> $LOGSUM
 echo Processing $EXP Run $RUN >> $LOGSUM
@@ -70,9 +81,16 @@ echo 'User: '$BATCHUSER >> $LOGSUM
 echo 'Run:    '$RUNSTR >> $LOGSUM
 echo $EXPRUN >> $LOGSUM
 echo 'Log Path: '$OUTLOG >> $LOGSUM
-echo 'Config: '$CONFIG >> $LOGSUM
 echo 'Run File: '$RUNFILE >> $LOGSUM
 
-echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" --exp=$EXP --run=$RUN  >> $LOGSUM
-bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" --exp=$EXP --run=$RUN 
+if [[ $PYOPT == 'mpi' ]]; then 
+    CHUNKS=11
+    echo '##' bsub -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS"
+    bsub -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS"
+
+else 
+    echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" --exp=$EXP --run=$RUN  >> $LOGSUM
+    bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" --exp=$EXP --run=$RUN 
+
+fi
 

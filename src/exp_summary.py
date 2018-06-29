@@ -95,9 +95,9 @@ def get_pv_attrs(exp, auto_load=False):
         xpvs = open_epics_data(exp, 'xpvs.nc')
     except:
         print('Failed open_epics_data for', exp)
-        xpvs = {}
+        xpvs = None
 
-    if not xpvs:
+    if xpvs is not None:
         if auto_load:
             es = get_exp_summary(exp, reload=True)
             es.save()
@@ -128,7 +128,7 @@ def get_scan_pvs(exp, run=None, auto_load=False):
     except:
         xscan = None
 
-    if not xscan:
+    if xscan is not None:
         if auto_load:
             es = get_exp_summary(exp, reload=True)
             es.save()
@@ -504,7 +504,7 @@ class ExperimentSummary(object):
         fig = plt.figure(figsize=figsize, **kwargs)
         ax = fig.gca()
         x = self.get_scan_data(run, attrs=attrs, min_steps=min_steps, device=device, min_motors=min_motors)
-        if not x:
+        if x is None:
             print('Run {:} scan for attrs={:} device={:} not valid'.format(run, attrs, device))
         else:
             attrs = x.data_vars.keys()
@@ -784,7 +784,7 @@ class ExperimentSummary(object):
         for i in self.xruns.run.values:                         
             try:                                         
                 x = PyDataSource.h5write.get_config_xarray(exp='mfx11116',run=i, summary=summary, no_create=no_create)
-                if x:
+                if x is not None:
                     ax[i] = x
             except:     
                 print('cannot load run', i)
@@ -1351,7 +1351,7 @@ class ExperimentSummary(object):
                     rn_last = run
                 if nrns >= min_runs:
                     da = self.xset[attr]
-                    da = da.where((da.run>=rn0) & (da.run<=rn_last), drop=True).dropna(dim='run').to_dataset('val')
+                    da = da.where((da.run>=rn0) & (da.run<=rn_last), drop=True).dropna(dim='run').to_dataset(name='val')
                     da = da.to_dataframe()[['begin_time','duration','val']]
                     asets[(rn0,rn_last)] = da
                 rn0 = run-1

@@ -215,13 +215,13 @@ def to_h5netcdf(xdat=None, ds=None, file_name=None, path=None,
         h5folder='scratch', subfolder='nc', **kwargs):
     """Write hdf5 file with netcdf4 convention using builtin xarray engine h5netcdf.
     """
-    if xdat:
+    if xdat is not None:
         if xdat.__class__.__name__ == 'DataSource':
             # 1st arg is actually PyDataSource.DataSource
             ds = xdat
             xdat = None
 
-    if not xdat:
+    if xdat is None:
         if not ds:
             import PyDataSource
             ds = PyDataSource.DataSource(**kwargs)
@@ -259,6 +259,9 @@ def process_one_file(file_name, transform_func=None, engine='h5netcdf'):
     """Load one file
     """
     import xarray as xr
+    import os
+    if not os.path.isfile(file_name):
+        return
     # use a context manager, to ensure the file gets closed after use
     with xr.open_dataset(file_name, engine=engine) as ds:
         if 'nevents' in ds.attrs and 'time' in ds.dims:
@@ -292,16 +295,18 @@ def merge_datasets(file_names, engine='h5netcdf',
         try:
             print 'processing', file_name
             xo = process_one_file(file_name, engine=engine)
-            det = xo.attrs.get('alias')
-            if not det:
-                det = file_name.split('/')[-1].split('_')[-1].split('.')[0]
+            #skip files with no data
+            if xo.data_vars.keys():
+                det = xo.attrs.get('alias')
+                if not det:
+                    det = file_name.split('/')[-1].split('_')[-1].split('.')[0]
 
-            if det not in xattrs:
-                xattrs[det] = xo.attrs
+                if det not in xattrs:
+                    xattrs[det] = xo.attrs
 
-            datasets.append(xo)
-            #if file_name == min(paths, key=len):
-            #    xattrs = xo.attrs
+                datasets.append(xo)
+                #if file_name == min(paths, key=len):
+                #    xattrs = xo.attrs
         except:
             traceback.print_exc()
             print 'Cannot open {:}'.format(file_name)
@@ -409,7 +414,7 @@ def merge_stats(run=None, path=None, exp=None, dim='steps',
                             item[istats['mean']] = (xmean/xvar+smean/svar)*sxvar
                             item[istats['std']] = np.sqrt(sxvar)
 
-    if xdata == {}:
+    if xdata is {}:
         return None
 
     x = xr.concat(xdata.values(), dim)
@@ -440,8 +445,10 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
         Engine for loading files.  default = 'h5netcdf'
 
     """
+    #exp='cxilr6716';run=121;dim='time';h5folder='scratch';subfolder='nc';omit_attrs=['ichunk', 'nevents'];make_cuts=True;merge=False;quiet=False;save=False;save_path=None;cleanup=False;transform_func=None
     import xarray as xr
     import glob
+    import os
     if not run:
         raise Exception('run must be provided')
 
@@ -469,14 +476,16 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
     axattrs = {}
     for chunk in chunks:
         merge_chunk = False
-        if not merge:
-            file_name = '{:}//run{:04}_C{:02}.nc'.format(path,run,chunk)
+        file_name = '{:}//run{:04}_C{:02}.nc'.format(path,run,chunk)
+        if not merge and os.path.isfile(file_name):
             try:
                 if not quiet:
                     print 'Loading chunk', chunk
                 x = process_one_file(file_name)
             except:
                 merge_chunk = True
+        else:
+            merge_chunk = True
 
         if merge or merge_chunk:
             if not quiet:
@@ -549,14 +558,13 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
             print 'Cannot make default cuts'
 
     print '... merge stats chunks', run, path
+    xstats = None
     try:
         xstats = merge_stats(run=run, path=path, engine=engine)
     except:
-        xstats = None
         traceback.print_exc()
         print 'Cannot merge stats chunks'
         cleanup = False
-
     
     if xstats is not None:
         print '... merge stats with event data'
@@ -600,6 +608,10 @@ def read_chunked(run=None, path=None, exp=None, dim='time',
 def to_hdf5_mpi(self, build_html='basic', 
             default_stats=False,
             save=True, cleanup=True, **kwargs):
+    """
+    MPI wrapper for write_hdf5
+    """
+    import time
     time0 = time.time()
     try:
         import xarray as xr
@@ -614,6 +626,7 @@ def to_hdf5_mpi(self, build_html='basic',
 
     path, file_base = write_hdf5(self, **kwargs)
     # Free up memory for mpi DataSource objects after writing stats to h5 at end of write_hdf5
+    print('reset_stats ...', rank)
     self.reset_stats()
 
     print 'Rank', rank, ', mpi time', time.time()-time0
@@ -632,11 +645,11 @@ def to_hdf5_mpi(self, build_html='basic',
         
         if build_html:
             try:
-                import build_html
+                from PyDataSource import Build_html    
                 if build_html == 'auto':
-                    self.html = build_html.Build_html(x, auto=True) 
+                    self.html = Build_html(x, auto=True) 
                 else: 
-                    self.html = build_html.Build_html(x, basic=True) 
+                    self.html = Build_html(x, basic=True) 
             except:
                 traceback.print_exc()
                 print 'Could not build html run summary for', str(self)
@@ -1253,7 +1266,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
                 for i in range(ievent0):
                     evt = self.events.next()
                 
-                print 'reset_stats ...'
+                print('reset_stats ...', ichunk)
                 self.reset_stats()
                 
             
@@ -1279,7 +1292,7 @@ def write_hdf5(self, nevents=None, max_size=10001,
                     for i in range(ichunk):
                         step_events = self.steps.next()
                 
-                    print 'reset_stats ...'
+                    print('reset_stats ...', ichunk)
                     self.reset_stats()
                 
                 try:
@@ -1692,12 +1705,12 @@ def make_image(self, pixel=.11, ix0=None, iy0=None):
         a = np.zeros([xx.max()+1,yy.max()+1])
 
         x = self.coords.get(base+'_ximage')
-        if not x:
+        if x is None:
             if not ix0:
                 ix0 = a.shape[1]/2.
             x = (np.arange(a.shape[1])-ix0)*pixel
         y = self.coords.get(base+'_yimage')
-        if not y:
+        if y is None:
             if not iy0:
                 iy0 = a.shape[0]/2.
             y = (np.arange(a.shape[0])-iy0)*pixel
@@ -1759,16 +1772,20 @@ def make_default_cuts(x, gasdetcut_mJ=0.5):
 #        x['PulseEnergy'].attrs['doc'] = "Energy measurement normalized by attenuators"
 #
     try:
-        gasdetcut =  np.array(x.Gasdet_pre_atten.values > gasdetcut_mJ, dtype=np.byte)
-        x.coords['Gasdet_cut'] = (['time'], gasdetcut)
-        x.coords['Gasdet_cut'].attrs['doc'] = "Gas detector cut.  Gasdet_pre_atten > {:} mJ".format(gasdetcut_mJ)
+        #gasdetcut =  np.array(x.Gasdet_pre_atten.values > gasdetcut_mJ, dtype=np.byte)
+        #x.coords['Gasdet_cut'] = (['time'], gasdetcut)
+        x.coords['Gasdet_cut'] = x.Gasdet_pre_atten > gasdetcut_mJ
+        doc = "Gas detector cut.  Gasdet_pre_atten > {:} mJ".format(gasdetcut_mJ)
+        x.coords['Gasdet_cut'].attrs['doc'] = doc 
     except:
         gasdetcut = np.ones(x.time.data.shape)
 
 #    damagecut = np.array(phasecut & gasdetcut & (x.EBeam_damageMask.values == 0), dtype=np.byte)
-    damagecut = np.array(gasdetcut, dtype=np.byte)
-    x.coords['Damage_cut'] = (['time'], damagecut)
-    x.coords['Damage_cut'].attrs['doc'] = "Combined Gas detector, Phase cavity and EBeam damage cut"
+    #damagecut = np.array(gasdetcut, dtype=np.byte)
+    #x.coords['Damage_cut'] = (['time'], damagecut)
+    x.coords['Damage_cut'] = x.coords['Gasdet_cut']
+    #doc = "Combined Gas detector, Phase cavity and EBeam damage cut"
+    #x.coords['Damage_cut'].attrs['doc'] = doc 
 
     try:
         x = x.rename( {'EBeam_ebeamPhotonEnergy': 'PhotonEnergy'} )

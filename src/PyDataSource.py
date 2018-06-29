@@ -113,6 +113,8 @@ from psmessage import Message
 from build_html import Build_html
 from exp_summary import ExperimentSummary
 from exp_summary import get_exp_summary 
+from arp_tools import post_report
+from h5write import *
 
 _eventCodes_rate = {
         40: '120 Hz',
@@ -874,7 +876,7 @@ class DataSource(object):
             Load PVs that are scanned -- uses exp_summary
         load_smd : bool
             Load beam_stats small data file used in off-by-one analysis
-        load_psocake : bool
+load_psocake : bool
             Load psocake peak index 
         """
         import time
@@ -1022,14 +1024,15 @@ class DataSource(object):
 
         if load_psocake:
             import xarray_utils
-            xsmd = xarray_utils.open_cxi_psocake(experiment, run, 
+            xpsocake = xarray_utils.open_cxi_psocake(experiment, run, 
                     load_smd=True, load_moved_pvs=False, **kwargs)
-            for attr, item in xsmd.data_vars.items():
-                if len(item.dims) > 1:
-                    del xsmd[attr]
-            xdata = xarray_utils.merge_fill(xsmd, xdata)
-            #xdata = xdata.swap_dims({'time': 'time_ns'}).merge(xpsocake).swap_dims({'time_ns': 'time'})
-        elif xsmd is not None:
+            if xpsocake is not None:
+                for attr, item in xpsocake.data_vars.items():
+                    if len(item.dims) > 1:
+                        del xpsocake[attr]
+                xsmd = xpsocake
+        
+        if xsmd is not None:
             xdata = xarray_utils.merge_fill(xsmd, xdata)
         
         xtimes = xr.Dataset({'time': ds._idx_datetime64})
@@ -1436,58 +1439,46 @@ class DataSource(object):
             self._device_sets.update({'DataSource': {}})
         return self._device_sets.get('DataSource') 
 
-    def to_xarray(self, batch=None, build_html=False, **kwargs):
+    def submit_summary(self, **kwargs):
         """
-        Build xarray object from PyDataSource.DataSource object.
-        Now using same method as to_hdf5. 
+        Batch submission of run summary with auto report.
         """
+        import subprocess
+        import os
+        if kwargs:
+            self.xarray_kwargs.update(**kwargs)
+            self.save_config()
 
-#        Example
-#        -------
-#        import PyDataSource
-#        ds = PyDataSource.DataSource(exp='xpptut15',run=200)
-#        evt = ds.events.next()
-#        evt.opal_1.add.projection('raw', axis='x', roi=((0,300),(1024,400)))
-#        evt.cs140_rob.add.roi('calib',sensor=1,roi=((104,184),(255,335)))
-#        evt.cs140_rob.add.count('roi')
-#        x = ds.to_xarray()
-#        # Takes ~30 min to create in single core.
-#        # Saved file 2 GB
- 
-#        if kwargs.get('config'):
-#            if kwargs.get('config') == True or kwargs.get('config') in ['True', 'true']:
-#                self.load_config()
-#            else:
-#                self.load_config(file_name=config)
-
-        if batch:
-            import subprocess
-            if kwargs:
-                self.xarray_kwargs.update(**kwargs)
-                self.save_config()
-
-            bsubproc = 'make_summary -e {:} -r {:}'.format(self.data_source.exp, self.data_source.run)
+        path = os.path.dirname(__file__)
+        submit_file = os.path.join(path, '../../bin/submit_summary')
+        bsubproc = '{:} {:} {:}'.format(submit_file, self.data_source.exp, self.data_source.run)
+        try:
+            print('Submitting: {:}'.format(bsubproc))
+            subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
+        except:
             print('Submit from ipython not yet available')
             print('Setup conda environment the same was as for ipython then:')
             print('-> kinit')
-            print('-> ',bsubproc)
+            print('-> {:}'.fomrat(bsubproc))
 
-            #subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
+    def to_xarray(self, build_html=False, **kwargs):
+        """
+        Build xarray object from PyDataSource.DataSource object.
+        Same as to_hdf5 -- backwards compatability
+        """
+        import h5write
+        xarray_kwargs = self.xarray_kwargs.copy()
+        xarray_kwargs.update(**kwargs)
+        x = h5write.to_hdf5(self, **xarray_kwargs)
+        if build_html:
+            try:
+                import build_html
+                self.html = build_html.Build_html(x, auto=True) 
+            except:
+                traceback.print_exc()
+                print('Could not build html run summary for', str(self))
 
-        else:
-            import h5write
-            xarray_kwargs = self.xarray_kwargs.copy()
-            xarray_kwargs.update(**kwargs)
-            x = h5write.to_hdf5(self, **xarray_kwargs)
-            if build_html:
-                try:
-                    import build_html
-                    self.html = build_html.Build_html(x, auto=True) 
-                except:
-                    traceback.print_exc()
-                    print('Could not build html run summary for', str(self))
-
-            return x
+        return x
 
     def to_hdf5(self, build_html=False, **kwargs):
         """
@@ -5856,6 +5847,14 @@ class AddOn(object):
                 xaxis = attr_info.get('xaxis')
             elif 'bins' in attr_info:
                 xaxis = attr_info.get('bins')
+            else:
+                try:
+                    if attr in self._det_config['xarray']['dims']:
+                        adims = self._det_config['xarray']['dims'][attr][0]
+                        if len(adims) == 1:
+                            xaxis = self._det_config['xarray']['coords'].get(adims[0])
+                except:
+                    pass
 
         if not threshold:
             if self._det._pydet.dettype == 16:
@@ -7099,6 +7098,22 @@ class EpicsData(object):
                                  }
         self._pv_dict = pv_dict
         self._attrs = list(set([val['components'][0] for val in self._pv_dict.values()]))
+
+    def __getattr__(self, attr):
+        if attr in self._attrs:
+            attr_dict = {key: pdict for key,pdict in self._pv_dict.items()
+                         if pdict['components'][0] == attr}
+            return PvData(attr_dict, self._ds, level=1)
+        
+        if attr in dir(self._ds.env().epicsStore()):
+            return getattr(self._ds.env().epicsStore(),attr)
+
+    def __dir__(self):
+        all_attrs = set(self._attrs +
+                        dir(self._ds.env().epicsStore()) +
+                        self.__dict__.keys() + dir(EpicsData))
+        return list(sorted(all_attrs))
+
 
 
 class PvData(object):

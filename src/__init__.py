@@ -12,6 +12,7 @@ from h5write import *
 from exp_summary import get_exp_summary 
 from epicsarchive import EpicsArchive
 from build_html import Build_html, Build_experiment
+from arp_tools import post_report
 
 __version__ = '00.01.01'
 

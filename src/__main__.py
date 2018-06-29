@@ -80,7 +80,7 @@ if __name__ == "__main__":
         if args.build:
             build_html=args.build
         else:
-            build_html='auto'
+            build_html='basic'
 
         if attr == 'summary':
             print ds.configData

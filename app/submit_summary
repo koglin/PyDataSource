@@ -119,7 +119,7 @@ echo 'Run File: '$RUNFILE >> $LOGSUM
 if [[ $PYOPT == 'mpi' ]]; then 
 
     echo 'MPI'
-    CHUNKS=12
+    CHUNKS=11
     if [[ $RUN == *"-"* ]]; then
         #echo '##' bsub -n "$CHUNKS" -J "$EXP_RUN_[$RUN]" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
         #bsub -n "$CHUNKS" -J "$EXP_RUN_[$RUN]" -o $OUTLOG/Run%I/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" mpi --exp="$EXP" --run=\$LSB_JOBINDEX --nchunks="$CHUNKS" --config="$CONFIG" --max_size="$MAX_SIZE" 
