@@ -414,10 +414,10 @@ def merge_stats(run=None, path=None, exp=None, dim='steps',
                             item[istats['mean']] = (xmean/xvar+smean/svar)*sxvar
                             item[istats['std']] = np.sqrt(sxvar)
 
-    if xdata is {}:
-        return None
-
-    x = xr.concat(xdata.values(), dim)
+    if not xdata:
+        x = None
+    else:
+        x = xr.concat(xdata.values(), dim)
     
     return x
 
@@ -659,6 +659,9 @@ def to_hdf5_mpi(self, build_html='basic',
     nevents = self.nevents
     if rank == 0:
         print '*** Total time {:8.1f} sec for {:} events -- {:8.1f} events/sec using {:} cores ***'.format(total_time, nevents, nevents/total_time, size)
+        return x
+    else:
+        return 
 
 def to_hdf5(self, save=True, cleanup=True, **kwargs):
     """
@@ -808,12 +811,14 @@ def write_hdf5(self, nevents=None, max_size=10001,
     comm = MPI.COMM_WORLD
     rank = MPI.COMM_WORLD.rank  # The process ID (integer 0-3 for 4-process run)
     size = comm.Get_size()
-
     exp = self.data_source.exp
 
     if not no_events and ichunk is None:
         ichunk=rank
    
+    if size > 1:
+        nchunks = size
+
     self.reload()
     evt = self.events.next(publish=publish, init=publish)
     dtime = evt.EventId
@@ -1078,12 +1083,17 @@ def write_hdf5(self, nevents=None, max_size=10001,
             #    src_info['src'] = str(src_info['src'])
  
             if not no_events:
-                if mpio:
-                    file_name = os.path.join(path,'{:}_{:}.nc'.format(file_base,det))
-                    axdat[det] = h5netcdf.File(file_name, 'w', invalid_netcdf=True, driver='mpio', comm=MPI.COMM_WORLD)
-                else:
-                    file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,det))
-                    axdat[det] = h5netcdf.File(file_name, 'w', invalid_netcdf=True)
+                try:
+                    if mpio:
+                        file_name = os.path.join(path,'{:}_{:}.nc'.format(file_base,det))
+                        axdat[det] = h5netcdf.File(file_name, 'w', invalid_netcdf=True, driver='mpio', comm=MPI.COMM_WORLD)
+                    else:
+                        file_name = os.path.join(path,'{:}_C{:02}_{:}.nc'.format(file_base,ichunk,det))
+                        print('Setting {:} file_name = {:}'.format(det, file_name))
+                        axdat[det] = h5netcdf.File(file_name, 'w', invalid_netcdf=True)
+                except:
+                    print('Error setting file for',det, file_name)
+                    traceback.print_exc()
             
             axdat[det].dimensions['time'] = ntime
             
@@ -1689,27 +1699,37 @@ def map_indexes(xx, yy, ww):
 #        p.set_title(title)
 #        if desc:
 #            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   
-#
+
 #        return p 
 #    else:
 #        print 'Too many dims to plot'
 
-def make_image(self, pixel=.11, ix0=None, iy0=None):
+def make_image(self, pixel=.11, ix0=None, iy0=None, 
+        indexes_x=None, indexes_y=None,
+        ximage=None, yimage=None):
     """Return image from 3-dim detector DataArray."""
     import numpy as np
     import xarray as xr
     base = self.name.split('_')[0]
     try:
-        xx = self[base+'_indexes_x']
-        yy = self[base+'_indexes_y']
+        if not indexes_x:
+            indexes_x = base+'_'+index_base+'_x'
+        if not indexes_y:
+            indexes_y = base+'_'+index_base+'_y'
+        xx = self[indexes_x]
+        yy = self[indexes_y]
         a = np.zeros([xx.max()+1,yy.max()+1])
 
-        x = self.coords.get(base+'_ximage')
+        if not ximage:
+            ximage = base+'_ximage'
+        if not yimage:
+            yimage = base+'_yimage'
+        x = self.coords.get(ximage)
         if x is None:
             if not ix0:
                 ix0 = a.shape[1]/2.
             x = (np.arange(a.shape[1])-ix0)*pixel
-        y = self.coords.get(base+'_yimage')
+        y = self.coords.get(yimage)
         if y is None:
             if not iy0:
                 iy0 = a.shape[0]/2.

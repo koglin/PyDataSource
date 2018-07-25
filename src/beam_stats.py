@@ -108,7 +108,8 @@ def load_exp_sum(exp, instrument=None, path=None, nctype='drop_sum', save=True):
         print('Saving drop_summary file: {:}'.format(sum_file))
         from xarray_utils import clean_dataset
         x = clean_dataset(x)
-        x.to_netcdf(sum_file, engine='h5netcdf')
+        x.To_netcdf(sum_file, engine='h5netcdf')
+        #x.To_netcdf(sum_file, engine='h5netcdf', invalid_netcdf=True)
 
     return x
 
@@ -662,6 +663,7 @@ def get_beam_stats(exp, run, default_modules={},
     
     try:
         xdrop = clean_dataset(xdrop)
+        #xdrop.to_netcdf(h5file, engine=engine, invalid_netcdf=True)
         xdrop.to_netcdf(h5file, engine=engine)
         logger.info('Saving file to {:}'.format(h5file))
         print('Saving file to {:}'.format(h5file))
@@ -1142,6 +1144,8 @@ def make_small_xarray(self, auto_update=True,
             #srcstr = detector._srcstr 
             #srcname = srcstr.split('(')[1].split(')')[0]
             #devName = srcname.split(':')[1].split('.')[0]
+            data.update({det+'_present': np.zeros(nevents, dtype=bool)})
+            
             if det == 'EBeam':
                 attrs = ['ebeamCharge', 'ebeamDumpCharge', 'ebeamEnergyBC1', 'ebeamEnergyBC2', 
                          'ebeamL3Energy', 'ebeamLTU250', 'ebeamLTU450', 'ebeamLTUAngX', 'ebeamLTUAngY', 
@@ -1243,11 +1247,17 @@ def make_small_xarray(self, auto_update=True,
                     nevents, time_next-time0, nupdate/dtime))
             time_last = time_next 
 
+        # add eventCodes
         for code in evt.Evr.eventCodes_strict:
             if code in cnames:
                 data[cnames[code]][i] = code
 
+        # add detectors present
+        for det in self._detectors: 
+            data[det+'_present'][i] = True
+
         if add_dets:
+            # Add detector attribute scalar data
             for det, attrs in dets.items():
                 if det == 'EventId' or det in evt._attrs:
                     detector = getattr(evt, det)
@@ -1256,8 +1266,9 @@ def make_small_xarray(self, auto_update=True,
                             data[name][i] = getattr(detector, attr)
                         except:
                             data[name][i] = np.nan
-                            #pass
+            
             if add_1d:
+                # optionally add detector scalar data
                 for det, attrs in dets1d.items():
                     if det in evt._attrs:
                         detector = getattr(evt, det)
@@ -1266,7 +1277,7 @@ def make_small_xarray(self, auto_update=True,
                                 data1d[name][i] = getattr(detector, attr)
                             except:
                                 data[name][i] = np.nan
-                                #pass
+                                
         i += 1
 
     df = pd.DataFrame(data)
@@ -1293,12 +1304,24 @@ def make_small_xarray(self, auto_update=True,
                 detector.next()
             except:
                 print('Cannot load attributes for {:}'.format(det))
+        
+        try:
+            source_info = detector._source_info
+        except:
+            source_info = {}
+        
+        try:
+            x[det+'_present'].attrs.update(source_info)
+        except:
+            pass
+
         if det == 'EventId':
             continue
         try:
             detector._update_xarray_info()
             det_info = detector._xarray_info['dims']
             for name, attr in item['names'].items():
+                x[name].attrs.update(source_info)
                 info = det_info.get(attr, ([],(),{},))
                 x[name].attrs['attr'] = attr
                 x[name].attrs['alias'] = det
@@ -1368,6 +1391,7 @@ def make_small_xarray(self, auto_update=True,
 
         try:
             self.x = clean_dataset(self.x)
+            #self.x.to_netcdf(os.path.join(path,filename), engine='h5netcdf', invalid_netcdf=True)
             self.x.to_netcdf(os.path.join(path,filename), engine='h5netcdf')
         except:
             traceback.print_exc('Cannot save to {:}/{:}'.format(path,filename))
@@ -1507,6 +1531,7 @@ def save_exp_stats(exp, instrument=None, path=None, find_corr=True):
 
                 
                 xout = clean_dataset(xout)
+                #xout.to_netcdf(save_file, engine='h5netcdf', invalid_netcdf=True)
                 xout.to_netcdf(save_file, engine='h5netcdf')
 
             else:
@@ -1514,6 +1539,7 @@ def save_exp_stats(exp, instrument=None, path=None, find_corr=True):
                 x.close()
                 del x
                 xstats = find_beam_correlations(xout, groupby='ec162', cut='XrayOn', save_file=save_file)
+                #xout.to_netcdf(f, engine='h5netcdf', invalid_netcdf=True)
                 xout.to_netcdf(f, engine='h5netcdf')
            
         except:

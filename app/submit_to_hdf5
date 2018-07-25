@@ -23,6 +23,7 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 cd $DIR
+echo "setting dir $DIR"
 
 EXP=$1
 shift
@@ -43,6 +44,7 @@ fi
 if [[ ! -a $DIRNAME ]]; then
     DIRNAME="$DIR/../python/PyDataSource/"
 fi
+PYTHONPATH=$DIRNAME:$PYTHONPATH
 
 : ${MAX_SIZE:="10001"}
 : ${QUEUEREQ:="psanaq"}
@@ -84,7 +86,7 @@ echo 'Log Path: '$OUTLOG >> $LOGSUM
 echo 'Run File: '$RUNFILE >> $LOGSUM
 
 if [[ $PYOPT == 'mpi' ]]; then 
-    CHUNKS=11
+    CHUNKS=35
     echo '##' bsub -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS"
     bsub -n "$CHUNKS" -J "$JOBNAME" -o $OUTLOG/%J.log -q "$QUEUEREQ" mpirun python "$RUNFILE" --exp="$EXP" --run="$RUN" --nchunks="$CHUNKS"
 

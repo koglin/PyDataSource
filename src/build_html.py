@@ -1036,7 +1036,7 @@ class Build_html(object):
                     traceback.print_exc()
                     print('Cannot add detector summary for {:}'.format(alias))
 
-        dfattrs = [a for a in x if x[a].dims == ('time',)]
+        dfattrs = [a for a in x.variables if x[a].dims == ('time',)]
         df = x[dfattrs].to_dataframe()
         df_nearest = df[abs(df.delta_drop) <= nearest]
 
@@ -1303,6 +1303,7 @@ class Build_html(object):
                            plot_errors=False,
                            bins=50, 
                            max_steps=20,
+                           max_scatter=8, 
                            plt_style='.',
                            cut=None, 
                            show=False,
@@ -1354,6 +1355,9 @@ class Build_html(object):
         max_steps : int
             Max steps in scatter plot to be color coded
 
+        max_scatter : int
+            Max attributes to make scatter plot [Default=8]
+        
         robust_attrs : list
             List of attibutes to cut on outliers in making scatter plots. 
 
@@ -1709,7 +1713,7 @@ class Build_html(object):
                         if attr in dfcut.keys() and attr not in scat_attrs:
                             scat_attrs.append(attr)
 
-                    if len(scat_attrs) > 8:
+                    if len(scat_attrs) > max_scatter:
                         print('Too many parameters to make scatter plots:', scat_attrs)
                     elif len(scat_attrs)-len(groupby) > 1:
                         try:

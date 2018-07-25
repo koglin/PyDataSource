@@ -36,7 +36,7 @@ def initArgs():
                         help='Maximum data array size')
     parser.add_argument("--ffb", action="store_true", default=False,
                         help='Use ffb.')
-    parser.add_argument("--keep_chunks", action="store_true", default=True,
+    parser.add_argument("--keep_chunks", action="store_true", default=False,
                         help='Keep individual chunked files after merging.')
     #parser.add_argument("--make_summary", action="store_true", default=False,
     #                    help='Make summary for array data.')

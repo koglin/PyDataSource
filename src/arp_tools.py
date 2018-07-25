@@ -27,6 +27,9 @@ def post_report(exp, run, report_list=[], report_name=None, weblink=None):
     except:
         print('Error making weblink')
 
+    if not isinstance(report_list[0], list):
+        report_list = [report_list]
+
     batch_counters = {}
     try:
         for item in report_list:
@@ -40,9 +43,9 @@ def post_report(exp, run, report_list=[], report_name=None, weblink=None):
 
             if len(item) > 2:
                 color = item[2]
-                batch_counters[batch_attr] = ['{:} Events'.format(nevents), 'green']
+                batch_counters[batch_attr] = [info, color]
             else:
-                batch_counters[batch_attr] = ['{:} Events'.format(nevents)]
+                batch_counters[batch_attr] = [info]
         
         if update_url and batch_counters:
             post(update_url, json={'counters' : batch_counters})

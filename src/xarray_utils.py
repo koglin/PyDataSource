@@ -704,8 +704,21 @@ def clean_dataset(xds):
 
     return xds
 
-def open_cxi_psocake(exp, run, folder=None, file_name=None, 
-        load_smd=True, load_moved_pvs=True,
+def get_psocake_runs(exp):
+    """
+    Find psocake runs for experiment.
+    """
+    import os
+    import glob
+    instrument = exp[0:3]
+    base_path = os.path.join('/reg/d/psdm',instrument,exp)
+    
+    files = glob.glob(base_path+'/*/*/psocake/r*/{:}_*.cxi'.format(exp))
+    runs = [int(a.split('/')[-1].split('_')[1].split('.')[0]) for a in files]
+    return sorted(runs)
+
+def open_cxi_psocake(exp=None, run=None, folder=None, file_name=None, 
+        load_summary=None, load_smd=None, load_moved_pvs=True,
         save=True, refresh=False, **kwargs):
     """
     load psocake cxidb formatted hdf5 file and return xarray
@@ -719,8 +732,24 @@ def open_cxi_psocake(exp, run, folder=None, file_name=None,
     import xarray as xr
     import numpy as np
     import time
+    if not exp:
+        print('Experiment must be supplied as exp="xxx" or as first argument')
+        return
+
     instrument = exp[0:3]
     base_path = os.path.join('/reg/d/psdm',instrument,exp)
+    
+    if not run:
+        runs = get_psocake_runs(exp)
+        if runs:
+            print('No run specified:  Runs with psocake files include:')
+            print(runs)
+            print('Enter run number as run= or second argument')
+        else:
+            print('No psocake files exist for {:}'.format(exp))
+        
+        return
+
     file_nc=None
     if not folder:
         files = glob.glob(base_path+'/*/*/psocake/r{:04}/{:}_{:04}.nc'.format(run,exp,run))
@@ -759,24 +788,46 @@ def open_cxi_psocake(exp, run, folder=None, file_name=None,
     xdata = open_cxi_dataset(file_name, **kwargs)
     xdata.attrs['experiment'] = exp
     xdata.attrs['run'] = run
-    if load_smd:
+    if load_summary is not False:
         time_last = time.time() 
-        file_name = os.path.join(base_path, 'results', 'nc', 'run{:04}_smd.nc'.format(run))
-        print('... opening {:}'.format(file_name))
-        xsmd = xr.open_dataset(file_name, engine='h5netcdf')
-        if 'time_ns' not in xsmd.coords:
-            xsmd.coords['time_ns'] = (('time'), np.int64(xsmd.sec*1e9+xsmd.nsec))
-        # datetime64 not consistent at the us time level so need to recreate it
-        # datetime64 is curriosly slow to calculate -- ~16 ms each time point
-        print('... recalculating datetime64 for smd')
-        #xsmd['time'] = [np.datetime64(int(sec*1e9+nsec), 'ns') for sec,nsec in zip(xsmd.sec,xsmd.nsec)]
-        print('Load Time smd hdf5 = {:8.3f} sec'.format(time.time()-time_last))
         try:
+            file_name = os.path.join(base_path, 'scratch', 'nc', 'run{:04}.nc'.format(run))
+            print('... opening {:}'.format(file_name))
+            xsmd = xr.open_dataset(file_name, engine='h5netcdf')
+            if 'time_ns' not in xsmd.coords:
+                xsmd.coords['time_ns'] = (('time'), np.int64(xsmd.sec*1e9+xsmd.nsec))
+            # datetime64 not consistent at the us time level so need to recreate it
+            # datetime64 is curriosly slow to calculate -- ~16 ms each time point
+            print('... recalculating datetime64 for scratch summary data')
+            #xsmd['time'] = [np.datetime64(int(sec*1e9+nsec), 'ns') for sec,nsec in zip(xsmd.sec,xsmd.nsec)]
+            print('Load Time smd hdf5 = {:8.3f} sec'.format(time.time()-time_last))
+            time_last = time.time() 
+            xdata = xsmd.swap_dims({'time': 'time_ns'}).merge(xdata).swap_dims({'time_ns': 'time'})
+            print('merge time psocake & smd = {:8.3f} sec'.format(time.time()-time_last))
+            if load_smd is None:
+                load_smd = False
+        except:
+            print('Cannot load and merge smd')
+
+    if load_smd is not False:
+        time_last = time.time() 
+        try:
+            file_name = os.path.join(base_path, 'results', 'nc', 'run{:04}_smd.nc'.format(run))
+            print('... opening {:}'.format(file_name))
+            xsmd = xr.open_dataset(file_name, engine='h5netcdf')
+            if 'time_ns' not in xsmd.coords:
+                xsmd.coords['time_ns'] = (('time'), np.int64(xsmd.sec*1e9+xsmd.nsec))
+            # datetime64 not consistent at the us time level so need to recreate it
+            # datetime64 is curriosly slow to calculate -- ~16 ms each time point
+            print('... recalculating datetime64 for smd')
+            #xsmd['time'] = [np.datetime64(int(sec*1e9+nsec), 'ns') for sec,nsec in zip(xsmd.sec,xsmd.nsec)]
+            print('Load Time smd hdf5 = {:8.3f} sec'.format(time.time()-time_last))
             time_last = time.time() 
             xdata = xsmd.swap_dims({'time': 'time_ns'}).merge(xdata).swap_dims({'time_ns': 'time'})
             print('merge time psocake & smd = {:8.3f} sec'.format(time.time()-time_last))
         except:
             print('Cannot load and merge smd')
+
 
     if load_moved_pvs:
         try:
@@ -975,6 +1026,7 @@ def add_moved_pvs(xdata, exp=None, run=None):
     es = get_exp_summary(exp) 
     xadd = es.get_scan_data(run)
     xdata = merge_fill(xdata, xadd, bfill=True)
+    xdata.attrs['scan_pvs'] = xadd.data_vars.keys()
     return xdata
 
 def merge_fill(xdata, xadd, bfill=True, 

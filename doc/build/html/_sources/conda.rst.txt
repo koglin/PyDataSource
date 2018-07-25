@@ -20,7 +20,9 @@ Below is an example of setting of a psana conda release where sepcific versions 
 
     ssh psbuild-rhel7
 
-    source /reg/g/psdm/bin/conda_setup
+    unset PYTHONPATH
+    unset LD_LIBRARY_PATH
+    .  /reg/g/psdm/etc/psconda.sh
    
     kinit
 
@@ -30,10 +32,30 @@ Below is an example of setting of a psana conda release where sepcific versions 
 
     cd conda
 
-    condarel --addpkg --name PyDataSource --tag HEAD
+    condarel --addpkg --name PyDataSource --https --tag HEAD
+
+    source conda_setup
 
     scons
 
+
+To use this environment you need to be on a psana machine, which has access to data.
+
+.. code-block:: bash 
+
+    ssh psana
+    
+    # first cd to base path
+    cd conda
+
+    unset PYTHONPATH
+    unset LD_LIBRARY_PATH
+    .  /reg/g/psdm/etc/psconda.sh
+
+    source conda_setup
+
+
+If you chose to modify any ot the PyDataSource code then execute scons again.
 
 
 

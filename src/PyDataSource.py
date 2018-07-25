@@ -431,6 +431,11 @@ def psmon_publish(evt, quiet=True):
                 eventCode = psmon_args['pubargs'].get('eventCode', None)
                 nskip = psmon_args['pubargs'].get('nskip', None)
                 reshape = psmon_args['pubargs'].get('reshape', None)
+                transpose = psmon_args['pubargs'].get('transpose', None)
+                fliplr = psmon_args['pubargs'].get('fliplr', None)
+                flipud = psmon_args['pubargs'].get('flipud', None)
+                flipud = psmon_args['pubargs'].get('flipud', None)
+                rot90 = psmon_args['pubargs'].get('rot90', None)
                 if nskip and (evt._ds._ievent % nskip != 0):
                     continue
 
@@ -444,8 +449,29 @@ def psmon_publish(evt, quiet=True):
                         image = getattr_complete(detector, psmon_args['attr'][0])
                         if reshape:
                             image = image.reshape(reshape)
+                        if transpose:
+                            image = image.transpose()
+                            if not quiet:
+                                print('transpose')
+                        if flipud: 
+                            image = np.flipud(image)
+                            if not quiet:
+                                print('flipud')
+                        if fliplr: 
+                            image = np.fliplr(image)
+                            if not quiet:
+                                print('fliplr')
+                        if rot90: 
+                            if isinstance(rot90, int):
+                                krot = rot90
+                            else: krot = 1
+                            image = np.rot90(image, krot)
+                            if not quiet:
+                                print('rot90', krot)
+                        
                         if not quiet:
-                            print(name, image)
+                            print(name, image, image.shape, psmon_args)
+                        
                         if image is not None:
                             psmon_fnc = Image(
                                         event_info,
@@ -876,7 +902,7 @@ class DataSource(object):
             Load PVs that are scanned -- uses exp_summary
         load_smd : bool
             Load beam_stats small data file used in off-by-one analysis
-load_psocake : bool
+        load_psocake : bool
             Load psocake peak index 
         """
         import time
@@ -1490,8 +1516,8 @@ load_psocake : bool
             Build run summary if True
         max_size : uint
             Maximum array size of data objects to build into xarray.
-        ichunk: int
-            chunk index (skip ahead nevents*ichunk)
+        nchunks: int
+            number of chunks when using mpi
         pvs: list
             List of pvs to be loaded vs time
         epics_attrs: list
@@ -1518,17 +1544,26 @@ load_psocake : bool
             If true automatically add pvs that were moved during run.
 
         """
-        import h5write
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = MPI.COMM_WORLD.rank  # The process ID (integer 0-3 for 4-process run)
+        size = comm.Get_size()
+        
         xarray_kwargs = self.xarray_kwargs.copy()
         xarray_kwargs.update(**kwargs)
-        x = h5write.to_hdf5(self, **xarray_kwargs)
-        if build_html:
-            try:
-                import build_html
-                self.html = build_html.Build_html(x, auto=True) 
-            except:
-                traceback.print_exc()
-                print('Could not build html run summary for', str(self))
+        
+        import h5write
+        if size > 1:
+            x = h5write.to_hdf5_mpi(self, build_html=build_html, **xarray_kwargs)
+        else:
+            x = h5write.to_hdf5(self, **xarray_kwargs)
+            if build_html:
+                try:
+                    import build_html
+                    self.html = build_html.Build_html(x, auto=True) 
+                except:
+                    traceback.print_exc()
+                    print('Could not build html run summary for', str(self))
 
         return x
 
@@ -3975,6 +4010,8 @@ class Detector(object):
         self._srcstr = str(self.src)
         #self._srcname = self._srcstr.split('(')[1].split(')')[0]
         srcname = self._det_config['srcname']
+        #self._srcname = str(self.srcname)
+        #self._devName = self._det_config['devName']
  
         try:
             self._pydet = psana.Detector(srcname, ds._ds.env())
@@ -4434,10 +4471,15 @@ class Detector(object):
             message('User Defined Properties:')
             message('-'*18)
             for attr, func_name in self._det_config['property'].items():
-                #val = getattr(self, func_name)
                 val = self._get_property(attr)
                 strval = _repr_value(val)
                 fdict = {'attr': attr, 'str': strval, 'unit': '', 'doc': ''}
+                try:
+                    adims = self._xarray_info['dims'].get(attr)
+                    if adims and len(adims) == 3:
+                        fdict.update(**adims[2])
+                except:
+                    print(adims)
                 message('{attr:18s} {str:>12} {unit:7} {doc:}'.format(**fdict))
 
         return message
@@ -5074,6 +5116,12 @@ class AddOn(object):
         bin_size : float, optional
             Size of bins for polar coordinate projections.
             Default = pixelsize
+        rmin : float, optional
+            Minimum radius for az projection only 
+            in units of calibData coords (e.g., calibData.coords_x, typically um)
+        rmax : float, optional
+            Maximum radius for az projection only
+            in units of calibData coords (e.g., calibData.coords_x, typically um)
         doc : str, optional
             Doc string for resulting projection data
         unit : str, optional
@@ -5191,7 +5239,9 @@ class AddOn(object):
                 coords_y = (np.ones((nx,ny)) * np.arange(ny)-(ny-1)/2.).T
 
             if not mask:
-                mask = -calibData.mask() 
+                mask = ~np.array(calibData.mask(), dtype=bool) 
+                if mask.shape != img.shape:
+                    mask = np.zeros_like(img, dtype=bool)
 
             coords_r = np.sqrt(coords_y**2+coords_x**2)
             coords_az = np.degrees(np.arctan2(coords_y, coords_x))
@@ -5290,8 +5340,11 @@ class AddOn(object):
 
             self.psplot(name)
 
-    def roi(self, attr=None, sensor=None, roi=None, name=None, xaxis=None, yaxis=None, 
-                doc='', unit='ADU', publish=False, projection=None, graphical=None, quiet=True, **kwargs):       
+    def roi(self, attr=None, sensor=None, roi=None, name=None, 
+                xaxis=None, yaxis=None, 
+                xaxis_name=None, yaxis_name=None,
+                doc='', unit='ADU', publish=False, projection=None, 
+                graphical=None, quiet=True, **kwargs):       
         """
         Make roi for given attribute, by default this is given the name img.
 
@@ -5313,6 +5366,10 @@ class AddOn(object):
             X-axis coordinate of roi
         yaxis: array_like
             Y-axis coordinate of roi
+        xaxis_name : str
+            Name of xaxis (used for xarray Datasets - name and axis values must be unique)
+        yaxis_name : str
+            Name of yaxis (used for xarray Datasets - name and axis values must be unique)
         doc : str
             Doc string for resulting roi data
         unit : str
@@ -5403,7 +5460,8 @@ class AddOn(object):
                                                    'unit': unit}})
  
         elif len(img.shape) == 1:
-            xaxis_name = 'x'+name
+            if not xaxis_name:
+                xaxis_name = 'x'+name
             xroi = roi
             if xroi[0] > xroi[1]:
                 raise Exception('Invalid roi {:}'.format(roi))
@@ -5434,17 +5492,19 @@ class AddOn(object):
         else:
             xroi = roi[1]
             yroi = roi[0]
-            if xroi[0] > xroi[1] or yroi[0] > xroi[1]:
+            if xroi[0] > xroi[1] or yroi[0] > yroi[1]:
                 raise Exception('Invalid roi {:}'.format(roi))
             
             xroi = (max([xroi[0], 0]), min([xroi[1], img.shape[1]]))
             yroi = (max([yroi[0], 0]), min([yroi[1], img.shape[0]]))
 
-            xaxis_name = 'x'+name
+            if not xaxis_name:
+                xaxis_name = 'x'+name
             if not xaxis or len(xaxis) != xroi[1]-xroi[0]:
                 xaxis = np.arange(xroi[0],xroi[1])    
             
-            yaxis_name = 'y'+name
+            if not yaxis_name:
+                yaxis_name = 'y'+name
             if not yaxis or len(yaxis) != yroi[1]-yroi[0]:
                 yaxis = np.arange(yroi[0],yroi[1])    
             
@@ -6040,6 +6100,14 @@ class AddOn(object):
             Plot title
         eventCode : list
             Plot if eventCode is present
+        transpose : bool
+            Transpose 2D image data before plotting 
+        rot90 : bool
+            Rotate 2D image data before plotting [Default = True for Cspad otherwise False]
+        flipud : bool
+            Flip 2D image up/down before plotting [Default = True for Cspad otherwise False]
+        fliplr : bool
+            Flip 2D image left/right before plotting
 
         """
         import numpy as np
@@ -6095,7 +6163,7 @@ class AddOn(object):
         else:
             plot_type = None
 
-        pub_opts = ['eventCode', 'nskip']
+        pub_opts = ['eventCode', 'nskip', 'transpose', 'fliplr', 'flipud', 'rot90']
         pub_kwargs = {key: item for key, item in kwargs.items() \
                       if key in pub_opts}
 
@@ -6120,7 +6188,7 @@ class AddOn(object):
         
         if not plot_error:
             if plot_type is 'Image':
-                plt_opts = ['xlabel', 'ylabel', 'aspect_ratio', 'aspect_lock', 'scale', 'pos']
+                plt_opts = ['xlabel', 'ylabel', 'aspect_ratio', 'aspect_lock', 'scale', 'pos', 'xrange', 'yrange']
                 plt_kwargs = {key: item for key, item in kwargs.items() \
                               if key in plt_opts}
         
@@ -6131,15 +6199,20 @@ class AddOn(object):
                 if attr == 'image':
                     calibData = self._getattr('calibData')
                     scale = calibData.pixel_size/1000.
-                    plt_kwargs.update({ 
-                            'pos': (calibData.image_xaxis[0]/1000., 
-                                    calibData.image_yaxis[0]/1000.), 
-                            'scale': (scale, scale),
-                            })
+#                    if not plt_kwargs.get('pos'):
+#                        plt_kwargs['pos'] = (calibData.image_xaxis[0]/1000., calibData.image_yaxis[0]/1000.)
+#                    if not plt_kwargs.get('scale'):
+#                        plt_kwargs['scale'] = (scale, scale)
                     if not plt_kwargs.get('xlabel'):
-                        plt_kwargs['xlabel'] = 'X [mm]'
+                        plt_kwargs['xlabel'] = 'X'
                     if not plt_kwargs.get('ylabel'):
-                        plt_kwargs['ylabel'] = 'Y [mm]'
+                        plt_kwargs['ylabel'] = 'Y'
+
+                    if self._det._det_config['devName'] in ['Cspad']:
+                        if 'rot90' not in pub_kwargs:
+                            pub_kwargs.update({'rot90': 1})
+#                        if 'flipud' not in pub_kwargs:
+#                            pub_kwargs.update({'flipud': True})
 
                 plt_args = {'det': alias,
                             'attr': attrs,  

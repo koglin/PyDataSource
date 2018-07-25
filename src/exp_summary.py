@@ -100,7 +100,6 @@ def get_pv_attrs(exp, auto_load=False):
     if xpvs is not None:
         if auto_load:
             es = get_exp_summary(exp, reload=True)
-            es.save()
             xpvs = es.xpvs
         else:
             return {} 
@@ -131,7 +130,6 @@ def get_scan_pvs(exp, run=None, auto_load=False):
     if xscan is not None:
         if auto_load:
             es = get_exp_summary(exp, reload=True)
-            es.save()
             xscan = es.xscan
         else:
             return None
@@ -187,16 +185,20 @@ def read_exp_summary(exp=None, file_name=None, path=None, **kwargs):
     else:
         return None
 
-def get_exp_summary(exp, reload=False, path=None, **kwargs):
+def get_exp_summary(exp, reload=False, path=None, save=None, **kwargs):
     """
     Use scratch for now since results unreliable
     """
+    es = None
     if not reload:
         es = read_exp_summary(exp, path=path, **kwargs)
-        if es is not None:
-            return es
     
-    return ExperimentSummary(exp, path=path, **kwargs)
+    if es is None:
+        if save is None:
+            save = True
+        es = ExperimentSummary(exp, path=path, save=save, **kwargs)
+
+    return es
 
 def epicsArch_dict(archfile_name,file_dir):
     """
@@ -699,6 +701,38 @@ class ExperimentSummary(object):
         ax.set_position(ax_pos)
         legend = ax.legend(loc='upper left',  bbox_to_anchor=box_to_anchor)
         return ax
+
+    def _add_run_details(self):
+        """
+        Add experiment run details to xrun xarray Dataset
+        """
+        xruns = self.xruns
+        flist = ['drop_stats_files', 'xtc_files', 'stats_files']
+        for ftyp in flist:
+            try:
+                df = self.dfruns.T[ftyp]
+                xruns[ftyp] = (('run'), np.array([len(df[run]) for run in df.index], dtype=bool))
+            except:
+                pass
+
+        dlist = []
+        ddict = {}
+        for run in xruns.run.values:
+            dets = self.detectors(run)
+            ddict[run] = dets
+            dlist += dets
+
+        aliases = {re.sub('-|:|\.| |\|','_', a): a for a in set(dlist)}
+        for alias, det in aliases.items():
+            try:
+                xruns[alias] = (('run'), np.array([det in a for a in ddict.values()], dtype=bool))
+            except:
+                pass
+
+        xruns.attrs['dets'] = aliases.keys()
+        xruns.attrs['detectors'] = aliases.keys()
+
+        return xruns
 
     @property
     def runs_with_xtc(self):

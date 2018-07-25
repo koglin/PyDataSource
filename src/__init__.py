@@ -7,12 +7,15 @@ __all__ = []
 from PyDataSource import *
 #from psxarray import * 
 import h5write
+import xarray_utils
 #import examples
 from h5write import *
 from exp_summary import get_exp_summary 
 from epicsarchive import EpicsArchive
 from build_html import Build_html, Build_experiment
 from arp_tools import post_report
+from psutils import get_run_from_id
+from xarray_utils import open_cxi_psocake
 
 __version__ = '00.01.01'
 

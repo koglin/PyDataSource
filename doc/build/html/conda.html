@@ -171,7 +171,9 @@
 <p>Below is an example of setting of a psana conda release where sepcific versions of packages can be chosen.  In this case below, you can work with the latest PyDataSource version, which may not yet be in the current conda ana release.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh psbuild-rhel7
 
-<span class="nb">source</span> /reg/g/psdm/bin/conda_setup
+<span class="nb">unset</span> PYTHONPATH
+<span class="nb">unset</span> LD_LIBRARY_PATH
+.  /reg/g/psdm/etc/psconda.sh
 
 kinit
 
@@ -181,11 +183,27 @@ condarel --newrel --name conda
 
 <span class="nb">cd</span> conda
 
-condarel --addpkg --name PyDataSource --tag HEAD
+condarel --addpkg --name PyDataSource --https --tag HEAD
+
+<span class="nb">source</span> conda_setup
 
 scons
 </pre></div>
 </div>
+<p>To use this environment you need to be on a psana machine, which has access to data.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh psana
+
+<span class="c1"># first cd to base path</span>
+<span class="nb">cd</span> conda
+
+<span class="nb">unset</span> PYTHONPATH
+<span class="nb">unset</span> LD_LIBRARY_PATH
+.  /reg/g/psdm/etc/psconda.sh
+
+<span class="nb">source</span> conda_setup
+</pre></div>
+</div>
+<p>If you chose to modify any ot the PyDataSource code then execute scons again.</p>
 </div>
 </div>
 
