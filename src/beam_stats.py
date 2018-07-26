@@ -1296,15 +1296,16 @@ def make_small_xarray(self, auto_update=True,
         detector = self._detectors.get(det)
         # get next event with detector in event
         # needed when controls cameras and/or groups present
-        try:
-            detector.next()
-        except:
-            self.reload()
+        if det not in ['EventId', 'Evr']:
             try:
                 detector.next()
             except:
-                print('Cannot load attributes for {:}'.format(det))
-        
+                self.reload()
+                try:
+                    detector.next()
+                except:
+                    print('Cannot load attributes for {:}'.format(det))
+            
         try:
             source_info = detector._source_info
         except:

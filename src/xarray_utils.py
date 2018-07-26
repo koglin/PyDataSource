@@ -127,6 +127,9 @@ def normalize_data(x, variables=[], norm_attr='PulseEnergy', name='norm', quiet=
     return  resort(x)
 
 def add_index(x, attr, name=None, nbins=8, bins=None, percentiles=None):
+    """
+    Add index for attribute
+    """
     import numpy as np
     if not bins:
         if not percentiles:
@@ -141,6 +144,9 @@ def add_index(x, attr, name=None, nbins=8, bins=None, percentiles=None):
     x[name] = (['time'], np.digitize(x[attr].values, bins))
 
 def add_steps(x, attr, name=None):
+    """
+    Add step coordinate for attr
+    """
     vals = getattr(x, attr).values
     steps = np.sort(list(set(vals)))
     asteps = np.digitize(vals, steps)
@@ -148,6 +154,114 @@ def add_steps(x, attr, name=None):
         name = attr+'_step'
  
     x.coords[name] = (['time'], asteps)
+
+def add_butterworth_filter(x, attr, lowcut=None, highcut=None, order=10, 
+            filt_name=None, pass_name=None, dim='time', drop_attr='ec162', 
+            threshold=None, **kwargs):
+    """
+    Add Butterworth high, low or band pass filter for attr.
+    Events with drop_attr are considered missing during filtering 
+
+    Parameters
+    ----------
+    attr : str
+        Name of Dataset attribute
+    lowcut : float
+        Low pass frequency cutoff
+    highcut : float
+        High pass frequency cutoff
+    order : int
+        Butterworth filter order [Default = 10, i.e., 10th order Butterworth filter]
+    filt_name : str, optional
+        Name of resutling filtered data.  [Default = attr+'_filt']
+    pass_name : str, optional
+        Name of resutling band pass data.
+        - Lowpass Default = attr+'_lowpass'
+        - Highpass Default = attr+'_highpass'
+        - Bandpass Default = attr+'_bandpass'
+    dim : str
+        Dimension to filter over [Default = 'time']
+    drop_attr : str
+        Replace points where drop_attr is True with average of nearest points 
+        during filtering.  
+        Resulting filtered data where drop_attr is True is unaffected.
+    threshold : float
+        Minimum threshold to filter
+    """
+    from filter_methods import butter_bandpass_filter 
+    if dim == 'time':
+        fs = x.time.size/float(x.time.sec.max()-x.time.sec.min())
+    else:
+        fs = x[dim].size/float(x[dim].max()-x[dim].min())
+
+    if not filt_name:
+        filt_name = attr+'_filt'
+    
+    if lowcut and highcut:
+        btype = 'band'
+    elif highcut:
+        btype = 'high'
+    elif lowcut:
+        btype = 'low'
+    else:
+        print('Error -- must supply lowcut, highcut or both')
+
+    if not pass_name:
+        pass_name = '{:}_{:}pass'.format(attr,btype)
+
+    if 'time_ns' not in x:
+        x.coords['time_ns'] = x['sec']*1e9+x['nsec']
+
+    if drop_attr and drop_attr in x:
+        cut = ~x[drop_attr]
+        print(cut.sum())
+        if threshold:
+            import xarray as xr
+            cut =  xr.ufuncs.logical_and(cut, x[attr]>threshold)
+            print(cut.sum())
+        
+        df = x[[attr]].where(cut).reset_coords()[attr].to_dataframe()
+    else:
+        cut = None
+        df = x[attr].reset_coords()[attr].to_dataframe()
+        
+    try:
+        from sklearn.preprocessing import Imputer
+        mean_imputer = Imputer(missing_values='NaN', strategy='mean', axis=0)
+        mean_imputer = mean_imputer.fit(df)
+        data = mean_imputer.transform(df.values)[:,0]
+    except:
+        cut = None
+        data = df.values[:,0]
+        print('Could not preprocess {:} using Imputation of events with {:}'.format(attr, drop_attr))
+
+    filt = butter_bandpass_filter(data, fs, lowcut=lowcut, highcut=highcut, order=order)
+    
+    if filt is None:
+        print('Error making filter for {:}'.format(attr))
+    else:
+        x[filt_name] = ((dim), filt)
+        x[filt_name].attrs = x[attr].attrs
+        x[filt_name].attrs['doc'] = '{:}-pass butterworth filter of {:}'.format(btype, attr)
+        x[filt_name].attrs['order'] = order
+        x[filt_name].attrs['btype'] = btype
+
+        x[pass_name] = x[attr]-x[filt_name]
+        if cut is not None:
+            x[pass_name][~cut] = x[attr][~cut]
+        x[pass_name].attrs = x[attr].attrs
+        x[pass_name].attrs['doc'] = '{:} {:}-pass butterworth filtered data'.format(attr, btype)
+        x[pass_name].attrs['order'] = order
+        x[pass_name].attrs['btype'] = btype
+
+        if highcut:
+            x[pass_name].attrs['highcut'] = highcut
+            x[filt_name].attrs['highcut'] = highcut
+        if lowcut:
+            x[pass_name].attrs['lowcut'] = lowcut
+            x[filt_name].attrs['lowcut'] = lowcut
+        
+    return x
 
 def get_correlations(y, attr, confidence=0.33, method='pearson',
         omit_list=['sec', 'nsec', 'fiducials', 'ticks', 'Damage_cut', 'EBeam_damageMask']):

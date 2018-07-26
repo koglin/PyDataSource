@@ -8,6 +8,7 @@ from PyDataSource import *
 #from psxarray import * 
 import h5write
 import xarray_utils
+import filter_methods
 #import examples
 from h5write import *
 from exp_summary import get_exp_summary 
