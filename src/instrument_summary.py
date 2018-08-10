@@ -25,7 +25,7 @@ def get_instrument_xarray(experiments=None, instrument=None):
     """
     get experiment xarray
     """
-    from PyDataSource import ExperimentSummary
+    from PyDataSource import get_exp_summary
     if not experiments:
         if instrument:
             experiments = get_experiment_list(instrument)
@@ -34,10 +34,11 @@ def get_instrument_xarray(experiments=None, instrument=None):
  
     dets = []
     detectors = []
+    aexperiments = {}
     for exp in experiments:
         instrument = exp[0:3]
         try:
-            es = ExperimentSummary(exp=exp)
+            es = get_exp_summary(exp=exp)
             xruns = es._add_run_details()
             xruns.attrs['exp'] = exp
             for attr in ['instrument', 'station', 'exp_dir']:
@@ -63,6 +64,15 @@ class InstrumentSummary(object):
     """
     def __init__(self, instrument):
         self.instrument = instrument
-        self.experiments = get_experiment_list()
-        self.xinst = get_instrument_xarray(experiments=self.experiments)
+        self.experiments = get_experiment_list(instrument)
+        self._xinst = get_instrument_xarray(experiments=self.experiments)
+        self.xruns = xr.merge([x.swap_dims({'run':'run_id'}) for rn, x in self._xinst.items()])
+
+class LCLSsummary(object):
+    """
+    LCLS Run summary
+    """
+    def __init__(self, instrument):
+        self._instruments = []
+
 

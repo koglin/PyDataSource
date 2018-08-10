@@ -106,6 +106,8 @@ def normalize_data(x, variables=[], norm_attr='PulseEnergy', name='norm', quiet=
     """
     if not variables:
         variables = [a for a in get_correlations(x) if not a.endswith('_'+name)]    
+    elif isinstance(variables, str):
+        variables = [variables]
 
     for attr in variables:
         aname = attr+'_'+name
@@ -156,11 +158,15 @@ def add_steps(x, attr, name=None):
     x.coords[name] = (['time'], asteps)
 
 def add_butterworth_filter(x, attr, lowcut=None, highcut=None, order=10, 
-            filt_name=None, pass_name=None, dim='time', drop_attr='ec162', 
-            threshold=None, **kwargs):
+            norm_attr=None, norm_threshold=None, 
+            filt_name=None, pass_name=None, imputer_name=None,
+            dim='time', drop_attr='XrayOff', 
+            threshold=None, quiet=True, **kwargs):
     """
     Add Butterworth high, low or band pass filter for attr.
-    Events with drop_attr are considered missing during filtering 
+    
+    Events with drop_attr and below threshold are considered missing 
+    during filtering.  They are replaced using sklearn Imputer method
 
     Parameters
     ----------
@@ -179,6 +185,9 @@ def add_butterworth_filter(x, attr, lowcut=None, highcut=None, order=10,
         - Lowpass Default = attr+'_lowpass'
         - Highpass Default = attr+'_highpass'
         - Bandpass Default = attr+'_bandpass'
+    imputer_name : str, optional
+        Name of corrected data using Imputer method for drop_attr and below 
+        threshold data
     dim : str
         Dimension to filter over [Default = 'time']
     drop_attr : str
@@ -188,15 +197,13 @@ def add_butterworth_filter(x, attr, lowcut=None, highcut=None, order=10,
     threshold : float
         Minimum threshold to filter
     """
+    import xarray as xr
     from filter_methods import butter_bandpass_filter 
     if dim == 'time':
         fs = x.time.size/float(x.time.sec.max()-x.time.sec.min())
     else:
         fs = x[dim].size/float(x[dim].max()-x[dim].min())
 
-    if not filt_name:
-        filt_name = attr+'_filt'
-    
     if lowcut and highcut:
         btype = 'band'
     elif highcut:
@@ -206,21 +213,35 @@ def add_butterworth_filter(x, attr, lowcut=None, highcut=None, order=10,
     else:
         print('Error -- must supply lowcut, highcut or both')
 
-    if not pass_name:
-        pass_name = '{:}_{:}pass'.format(attr,btype)
-
     if 'time_ns' not in x:
         x.coords['time_ns'] = x['sec']*1e9+x['nsec']
 
     if drop_attr and drop_attr in x:
         cut = ~x[drop_attr]
-        print(cut.sum())
+        if not quiet:
+            print('drop sum', cut.sum())
         if threshold:
-            import xarray as xr
             cut =  xr.ufuncs.logical_and(cut, x[attr]>threshold)
-            print(cut.sum())
+            if not quiet:
+                print('threshold cut', cut.sum())
+    
+        if norm_attr and norm_attr in x:
+            if norm_threshold:
+                cut =  xr.ufuncs.logical_and(cut, x[norm_attr]>norm_threshold)
+                if not quiet:
+                    print('norm threshold cut', cut.sum())
+     
+            dfnorm = x[[norm_attr]].where(cut).reset_coords()[norm_attr].to_dataframe()
+            dfnorm0 = x[[norm_attr]].reset_coords()[norm_attr].to_dataframe()
         
+        else:
+            dfnorm = None
+            if norm_attr:
+                print('{:} not available for normalization'.format(norm_attr))
+    
         df = x[[attr]].where(cut).reset_coords()[attr].to_dataframe()
+        df0 = x[[attr]].reset_coords()[attr].to_dataframe()
+    
     else:
         cut = None
         df = x[attr].reset_coords()[attr].to_dataframe()
@@ -228,27 +249,62 @@ def add_butterworth_filter(x, attr, lowcut=None, highcut=None, order=10,
     try:
         from sklearn.preprocessing import Imputer
         mean_imputer = Imputer(missing_values='NaN', strategy='mean', axis=0)
-        mean_imputer = mean_imputer.fit(df)
-        data = mean_imputer.transform(df.values)[:,0]
+        if dfnorm is None:
+            mean_imputer = mean_imputer.fit(df)
+            data = mean_imputer.transform(df.values)[:,0]
+        else:
+            mean_imputer = mean_imputer.fit(dfnorm)
+            data = mean_imputer.transform(df.values)[:,0]
+            data /= mean_imputer.transform(dfnorm.values)[:,0]
+   
     except:
+        mean_imputer = None
         cut = None
         data = df.values[:,0]
         print('Could not preprocess {:} using Imputation of events with {:}'.format(attr, drop_attr))
 
+    if cut is not None:
+        data0 = df0.values/dfnorm0.values
+
     filt = butter_bandpass_filter(data, fs, lowcut=lowcut, highcut=highcut, order=order)
-    
+
+    if imputer_name and mean_imputer is not None:
+        x[imputer_name] = ((dim), data)
+        x[imputer_name].attrs = x[attr].attrs
+        x[imputer_name].attrs['doc'] = '{:} imputer corrected data'.format(attr)
+        x[imputer_name].attrs['drop_attr'] = drop_attr
+        if threshold:
+            x[imputer_name].attrs['threshold'] = threshold 
+
     if filt is None:
         print('Error making filter for {:}'.format(attr))
+   
     else:
+
+        if dfnorm is None:
+            if not filt_name:
+                filt_name = '{:}_filt'.format(attr)
+            if not pass_name:
+                pass_name = '{:}_{:}pass'.format(attr,btype)
+        else:
+            if not filt_name:
+                filt_name = '{:}_norm_filt'.format(attr)
+            if not pass_name:
+                pass_name = '{:}_norm_{:}pass'.format(attr,btype)
+
         x[filt_name] = ((dim), filt)
         x[filt_name].attrs = x[attr].attrs
         x[filt_name].attrs['doc'] = '{:}-pass butterworth filter of {:}'.format(btype, attr)
         x[filt_name].attrs['order'] = order
         x[filt_name].attrs['btype'] = btype
 
-        x[pass_name] = x[attr]-x[filt_name]
-        if cut is not None:
-            x[pass_name][~cut] = x[attr][~cut]
+        x[pass_name] = ((dim), data-filt) 
+#        if cut is not None:
+#            try:
+#                x[pass_name][~cut] = data0[~cut]
+#            except:
+#                print('Cannot reset cut data')
+        
         x[pass_name].attrs = x[attr].attrs
         x[pass_name].attrs['doc'] = '{:} {:}-pass butterworth filtered data'.format(attr, btype)
         x[pass_name].attrs['order'] = order
