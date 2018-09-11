@@ -95,6 +95,8 @@ psana_attrs['Generic1D']['ConfigV0'] = [
                                          'data_offset',
                                        ]
 
+psana_attrs['Bld']['BldDataBeamMonitorV1'] = ['peakA', 'peakT', 'TotalIntensity', 'X_Position', 'Y_Position']
+
 
 # Common mode not applicable?
 #psana_doc_info['CsPad']['ElementV2']['common_mode']['func_quads'] = 'quads_shape'

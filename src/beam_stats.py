@@ -5,6 +5,44 @@ import logging
 import traceback
 from IPython.core.debugger import Tracer
 
+meta_attrs = {'units': 'EGU', 'PREC': 'PREC', 'pv': 'name'}
+_transmission_pvs = {
+                'FEE': {
+                        'fee_trans':     'SATT:FEE1:320:RACT', 
+                        'feegas_trans':     'GATT:FEE1:310:R_ACT', 
+                        #'fee_trans_set': 'SATT:FEE1:320:RDES', 
+                        #'feegas_trans_set': 'GATT:FEE1:310:R_DES', 
+                        },
+                'XPP': {
+                        'xpp_trans':        'XPP:ATT:COM:R_CUR',
+                        'xpp_trans3':        'XPP:ATT:COM:R3_CUR',
+                        #'xpp_trans_set':    'XPP:ATT:COM:R_DES',
+                        #'xpp_trans3_set':    'XPP:ATT:COM:R3_DES',
+                        },
+                'XCS': {
+                        'xcs_trans':        'XCS:ATT:COM:R_CUR',
+                        'xcs_trans3':        'XCS:ATT:COM:R3_CUR',
+                        #'xcs_trans_set':    'XCS:ATT:COM:R_DES',
+                        #'xcs_trans3_set':    'XCS:ATT:COM:R3_DES',
+                        },
+                'MFX': {
+                        'mfx_trans':        'MFX:ATT:COM:R_CUR',
+                        'mfx_trans3':        'MFX:ATT:COM:R3_CUR',
+                        #'mfx_trans_set':    'MFX:ATT:COM:R_DES',
+                        #'mfx_trans3_set':    'MFX:ATT:COM:R3_DES',
+                        },
+                'CXI': {
+                        'cxi_trans':        'CXI:DSB:ATT:COM:R_CUR', 
+                        'dsb_trans':        'XRT:DIA:ATT:COM:R_CUR',
+                        'cxi_trans3':        'CXI:DSB:ATT:COM:R3_CUR', 
+                        'dsb_trans3':        'XRT:DIA:ATT:COM:R3_CUR',
+                        #'cxi_trans_set':    'CXI:DSB:ATT:COM:R_DES', 
+                        #'dsb_trans_set':    'XRT:DIA:ATT:COM:R_DES',
+                        #'cxi_trans3_set':    'CXI:DSB:ATT:COM:R3_DES', 
+                        #'dsb_trans3_set':    'XRT:DIA:ATT:COM:R3_DES',
+                        },
+                }
+
 def load_exp_sum(exp, instrument=None, path=None, nctype='drop_sum', save=True):
     """
     Load drop stats summary for all runs
@@ -292,6 +330,7 @@ def get_beam_stats(exp, run, default_modules={},
         pulse=None, gasdetcut_mJ=None,
         report_name=None, path=None, engine='h5netcdf', 
         wait=None, timeout=False,
+        pvdict={},
         **kwargs):
     """
     Get drop shot statistics to detected dropped shots and beam correlated detectors.
@@ -315,6 +354,7 @@ def get_beam_stats(exp, run, default_modules={},
     """
     from xarray_utils import set_delta_beam
     from xarray_utils import clean_dataset
+    from xarray_utils import merge_fill
     import PyDataSource
     import xarray as xr
     import numpy as np
@@ -335,7 +375,128 @@ def get_beam_stats(exp, run, default_modules={},
 #        post(update_url, json={'counters' : batch_counters})
     
     xsmd = load_small_xarray(ds, refresh=refresh, path=path)
-   
+  
+    try:
+
+        configData = ds.configData
+        tstart = configData._tstart
+        tend = configData._tend
+        fields={
+                'description':            ('DESC', 'Description'), 
+                'slew_speed':             ('VELO', 'Velocity (EGU/s) '),
+                'acceleration':           ('ACCL', 'acceleration time'),
+                'step_size':              ('RES',  'Step Size (EGU)'),
+                'encoder_step':           ('ERES', 'Encoder Step Size '),
+                'resolution':             ('MRES', 'Motor Step Size (EGU)'),
+                'high_limit':             ('HLM',  'User High Limit'),
+                'low_limit':              ('LLM',  'User Low Limit'),
+                'units':                  ('EGU',  'Units'),
+    #            'device_type':            ('DTYP', 'Device type'), 
+    #            'record_type':            ('RTYP', 'Record Type'), 
+                }
+
+        time_last = time.time()
+        trans_pvs = [a for a in _transmission_pvs.get('FEE', {}) if a.endswith('_trans')]
+        trans_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith('_trans')]
+        trans3_pvs = [a for a in _transmission_pvs.get('FEE', {}) if a.endswith('_trans3')]
+        trans3_pvs += [a for a in _transmission_pvs.get(ds.instrument, {}) if a.endswith('_trans3')]
+        pvdict.update(**_transmission_pvs.get('FEE',{}))
+        pvdict.update(**_transmission_pvs.get(ds.instrument,{}))
+        
+        pvs = {alias: pv for alias, pv in pvdict.items() if configData._in_archive(pv)} 
+        
+        data_arrays = {} 
+        data_fields = {}
+ 
+        for alias, pv in pvs.items():
+            data_fields[alias] = {}
+            dat = configData._get_pv_from_arch(pv, tstart, tend)
+            if not dat:
+                print('WARNING:  {:} - {:} not archived'.format(alias, pv))
+                continue
+            
+            try:
+                attrs = {a: dat['meta'].get(val) for a,val in meta_attrs.items() if val in dat['meta']}
+                for attr, item in fields.items():  
+                    try:
+                        field=item[0]
+                        pv_desc = pv.split('.')[0]+'.'+field
+                        if configData._in_archive(pv_desc):
+                            desc = configData._get_pv_from_arch(pv_desc)
+                            if desc:
+                                vals = {}
+                                fattrs = attrs.copy()
+                                fattrs.update(**desc['meta'])
+                                fattrs['doc'] = item[1]
+                                val = None
+                                # remove redundant data
+                                for item in desc['data']:
+                                    newval =  item.get('val')
+                                    if not val or newval != val:
+                                        val = newval
+                                        vt = np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns')
+                                        vals[vt] = val
+                               
+                                data_fields[alias][attr] = xr.DataArray(vals.values(), 
+                                                                coords=[vals.keys()], dims=['time'], 
+                                                                name=alias+'_'+attr, attrs=fattrs) 
+                                attrs[attr] = val
+         
+                    except:
+                        traceback.print_exc()
+                        print('cannot get meta for', alias, attr)
+                        pass
+                vals = [item['val'] for item in dat['data']]
+                if not vals:
+                    print('No Data in archive for  {:} - {:}'.format(alias, pv))
+                    continue
+
+                doc = attrs.get('description','')
+                units = attrs.get('units', '')
+                time_next = time.time()
+              
+                try:
+                    if isinstance(vals[0],str):
+                        vals = np.array(vals, dtype=str)
+                    else:
+                        times = [np.datetime64(long(item['secs']*1e9+item['nanos']), 'ns') for item in dat['data']]
+                        dfs = pd.Series(vals, times).sort_index()
+                        dfs = dfs[~dfs.index.duplicated()]
+                        dfs = dfs[~(dfs.diff()==0)]
+                        vals = dfs.values
+                        dfs = dfs.to_xarray().rename({'index': 'time'})
+                        data_arrays[alias] = dfs 
+                        data_arrays[alias].name = alias
+                        data_arrays[alias].attrs = attrs
+                
+                except:
+                    traceback.print_exc()
+                    print('Error loadinig', alias)
+
+                try:
+                    print('{:8.3f} {:28} {:8} {:10.3f} {:4} {:20} {:}'.format(time_next-time_last, \
+                                    gias, len(vals), np.array(vals).mean(), units, doc, pv))
+                except:
+                    print('{:8.3f} {:28} {:8} {:>10} {:4} {:20} {:}'.format(time_next-time_last, \
+                                    alias, len(vals), vals[0], units, doc, pv))
+            
+            except:
+                traceback.print_exc()
+                print('Error loading', alias)
+
+        xdata = xr.merge(data_arrays.values())
+        if trans_pvs:
+            da = xdata.reset_coords()[trans_pvs].to_array() 
+            xdata['trans'] = (('time'), da.prod(dim='variable'))
+            xdata['trans'].attrs['doc'] = 'Total transmission: '+'*'.join(trans_pvs)
+
+        xdata = merge_fill(xsmd, xdata)
+
+    except:
+        traceback.print_exc()
+        print('Could not load transmission pvs')
+
+
     nevents = ds.nevents
     if drop_code not in xsmd or not xsmd[drop_code].values.any():
         logger.info('Skipping beam stats analysis for {:}'.format(ds))
@@ -456,6 +617,7 @@ def get_beam_stats(exp, run, default_modules={},
 
     dets = {}
     flatten_list = []
+    flatten_channels = {}
     area_dets = []
     wf_dets =[]
     for det, detector in ds._detectors.items():
@@ -562,20 +724,32 @@ def get_beam_stats(exp, run, default_modules={},
             elif detector._pydet.__module__ == 'Detector.DdlDetector':
                 srcstr = detector._srcstr 
                 srcname = srcstr.split('(')[1].split(')')[0]
-                devName = srcname.split(':')[1].split('.')[0]
-                if devName == 'Gsc16ai':
-                    method = 'channelValue'
-                    name = '_'.join([det, method])
-                    flatten_list.append(name)
+                print('Setting {:}'.format(srcstr))
+                if srcstr.startswith('BldInfo'):
+                    if srcname.endswith('BMMON'):
+                        method = 'channelValue'
+                        name = '_'.join([det, method])
+                        flatten_list.append(name)
+                        print('Flatten {:}'.format(name))
+                        #flatten_channels[name] = range(8,16)
+                else:
+                    devName = srcname.split(':')[1].split('.')[0]
+                    if devName == 'Gsc16ai':
+                        method = 'channelValue'
+                        name = '_'.join([det, method])
+                        flatten_list.append(name)
+                        print('Flatten {:}'.format(name))
 
             elif detector._pydet.__module__ == 'Detector.IpimbDetector':
                 pass
             
             else:
                 logger.info('{:} Not implemented'.format(det))
+                print('{:} Not implemented'.format(det))
         
         except:
             logger.info('Error with config of {:}'.format(det))
+            print('Error with config of {:}'.format(det))
         
         if methods:
             dets[det] = methods
@@ -630,8 +804,9 @@ def get_beam_stats(exp, run, default_modules={},
         for name in flatten_list:
             if name in xdrop and len(xdrop[name].dims) == 2:
                 nch = xdrop[name].shape[1]
-                if nch <= 16:
-                    for ich in range(nch):
+                fchans = flatten_channels.get(name, range(nch))
+                if nch <= 16 or name in flatten_channels:
+                    for ich in fchans:
                         chname = '{:}_ch{:}'.format(name,ich)
                         xdrop[chname] = xdrop[name][:,ich]
                         try:

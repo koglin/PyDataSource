@@ -107,11 +107,89 @@ class Build_experiment(object):
         from exp_summary import get_exp_summary
         return get_exp_summary(self.exp, **kwargs)
 
+    def add_smd_summary(self, path=None, make_plots=False, print_on=True, **kwargs):
+        '''
+        Creates the table of active detectors
+        and the table of percentage of valid data
+        (both as documented in their respective functions),
+        then exports them.
+
+        Parameters
+        ----------
+        path : str, optional
+            Path to the files (for glob.glob() function, so uses the *-syntax)
+        print_on : bool, optional
+            Decides if the progress is printed
+        make_plots : bool, optional
+            Make individual detector damabe plots [default=False]
+        
+        Returns
+        -------
+        activetable : DataFrame
+            Table of 1s and 0s for each variable in each run
+        detectortable : DataFrame
+            Table of percentages for each variable in each run
+        '''
+        import glob
+        from smd_tools import get_active_dict, get_active_table, get_damage_table
+
+        if not path:
+            path = os.path.join(self.res_dir,'nc')
+
+        files = glob.glob(path+'/*drop_stats.nc')
+        if len(files)==0:
+            print('No files found')
+            return
+        if print_on:
+            print("Found {} files.".format(len(files)))
+        files.sort()
+
+        datadict, runs, det_alias = get_active_dict(files)
+        if print_on:
+            print('Dictionary made')
+        activetable = get_active_table(datadict,runs, det_alias=det_alias)
+
+        if print_on:
+            print('1st table made')
+        detectortable = get_damage_table(files, datadict, runs, det_alias=det_alias)
+        if print_on:
+            print('Both tables ready')
+        
+        self.add_table(activetable, catagory='Detectors', 
+                tbl_type = 'Active Summary', name='Summary', 
+                doc='Summary of Active Detectors', hidden=True)
+        self.add_table(detectortable, catagory='Detectors', 
+                tbl_type='Damage Summary', name='Summary', 
+                doc='Summary of Detectors & Damages', hidden=True)
+        
+        # draws plots 
+        if make_plots:
+            for var in detectortable:
+                if var=='events' or var=='drop_events':
+                    continue
+                ax = detectortable[var].plot(x='Run', y='Damaged') 
+#                        ylim = (-1, 101), yticks = (0,10,20,30,40,50,60,70,80,90,100))
+                ax.set_xlabel('Run')
+                ax.set_ylabel('Damaged [%]')
+                self.add_plot('Detectors', var)
+
+        self._datadict = datadict
+        self.df_active = activetable
+        self.df_damage = detectortable
+
+        return activetable, detectortable
+ 
     def add_defaults(self, run_min=None, run_max=None, **kwargs):
         """
         Add defaults.
         """
         self.logger.info('Adding defaults')
+        
+        try:
+            self.add_smd_summary()
+        except:
+            traceback.print_exc()
+        
         try:
             self.add_scans()
         except:
