@@ -6198,7 +6198,7 @@ class AddOn(object):
 
                 if attr == 'image':
                     calibData = self._getattr('calibData')
-                    scale = calibData.pixel_size/1000.
+#                    scale = calibData.pixel_size/1000.
 #                    if not plt_kwargs.get('pos'):
 #                        plt_kwargs['pos'] = (calibData.image_xaxis[0]/1000., calibData.image_yaxis[0]/1000.)
 #                    if not plt_kwargs.get('scale'):
