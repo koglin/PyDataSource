@@ -249,22 +249,35 @@ build_html.rst  data_access.rst  expert.rst           index.rst        sphinxext
 </div>
 <p>To make html documenation availible on through the pswww web service,
 copy  PyDataSource/doc/source/build/html folder to the swdoc releases folder
-for PyDataSource (requires sudo as psreldev):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls /reg/g/psdm/sw/conda/web/PyDataSource-tags/ -l
-total <span class="m">10</span>
+for PyDataSource (requires sudo as psreldev). e.g.,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> /reg/g/psdm/sw/conda/web/PyDataSource-tags/
+
+cp -r ~koglin/conda/PyDataSource/doc/build/html PyDataSource-V00-06-04
+
+ls -l
+total <span class="m">14</span>
 drwxr-xr-x <span class="m">10</span> psreldev xs <span class="m">29</span> Aug <span class="m">16</span>  <span class="m">2017</span> PyDataSource-V00-02-03
 drwxr-xr-x <span class="m">10</span> psreldev xs <span class="m">27</span> Aug <span class="m">17</span>  <span class="m">2017</span> PyDataSource-V00-02-04
 drwxr-xr-x  <span class="m">9</span> psreldev xs <span class="m">25</span> Sep  <span class="m">1</span>  <span class="m">2017</span> PyDataSource-V00-02-06
+drwxr-xr-x  <span class="m">9</span> psreldev xs <span class="m">30</span> Oct <span class="m">17</span> <span class="m">12</span>:02 PyDataSource-V00-06-04
 </pre></div>
 </div>
 <p>Then make soft link to web/ana/PyDataSource.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ln -s /reg/g/psdm/sw/conda/web/PyDataSource-tags/PyDataSource-V00-02-06 /reg/g/psdm/sw/conda/web/ana/PyDataSource
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> /reg/g/psdm/sw/conda/web/ana
 
-ls /reg/g/psdm/sw/conda/web/ana/PyDataSource/
-api.html         config_data.html      _downloads        genindex.html  objects.inv       _sources
-batch.html       data_access.html      examples          _images        py-modindex.html  _static
-build_html.html  data_processing.html  exp_summary.html  index.html     search.html       xarray.html
-conda.html       data_summary.html     generated         _modules       searchindex.js
+rm PyDataSource
+
+ln -s ../PyDataSource-tags/PyDataSource-V00-06-04 PyDataSource
+
+ls /reg/g/psdm/sw/conda/web/ana/PyDataSource -l
+lrwxrwxrwx <span class="m">1</span> psreldev xs <span class="m">43</span> Oct <span class="m">17</span> <span class="m">12</span>:05 /reg/g/psdm/sw/conda/web/ana/PyDataSource -&gt; ../PyDataSource-tags/PyDataSource-V00-06-04
+
+ls /reg/g/psdm/sw/conda/web/ana/PyDataSource
+api.html         config_data.html      examples          _images        py-modindex.html  xarray.html
+apps.html        data_access.html      expert.html       index.html     search.html
+batch.html       data_processing.html  exp_summary.html  _modules       searchindex.js
+build_html.html  data_summary.html     generated         objects.inv    _sources
+conda.html       _downloads            genindex.html     offbyone.html  _static
 </pre></div>
 </div>
 <p>Then the html documentation will show up in:</p>

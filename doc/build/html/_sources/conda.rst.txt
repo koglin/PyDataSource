@@ -109,28 +109,42 @@ the html sphinx documenation
 
 To make html documenation availible on through the pswww web service, 
 copy  PyDataSource/doc/source/build/html folder to the swdoc releases folder 
-for PyDataSource (requires sudo as psreldev):
+for PyDataSource (requires sudo as psreldev). e.g.,
 
 .. code-block:: bash
 
-    ls /reg/g/psdm/sw/conda/web/PyDataSource-tags/ -l
-    total 10
+    cd /reg/g/psdm/sw/conda/web/PyDataSource-tags/ 
+
+    cp -r ~koglin/conda/PyDataSource/doc/build/html PyDataSource-V00-06-04
+
+    ls -l
+    total 14
     drwxr-xr-x 10 psreldev xs 29 Aug 16  2017 PyDataSource-V00-02-03
     drwxr-xr-x 10 psreldev xs 27 Aug 17  2017 PyDataSource-V00-02-04
     drwxr-xr-x  9 psreldev xs 25 Sep  1  2017 PyDataSource-V00-02-06
+    drwxr-xr-x  9 psreldev xs 30 Oct 17 12:02 PyDataSource-V00-06-04
+
 
 
 Then make soft link to web/ana/PyDataSource.
 
 .. code-block:: bash
     
-    ln -s /reg/g/psdm/sw/conda/web/PyDataSource-tags/PyDataSource-V00-02-06 /reg/g/psdm/sw/conda/web/ana/PyDataSource
+    cd /reg/g/psdm/sw/conda/web/ana
 
-    ls /reg/g/psdm/sw/conda/web/ana/PyDataSource/
-    api.html         config_data.html      _downloads        genindex.html  objects.inv       _sources
-    batch.html       data_access.html      examples          _images        py-modindex.html  _static
-    build_html.html  data_processing.html  exp_summary.html  index.html     search.html       xarray.html
-    conda.html       data_summary.html     generated         _modules       searchindex.js
+    rm PyDataSource
+
+    ln -s ../PyDataSource-tags/PyDataSource-V00-06-04 PyDataSource
+
+    ls /reg/g/psdm/sw/conda/web/ana/PyDataSource -l
+    lrwxrwxrwx 1 psreldev xs 43 Oct 17 12:05 /reg/g/psdm/sw/conda/web/ana/PyDataSource -> ../PyDataSource-tags/PyDataSource-V00-06-04
+    
+    ls /reg/g/psdm/sw/conda/web/ana/PyDataSource 
+    api.html         config_data.html      examples          _images        py-modindex.html  xarray.html
+    apps.html        data_access.html      expert.html       index.html     search.html
+    batch.html       data_processing.html  exp_summary.html  _modules       searchindex.js
+    build_html.html  data_summary.html     generated         objects.inv    _sources
+    conda.html       _downloads            genindex.html     offbyone.html  _static
 
 
 Then the html documentation will show up in:
