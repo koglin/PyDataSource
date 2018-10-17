@@ -1,0 +1,411 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Applications &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+        <link rel="next" title="Run Summary Reports" href="build_html.html"/>
+        <link rel="prev" title="PyDataSource.ConfigData.ScanData" href="generated/PyDataSource.ConfigData.ScanData.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#idatasource">idatasource</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#idatasource-help">idatasource help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#liveplot-with-shared-memory">liveplot with shared memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#liveplot-offline">liveplot offline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#liveplot-help">liveplot help</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Applications</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/apps.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="applications">
+<span id="apps"></span><h1>Applications<a class="headerlink" href="#applications" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="idatasource">
+<h2>idatasource<a class="headerlink" href="#idatasource" title="Permalink to this headline">¶</a></h2>
+<p>An ipython session can be started that automatically loads the specified experiement and run.</p>
+<p>e.g.,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
+idatasource --exp<span class="o">=</span>xpptut15 --run<span class="o">=</span><span class="m">54</span>
+</pre></div>
+</div>
+<p>starts an ipython session with the DataSource automatically loaded…</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="go">********************************************************************************</span>
+
+<span class="go">Data loaded for the psana data_source =  exp=xpptut15:run=54:smd</span>
+<span class="go">Total Events =  1219</span>
+<span class="go">Load time =   1.0 sec</span>
+
+
+<span class="go">********************************************************************************</span>
+<span class="go">ds is a python friendly (i.e, tab accessible) form of the psana.DataSource.</span>
+<span class="go">Event data is accessible through aliases (psana get and keys methods are also preserved),  e.g.,</span>
+
+<span class="gp">In [1]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+<span class="gp">In [2]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">eventCodes</span>
+<span class="gh">Out[2]: </span><span class="go">[140, 141, 41, 40]</span>
+
+<span class="go">The current event is also available in the ds.events object, e.g.,</span>
+
+<span class="gp">In [3]: </span><span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">current</span><span class="o">.</span><span class="n">Evr</span><span class="o">.</span><span class="n">eventCodes</span>
+<span class="gh">Out[3]: </span><span class="go">[140, 141, 41, 40]</span>
+
+<span class="go">For offline data (using smd small data access), one can also iterate through &quot;calib cycle&quot; steps.  e.g.,</span>
+<span class="gp">In [4]: </span><span class="k">for</span> <span class="n">events</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">steps</span><span class="p">:</span>
+<span class="go">            for evt in events:</span>
+<span class="go">                # Do something with events...</span>
+
+<span class="go">********************************************************************************</span>
+<span class="go">&lt; DataSource: exp=xpptut15:run=54:smd 1219 events &gt;</span>
+<span class="go">&lt; DataSource: exp=xpptut15:run=54:smd 1219 events &gt;</span>
+
+<span class="gp">In [1]: </span><span class="n">ds</span><span class="o">.</span><span class="n">configData</span>
+<span class="gh">Out[1]: </span><span class="go">&lt; ConfigData: exp=xpptut15:run=54:smd &gt;</span>
+<span class="go">***Detectors in group 0 are &quot;BLD&quot; data recorded at 120 Hz on event code 40</span>
+<span class="go">***Detectors listed as Controls are controls devices with unknown event code (but likely 40).</span>
+
+<span class="go">Alias                Grp   Description Code Pol   Delay [s]   Width [s] Source</span>
+<span class="gt">------------------------------------------------------------------------------------------------------</span>
+<span class="n">EBeam</span>                  <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">EBeam</span><span class="p">)</span>
+<span class="n">FEEGasDetEnergy</span>        <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">FEEGasDetEnergy</span><span class="p">)</span>
+<span class="n">PhaseCavity</span>            <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">PhaseCavity</span><span class="p">)</span>
+<span class="n">XppEnds_Ipm0</span>           <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppEnds_Ipm0</span><span class="p">)</span>
+<span class="n">XppSb2_Ipm</span>             <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb2_Ipm</span><span class="p">)</span>
+<span class="n">XppSb3_Ipm</span>             <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb3_Ipm</span><span class="p">)</span>
+<span class="n">cspad</span>                  <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span> <span class="n">Pos</span> <span class="mf">0.000549832</span> <span class="mf">0.000010000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppGon</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Cspad</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">yag2</span>                   <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span> <span class="n">Pos</span> <span class="mf">0.000690739</span> <span class="mf">0.000300000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppSb3Pim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">yag_lom</span>                <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span> <span class="n">Pos</span> <span class="mf">0.000690739</span> <span class="mf">0.000300000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppMonPim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span>
+<span class="o">&lt;</span> <span class="n">ConfigData</span><span class="p">:</span> <span class="n">exp</span><span class="o">=</span><span class="n">xpptut15</span><span class="p">:</span><span class="n">run</span><span class="o">=</span><span class="mi">54</span><span class="p">:</span><span class="n">smd</span> <span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>On a daq monitoring node (e.g., daq-cxi-mon01) that is hosting a psana shared memory process, idatasource can be executed
+without exp and run keywords.</p>
+</div>
+<div class="section" id="idatasource-help">
+<h2>idatasource help<a class="headerlink" href="#idatasource-help" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>datasource --help
+usage: idatasource <span class="o">[</span>-h<span class="o">]</span> <span class="o">[</span>-e EXP<span class="o">]</span> <span class="o">[</span>-r RUN<span class="o">]</span> <span class="o">[</span>-i INSTRUMENT<span class="o">]</span> <span class="o">[</span>-s STATION<span class="o">]</span> <span class="o">[</span>--idx<span class="o">]</span>
+                   <span class="o">[</span>--smd<span class="o">]</span> <span class="o">[</span>--h5<span class="o">]</span> <span class="o">[</span>--xtc_dir XTC_DIR<span class="o">]</span> <span class="o">[</span>--ffb<span class="o">]</span> <span class="o">[</span>--show_errors<span class="o">]</span>
+                   <span class="o">[</span>--indexed<span class="o">]</span> <span class="o">[</span>--base BASE<span class="o">]</span> <span class="o">[</span>--shmem<span class="o">]</span>
+                   <span class="o">[</span>data_source<span class="o">]</span>
+
+positional arguments:
+  data_source           psana data_source
+
+optional arguments:
+  -h, --help            show this <span class="nb">help</span> message and <span class="nb">exit</span>
+  -e EXP, --exp EXP     Experiment number
+  -r RUN, --run RUN     Run number
+  -i INSTRUMENT, --instrument INSTRUMENT
+                        Instrument
+  -s STATION, --station STATION
+                        Station
+  --idx                 Load indexed XTC data
+  --smd                 Load smd small XTC data
+  --h5                  Use hdf5 data instead of xtc
+  --xtc_dir XTC_DIR     xtc file directory
+  --ffb                 Use FFB data
+  --show_errors         Show Errors in cases that might not be explicit due to
+                        try/except statements
+  --indexed             Use indexing, see: https://confluence.slac.stanford.ed
+                        u/display/PSDM/psana+-+Python+Script+Analysis+Manual
+                        <span class="c1">#psana-PythonScriptAnalysisManual-</span>
+                        RandomAccesstoXTCFiles<span class="o">(</span><span class="s2">&quot;Indexing&quot;</span><span class="o">)</span>
+  --base BASE           Base into which DataSource object is initiated.
+  --shmem               Use shmem data stream
+</pre></div>
+</div>
+</div>
+<div class="section" id="liveplot-with-shared-memory">
+<h2>liveplot with shared memory<a class="headerlink" href="#liveplot-with-shared-memory" title="Permalink to this headline">¶</a></h2>
+<p>To open all area detector plots on a shared memory node use the liveplot application,
+which loads the DataSource and opens area detector plots with the add.psplot method.</p>
+<p>e.g.,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>.  /reg/g/psdm/etc/psconda.sh
+
+liveplot
+
+No exp provided -- cxilu1817 is the active experiment
+No data <span class="nb">source</span> specified, so assume this is shared memory.
+setting calibDir cxilu1817 /reg/d/psdm/cxi/cxilu1817/calib
+Opened queue /PdsFromMonitorDiscovery_psana <span class="o">(</span><span class="m">17</span><span class="o">)</span>
+Opening shared memory /PdsMonitorSharedMemory_psana of size 0x4c800000 <span class="o">(</span>0x22 * 0x2400000<span class="o">)</span>
+Shared memory at 0x7f9b53800000
+Opened queue /PdsToMonitorEvQueue_psana_0 <span class="o">(</span><span class="m">18</span><span class="o">)</span>
+Opened queue /PdsToMonitorEvQueue_psana_1 <span class="o">(</span><span class="m">19</span><span class="o">)</span>
+...
+*** Misc warnings may appear here that can be ignored ***
+...
+--------------------------------------------------------------------------
+psmon plot added -- use the following to view:
+--&gt; psplot -s daq-cxi-mon05 -p <span class="m">12301</span> Timetool_image
+WARNING -- see notice when adding <span class="k">for</span> -p PORT specification
+           <span class="k">if</span> default <span class="nv">PORT</span><span class="o">=</span><span class="m">12301</span> not available
+</pre></div>
+</div>
+<p>Note that you may see MPI and shared object file warnings that can be ignored</p>
+</div>
+<div class="section" id="liveplot-offline">
+<h2>liveplot offline<a class="headerlink" href="#liveplot-offline" title="Permalink to this headline">¶</a></h2>
+<p>Liveplot can also be used offliine data on a psana machine.</p>
+<p>In this mode, one can interactively step through events as well as reload run when it is finished.</p>
+</div>
+<div class="section" id="liveplot-help">
+<h2>liveplot help<a class="headerlink" href="#liveplot-help" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>liveplot --help
+usage: liveplot <span class="o">[</span>-h<span class="o">]</span> <span class="o">[</span>-e EXP<span class="o">]</span> <span class="o">[</span>-r RUN<span class="o">]</span> <span class="o">[</span>--det DET<span class="o">]</span> <span class="o">[</span>-n NEVENTS<span class="o">]</span>
+                <span class="o">[</span>-i INSTRUMENT<span class="o">]</span> <span class="o">[</span>-s STATION<span class="o">]</span> <span class="o">[</span>--idx<span class="o">]</span> <span class="o">[</span>--smd<span class="o">]</span> <span class="o">[</span>--h5<span class="o">]</span>
+                <span class="o">[</span>--xtc_dir XTC_DIR<span class="o">]</span> <span class="o">[</span>--ffb<span class="o">]</span> <span class="o">[</span>--indexed<span class="o">]</span> <span class="o">[</span>--base BASE<span class="o">]</span>
+                <span class="o">[</span>--shmem<span class="o">]</span>
+
+optional arguments:
+  -h, --help            show this <span class="nb">help</span> message and <span class="nb">exit</span>
+  -e EXP, --exp EXP     Experiment number
+  -r RUN, --run RUN     Run number
+  --det DET             Cmma separated detector <span class="nb">alias</span> names used <span class="k">for</span> plot
+                        Input method
+  -n NEVENTS, --nevents NEVENTS
+                        Number of Events to analyze
+  -i INSTRUMENT, --instrument INSTRUMENT
+                        Instrument
+  -s STATION, --station STATION
+                        Station
+  --idx                 Load indexed XTC data
+  --smd                 Load smd small XTC data
+  --h5                  Use hdf5 data instead of xtc
+  --xtc_dir XTC_DIR     xtc file directory
+  --ffb                 Use FFB data
+  --indexed             Use indexing, see: https://confluence.slac.stanford.ed
+                        u/display/PSDM/psana+-+Python+Script+Analysis+Manual
+                        <span class="c1">#psana-PythonScriptAnalysisManual-</span>
+                        RandomAccesstoXTCFiles<span class="o">(</span><span class="s2">&quot;Indexing&quot;</span><span class="o">)</span>
+  --base BASE           Base into which DataSource object is initiated.
+  --shmem               Use shmem data stream
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="build_html.html" class="btn btn-neutral float-right" title="Run Summary Reports" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="generated/PyDataSource.ConfigData.ScanData.html" class="btn btn-neutral" title="PyDataSource.ConfigData.ScanData" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

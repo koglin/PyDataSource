@@ -1,0 +1,514 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Off-by-one Timing Error Analysis &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+        <link rel="next" title="PyDataSource.beam_stats.get_beam_stats" href="generated/PyDataSource.beam_stats.get_beam_stats.html"/>
+        <link rel="prev" title="PyDataSource.ExperimentSummary.to_html" href="generated/PyDataSource.ExperimentSummary.to_html.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Off-by-one Timing Error Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#off-by-one-methods">Off-by-one Methods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.get_beam_stats.html">PyDataSource.beam_stats.get_beam_stats</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.load_small_xarray.html">PyDataSource.beam_stats.load_small_xarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.make_small_xarray.html">PyDataSource.beam_stats.make_small_xarray</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dropped-shots">Dropped Shots</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.xarray_utils.set_delta_beam.html">PyDataSource.xarray_utils.set_delta_beam</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#area-detector-processing">Area Detector Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.rawsum.html">PyDataSource.beam_stats.rawsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.count.html">PyDataSource.beam_stats.count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.sector.html">PyDataSource.beam_stats.sector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.sectors.html">PyDataSource.beam_stats.sectors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#waveform-detector-processing">Waveform Detector Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.wave8_height.html">PyDataSource.beam_stats.wave8_height</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.peak_height.html">PyDataSource.beam_stats.peak_height</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.peak_time.html">PyDataSource.beam_stats.peak_time</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.amplitudes.html">PyDataSource.beam_stats.amplitudes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.filtered.html">PyDataSource.beam_stats.filtered</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#beam-correlation-detection">Beam Correlation Detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.xarray_utils.find_beam_correlations.html">PyDataSource.xarray_utils.find_beam_correlations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#beam-correlations">Beam Correlations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example">Example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.build_beam_stats.html">PyDataSource.beam_stats.build_beam_stats</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#api">API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.load_small_xarray.html">PyDataSource.beam_stats.load_small_xarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.beam_stats.make_small_xarray.html">PyDataSource.beam_stats.make_small_xarray</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Off-by-one Timing Error Analysis</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/offbyone.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="off-by-one-timing-error-analysis">
+<h1><a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Off-by-one+Timing+Error+Detection">Off-by-one</a> Timing Error Analysis<a class="headerlink" href="#off-by-one-timing-error-analysis" title="Permalink to this headline">¶</a></h1>
+<p>A script for automatically detecting timing errors has been created in the psana PyDataSource package.
+The batch job submission script for use in the Automatic Run Processor (or <a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDM/Automatic+Run+Processing">ARP</a>) web service is located at:</p>
+<blockquote>
+<div><ul class="simple">
+<li>/reg/g/psdm/utils/arp/submit_offbyone</li>
+</ul>
+</div></blockquote>
+<p>The ARP script is automatically configured for each new experiment in the experiment
+Workflow / Batch Processing / Definitions tab of the Experiment Data Manager.  e.g.,</p>
+<div class="figure align-center">
+<img alt="_images/offbyone_arp_config.png" src="_images/offbyone_arp_config.png" />
+</div>
+<p>Optional parameters are the batch queue followed by a list of people to be alerted by e-mail if an off-by-one timing error is detected.</p>
+<p>With the ARP Autorun enabled, this script will be automatically submitted for every run.  When the script is finished it updates the Report column in the Workflow / Batch Processing / Control tab</p>
+<div class="figure align-center">
+<img alt="_images/offbyone_arp_config.png" src="_images/offbyone_arp_config.png" />
+</div>
+<p>In the report, there are links to more detailed html reports (open with middle-click / Open link in new tab), which are also available in the Workflow / Data Summary tab.</p>
+<div class="section" id="off-by-one-methods">
+<h2>Off-by-one Methods<a class="headerlink" href="#off-by-one-methods" title="Permalink to this headline">¶</a></h2>
+<p>The submit_offbyone application loads the run ‘beam stats’ information into an xarray with the get_beam_stats method</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.get_beam_stats.html#PyDataSource.beam_stats.get_beam_stats" title="PyDataSource.beam_stats.get_beam_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.get_beam_stats</span></code></a>(exp,&nbsp;run[,&nbsp;…])</td>
+<td>Get drop shot statistics to detected dropped shots and beam correlated detectors.</td>
+</tr>
+</tbody>
+</table>
+<p>This method first loads all the small data for the run.
+The following highlights the procedure and methods used.</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+
+<span class="gp">In [2]: </span><span class="kn">from</span> <span class="nn">PyDataSource.beam_stats</span> <span class="kn">import</span> <span class="n">load_small_xarray</span>
+
+<span class="gp">In [3]: </span><span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;sxrx22615&#39;</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+<span class="gp">In [4]: </span><span class="n">xsmd</span> <span class="o">=</span> <span class="n">load_small_xarray</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+<span class="gp">In [5]: </span><span class="kn">from</span> <span class="nn">PyDataSource.xarray_utils</span> <span class="kn">import</span> <span class="n">set_delta_beam</span>
+
+<span class="gp">In [6]: </span><span class="n">set_delta_beam</span><span class="p">(</span><span class="n">xsmd</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="s1">&#39;ec162&#39;</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="s1">&#39;delta_drop&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where load_small_xarray simply calls the make_small_xarray method unless a file already exists
+(and the keyword refresh is not set to False),
+in which case it is loaded from an xarray compatible hdf5 file.</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.load_small_xarray.html#PyDataSource.beam_stats.load_small_xarray" title="PyDataSource.beam_stats.load_small_xarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.load_small_xarray</span></code></a>(ds[,&nbsp;path,&nbsp;…])</td>
+<td>Load small xarray Dataset with PyDataSource.DataSource.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.make_small_xarray.html#PyDataSource.beam_stats.make_small_xarray" title="PyDataSource.beam_stats.make_small_xarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.make_small_xarray</span></code></a>(self[,&nbsp;…])</td>
+<td>Make Small xarray Dataset.</td>
+</tr>
+</tbody>
+</table>
+<p>Instrument specific transmission information is then added according to the
+beam_stats._transmission_pvs dictionary.</p>
+</div>
+<div class="section" id="dropped-shots">
+<h2>Dropped Shots<a class="headerlink" href="#dropped-shots" title="Permalink to this headline">¶</a></h2>
+<p>Then the xarray_utils.set_delta_beam method is used to
+determint the number of beam codes to the nearest drop_code, which by default is the BYKIK eventCode 162.
+i.e., delta_drop = -1 for the event preceeding the BYKIK dropped shot event code 162 and
+delta_drop = 1 for the event just after the dropped shot.</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.xarray_utils.set_delta_beam.html#PyDataSource.xarray_utils.set_delta_beam" title="PyDataSource.xarray_utils.set_delta_beam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">xarray_utils.set_delta_beam</span></code></a>(x[,&nbsp;code,&nbsp;attr])</td>
+<td>Find the number of beam codes to nearest code using time stamps</td>
+</tr>
+</tbody>
+</table>
+<p>Then there is some code to auto set number of nearest shots to include at least two on
+each side for rates as low as 10 Hz.
+A gas detector cut, Gasdet_cut, is created in the xsmd xarray Dataset
+to tag low-beam events with the the appropriate gas detector
+threshold automatically chosen to be 1-sigma above the 95% range of the gas detector values
+when there are dropped shots.
+The BLD ‘FEEGasDetEnergy_f_11_ENRC’ value for the gas detector
+upstream of the gas attenuator is used.</p>
+<p>From this combined with the dropped shot event code, XrayOn and XrayOff events are tagged.</p>
+<p>If a sufficient number of dropped shots are in the run (default drop_min=3),
+then the larger Area Detector and Waveform data will be processed for events
+nearest the dropped shot
+(at least one and up to five on each side of the dropped shot as previously
+auto determined depending on rep rate being used).
+Device specific methods are used to represent the Area detector and waveforms as scalars.</p>
+</div>
+<div class="section" id="area-detector-processing">
+<h2>Area Detector Processing<a class="headerlink" href="#area-detector-processing" title="Permalink to this headline">¶</a></h2>
+<p>The summed ADU (analog to digital units) of pedestal corrected data is used
+for X-ray detectors like the CsPad.
+Note that mixed gain modes for the CsPad will do not yet have the gain factor applied.</p>
+<p>Each of the two sectors in a Jungfrau 1M detector is processed separately
+using the beam_stats.sectors method on the ‘raw’ Jungfrau data because they are independently
+read out and each sector could independently become off in timing (something that occurred
+in MFX in Run 16).
+Note that the Jungfrau auto gain switching (3 ranges) correction is not yet used here.</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.rawsum.html#PyDataSource.beam_stats.rawsum" title="PyDataSource.beam_stats.rawsum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.rawsum</span></code></a>(self[,&nbsp;attr])</td>
+<td>Return raw sum of AreaDetector</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.count.html#PyDataSource.beam_stats.count" title="PyDataSource.beam_stats.count"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.count</span></code></a>(self[,&nbsp;attr])</td>
+<td>Return pedestal corrected count of AreaDetector</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.sector.html#PyDataSource.beam_stats.sector" title="PyDataSource.beam_stats.sector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.sector</span></code></a>(self[,&nbsp;attr])</td>
+<td>Return calib mean of each AreaDetector sector</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.sectors.html#PyDataSource.beam_stats.sectors" title="PyDataSource.beam_stats.sectors"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.sectors</span></code></a>(self[,&nbsp;attr])</td>
+<td>Return calib mean of each AreaDetector sector</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="waveform-detector-processing">
+<h2>Waveform Detector Processing<a class="headerlink" href="#waveform-detector-processing" title="Permalink to this headline">¶</a></h2>
+<p>The Acqiris waveforms processed independently with the peak_height and peak_time methods
+to find the height and time of the most prominant peak in the time spectrum
+(either positive or negative).</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.wave8_height.html#PyDataSource.beam_stats.wave8_height" title="PyDataSource.beam_stats.wave8_height"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.wave8_height</span></code></a>(self[,&nbsp;bkrange])</td>
+<td>Peaks of 8 waveforms with background subtration from mean within bkrange.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.peak_height.html#PyDataSource.beam_stats.peak_height" title="PyDataSource.beam_stats.peak_height"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.peak_height</span></code></a>(self)</td>
+<td>Max value of each waveform for WFDetector.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.peak_time.html#PyDataSource.beam_stats.peak_time" title="PyDataSource.beam_stats.peak_time"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.peak_time</span></code></a>(self)</td>
+<td>Time of max of each waveform for WFDetector.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.amplitudes.html#PyDataSource.beam_stats.amplitudes" title="PyDataSource.beam_stats.amplitudes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.amplitudes</span></code></a>(self)</td>
+<td>Returns an array of max values of a set of waveforms.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.filtered.html#PyDataSource.beam_stats.filtered" title="PyDataSource.beam_stats.filtered"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.filtered</span></code></a>(self[,&nbsp;signal_width])</td>
+<td>Returns filtered waveform for WFDetector.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="beam-correlation-detection">
+<h2>Beam Correlation Detection<a class="headerlink" href="#beam-correlation-detection" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.xarray_utils.find_beam_correlations.html#PyDataSource.xarray_utils.find_beam_correlations" title="PyDataSource.xarray_utils.find_beam_correlations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">xarray_utils.find_beam_correlations</span></code></a>(xo[,&nbsp;…])</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="beam-correlations">
+<h2>Beam Correlations<a class="headerlink" href="#beam-correlations" title="Permalink to this headline">¶</a></h2>
+<p>Currently the pulse energy after the gas attenuator, ‘FEEGasDetEnergy_f_21_ENRC’,
+is used for beam correlation analysis for all instruments,
+but in the future this could be updated to use an instrument specific combination of
+beam monitors (i.e., wave8 detectors installed in Run 17 for all hard X-ray instruments)
+and instrument attenuators.</p>
+</div>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>The above is all executed as in the following example:</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">from</span> <span class="nn">PyDataSource.beam_stats</span> <span class="kn">import</span> <span class="n">get_beam_stats</span>
+
+<span class="gp">In [2]: </span><span class="n">xdrop</span> <span class="o">=</span> <span class="n">get_beam_stats</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="s1">&#39;sxrx22615&#39;</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+<span class="go">2018-10-10 15:36:41,737 - INFO - PyDataSource.beam_stats - PyDataSource.beam_stats</span>
+<span class="go">[INFO    ] PyDataSource.beam_stats</span>
+<span class="go">2018-10-10 15:36:56,467 - INFO - PyDataSource.beam_stats - Loading Scalar: [&#39;EventId&#39;, &#39;FEEGasDetEnergy&#39;, &#39;PhaseCavity&#39;, &#39;EBeam&#39;, &#39;GMD&#39;]</span>
+<span class="go">[INFO    ] Loading Scalar: [&#39;EventId&#39;, &#39;FEEGasDetEnergy&#39;, &#39;PhaseCavity&#39;, &#39;EBeam&#39;, &#39;GMD&#39;]</span>
+<span class="go">2018-10-10 15:36:56,467 - INFO - PyDataSource.beam_stats - Loading 1D: []</span>
+<span class="go">[INFO    ] Loading 1D: []</span>
+<span class="go">2018-10-10 15:37:00,289 - INFO - PyDataSource.beam_stats -      100 of   132481 --    9.082 sec,   11.011 events/sec</span>
+<span class="go">[INFO    ]      100 of   132481 --    9.082 sec,   11.011 events/sec</span>
+<span class="go">2018-10-10 15:37:00,461 - INFO - PyDataSource.beam_stats -      200 of   132481 --    9.254 sec,  579.999 events/sec</span>
+<span class="go">[INFO    ]      200 of   132481 --    9.254 sec,  579.999 events/sec</span>
+<span class="go">...</span>
+<span class="go">2018-10-10 16:05:41,327 - INFO - PyDataSource.beam_stats - Dropping unused eventCodes: [76, 75, 77, 80, 81]</span>
+<span class="go">[INFO    ] Dropping unused eventCodes: [76, 75, 77, 80, 81]</span>
+</pre></div>
+</div>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.build_beam_stats.html#PyDataSource.beam_stats.build_beam_stats" title="PyDataSource.beam_stats.build_beam_stats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.build_beam_stats</span></code></a>([exp,&nbsp;run,&nbsp;…])</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.load_small_xarray.html#PyDataSource.beam_stats.load_small_xarray" title="PyDataSource.beam_stats.load_small_xarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.load_small_xarray</span></code></a>(ds[,&nbsp;path,&nbsp;…])</td>
+<td>Load small xarray Dataset with PyDataSource.DataSource.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.beam_stats.make_small_xarray.html#PyDataSource.beam_stats.make_small_xarray" title="PyDataSource.beam_stats.make_small_xarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">beam_stats.make_small_xarray</span></code></a>(self[,&nbsp;…])</td>
+<td>Make Small xarray Dataset.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/PyDataSource.beam_stats.get_beam_stats.html" class="btn btn-neutral float-right" title="PyDataSource.beam_stats.get_beam_stats" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="generated/PyDataSource.ExperimentSummary.to_html.html" class="btn btn-neutral" title="PyDataSource.ExperimentSummary.to_html" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

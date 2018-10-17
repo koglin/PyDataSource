@@ -1,0 +1,7 @@
+# Must be done as psdatmgr
+
+.  /reg/g/psdm/etc/ana_env.sh
+sit_setup  dm-current
+
+dm-create-folders --dirs stats  --mkdir xxx
+

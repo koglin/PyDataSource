@@ -92,10 +92,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conda.html">Updating Releases</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#data-source">Data Source</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="PyDataSource.DataSource.html">PyDataSource.DataSource</a></li>
@@ -198,37 +200,85 @@
 <dl class="attribute">
 <dt id="PyDataSource.SourceData.evr_width">
 <code class="descname">evr_width</code><a class="headerlink" href="#PyDataSource.SourceData.evr_width" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>float</em> – Detector evr trigger width [‘s’]</p>
+<dd><p>Detector evr trigger width [‘s’]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">float</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.SourceData.evr_delay">
 <code class="descname">evr_delay</code><a class="headerlink" href="#PyDataSource.SourceData.evr_delay" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>float</em> – Detector evr trigger delay [‘s’]</p>
+<dd><p>Detector evr trigger delay [‘s’]</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">float</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.SourceData.evr_polarity">
 <code class="descname">evr_polarity</code><a class="headerlink" href="#PyDataSource.SourceData.evr_polarity" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>bool</em> – Detector evr trigger polarity</p>
+<dd><p>Detector evr trigger polarity</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.SourceData.group">
 <code class="descname">group</code><a class="headerlink" href="#PyDataSource.SourceData.group" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>int</em> – Daq evr group</p>
+<dd><p>Daq evr group</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.SourceData.map_key">
 <code class="descname">map_key</code><a class="headerlink" href="#PyDataSource.SourceData.map_key" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>int tuple</em> – Evr configuation map key (card,channel)</p>
+<dd><p>Evr configuation map key (card,channel)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int tuple</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.SourceData.eventCode">
 <code class="descname">eventCode</code><a class="headerlink" href="#PyDataSource.SourceData.eventCode" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>int</em> – Evr event code</p>
+<dd><p>Evr event code</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">

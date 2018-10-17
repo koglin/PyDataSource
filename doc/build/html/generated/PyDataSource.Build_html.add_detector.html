@@ -92,6 +92,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apps.html">Applications</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../build_html.html">Run Summary Reports</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../build_html.html#basic-report-structure">Basic Report Structure</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../build_html.html#auto-add-default-report">Auto add default report</a></li>
@@ -108,8 +109,9 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
 
@@ -180,7 +182,7 @@
 <h1>PyDataSource.Build_html.add_detector<a class="headerlink" href="#pydatasource-build-html-add-detector" title="Permalink to this headline">¶</a></h1>
 <dl class="method">
 <dt id="PyDataSource.Build_html.add_detector">
-<code class="descclassname">Build_html.</code><code class="descname">add_detector</code><span class="sig-paren">(</span><em>alias='FEEGasDetEnergy', percentiles=[0.05, 0.5, 0.95], attrs=None, catagory=None, figsize=None, layout=None, groupby=None, scat_name=None, make_scatter=None, make_table=True, make_timeplot=None, make_histplot=None, make_correlation=True, min_step_data=5, confidence=0.5, labelsize=20, robust_attrs=None, plot_errors=False, bins=50, max_steps=20, plt_style='.', cut=None, show=False, hidden=None, **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/build_html.html#Build_html.add_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.Build_html.add_detector" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">Build_html.</code><code class="descname">add_detector</code><span class="sig-paren">(</span><em>alias='FEEGasDetEnergy', percentiles=[0.05, 0.5, 0.95], attrs=None, catagory=None, figsize=None, layout=None, groupby=None, scat_name=None, make_scatter=None, make_table=True, make_timeplot=None, make_histplot=None, make_correlation=True, min_step_data=5, confidence=0.5, labelsize=20, robust_attrs=None, plot_errors=False, bins=50, max_steps=20, max_scatter=8, plt_style='.', cut=None, show=False, hidden=None, **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/build_html.html#Build_html.add_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.Build_html.add_detector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a detector based on alias</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -205,6 +207,7 @@ If dict of lists of attributes is provided, than make multiple
 loop through dict to make scatter plots with the keys used
 as names of the plots and values used as attributes in plot.</li>
 <li><strong>max_steps</strong> (<em>int</em>) – Max steps in scatter plot to be color coded</li>
+<li><strong>max_scatter</strong> (<em>int</em>) – Max attributes to make scatter plot [Default=8]</li>
 <li><strong>robust_attrs</strong> (<em>list</em>) – List of attibutes to cut on outliers in making scatter plots.</li>
 <li><strong>scat_name</strong> (<em>str</em>) – Optional name of scatter plot</li>
 <li><strong>groupby</strong> (<em>list</em>) – Optionally group data by each attribute in groupby list

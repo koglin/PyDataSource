@@ -272,7 +272,8 @@ def run_available(exp, run=None, instrument=None, offline=True, ffb=False, idx=N
         if ffb:
             path = os.path.join('/reg/d/ffb',instrument,exp,'xtc')
         else:
-            path = os.path.join(experiment_info.getexp_datapath(expNum),instrument,exp,'xtc')
+            path = os.path.join('/reg/d/psdm/',instrument,exp,'xtc')
+            #path = os.path.join(experiment_info.getexp_datapath(expNum),instrument,exp,'xtc')
 
     if idx:
         xtc_files = glob.glob(path+'/index/*.xtc.idx')

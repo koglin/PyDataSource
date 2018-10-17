@@ -1125,7 +1125,7 @@ class DataSource(object):
                 import time
                 import psutils
                 time0 = time.time()
-                while not psutils.run_available(self.data_source.exp, self.data_source.run):
+                while not psutils.run_available(self.data_source.exp, self.data_source.run) and 'tut' not in self.data_source.exp: 
                     time.sleep(5.)
                     print('Waiting for {:} to become available...'.format(self.data_source))
                     if update_url:
@@ -1233,7 +1233,7 @@ class DataSource(object):
                     import time
                     import psutils
                     time0 = time.time()
-                    while not psutils.run_available(self.data_source.exp, self.data_source.run, idx=True):
+                    while not psutils.run_available(self.data_source.exp, self.data_source.run, idx=True) and 'tut' not in self.data_source.exp:
                         time.sleep(5.)
                         print('Waiting for {:} run{:} idx to become available...'.format(self.data_source.exp, self.data_source.run))
                         if timeout and timeout > time.time()-time0:

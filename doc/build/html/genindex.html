@@ -90,10 +90,12 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
 </ul>
 
@@ -166,6 +168,7 @@
  | <a href="#C"><strong>C</strong></a>
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
@@ -312,12 +315,16 @@
 </li>
       <li><a href="generated/PyDataSource.AddOn.html#PyDataSource.AddOn">AddOn (class in PyDataSource)</a>
 </li>
+      <li><a href="generated/PyDataSource.beam_stats.amplitudes.html#PyDataSource.beam_stats.amplitudes">amplitudes() (in module PyDataSource.beam_stats)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.beam_stats.build_beam_stats.html#PyDataSource.beam_stats.build_beam_stats">build_beam_stats() (in module PyDataSource.beam_stats)</a>
+</li>
       <li><a href="generated/PyDataSource.Build_experiment.html#PyDataSource.Build_experiment">Build_experiment (class in PyDataSource)</a>
 
       <ul>
@@ -352,8 +359,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.ConfigSources.html#PyDataSource.ConfigSources">ConfigSources (class in PyDataSource)</a>
 </li>
-      <li><a href="generated/PyDataSource.AddOn.count.html#PyDataSource.AddOn.count">count() (PyDataSource.AddOn method)</a>
+      <li><a href="generated/PyDataSource.beam_stats.count.html#PyDataSource.beam_stats.count">count() (in module PyDataSource.beam_stats)</a>
+
+      <ul>
+        <li><a href="generated/PyDataSource.AddOn.count.html#PyDataSource.AddOn.count">(PyDataSource.AddOn method)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -429,8 +440,24 @@
   </ul></td>
 </tr></table>
 
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.beam_stats.filtered.html#PyDataSource.beam_stats.filtered">filtered() (in module PyDataSource.beam_stats)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.xarray_utils.find_beam_correlations.html#PyDataSource.xarray_utils.find_beam_correlations">find_beam_correlations() (in module PyDataSource.xarray_utils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.beam_stats.get_beam_stats.html#PyDataSource.beam_stats.get_beam_stats">get_beam_stats() (in module PyDataSource.beam_stats)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData.group">group (PyDataSource.SourceData attribute)</a>
 </li>
@@ -472,12 +499,16 @@
 </li>
       <li><a href="generated/PyDataSource.DataSource.load_config.html#PyDataSource.DataSource.load_config">load_config() (PyDataSource.DataSource method)</a>
 </li>
+      <li><a href="generated/PyDataSource.beam_stats.load_small_xarray.html#PyDataSource.beam_stats.load_small_xarray">load_small_xarray() (in module PyDataSource.beam_stats)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.beam_stats.make_small_xarray.html#PyDataSource.beam_stats.make_small_xarray">make_small_xarray() (in module PyDataSource.beam_stats)</a>
+</li>
       <li><a href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData.map_key">map_key (PyDataSource.SourceData attribute)</a>
 </li>
   </ul></td>
@@ -520,14 +551,18 @@
 </li>
       <li><a href="generated/PyDataSource.AddOn.peak.html#PyDataSource.AddOn.peak">peak() (PyDataSource.AddOn method)</a>
 </li>
+      <li><a href="generated/PyDataSource.beam_stats.peak_height.html#PyDataSource.beam_stats.peak_height">peak_height() (in module PyDataSource.beam_stats)</a>
+</li>
+      <li><a href="generated/PyDataSource.beam_stats.peak_time.html#PyDataSource.beam_stats.peak_time">peak_time() (in module PyDataSource.beam_stats)</a>
+</li>
       <li><a href="generated/PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection">projection() (PyDataSource.AddOn method)</a>
 </li>
       <li><a href="generated/PyDataSource.AddOn.property.html#PyDataSource.AddOn.property">property() (PyDataSource.AddOn method)</a>
 </li>
-      <li><a href="generated/PyDataSource.PsanaSrcData.html#PyDataSource.PsanaSrcData">PsanaSrcData (class in PyDataSource)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.PsanaSrcData.html#PyDataSource.PsanaSrcData">PsanaSrcData (class in PyDataSource)</a>
+</li>
       <li><a href="generated/PyDataSource.PsanaTypeData.html#PyDataSource.PsanaTypeData">PsanaTypeData (class in PyDataSource)</a>
 </li>
       <li><a href="generated/PyDataSource.PsanaTypeList.html#PyDataSource.PsanaTypeList">PsanaTypeList (class in PyDataSource)</a>
@@ -546,6 +581,8 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.beam_stats.rawsum.html#PyDataSource.beam_stats.rawsum">rawsum() (in module PyDataSource.beam_stats)</a>
+</li>
       <li><a href="generated/PyDataSource.Run.html#PyDataSource.Run">Run (class in PyDataSource)</a>
 </li>
   </ul></td>
@@ -568,14 +605,20 @@
         <li><a href="generated/PyDataSource.ConfigData.ScanData.html#PyDataSource.ConfigData.ScanData">(PyDataSource.ConfigData attribute)</a>
 </li>
       </ul></li>
+      <li><a href="generated/PyDataSource.beam_stats.sector.html#PyDataSource.beam_stats.sector">sector() (in module PyDataSource.beam_stats)</a>
+</li>
+      <li><a href="generated/PyDataSource.beam_stats.sectors.html#PyDataSource.beam_stats.sectors">sectors() (in module PyDataSource.beam_stats)</a>
+</li>
       <li><a href="generated/PyDataSource.Detector.set_cmpars.html#PyDataSource.Detector.set_cmpars">set_cmpars() (PyDataSource.Detector method)</a>
 </li>
+      <li><a href="generated/PyDataSource.xarray_utils.set_delta_beam.html#PyDataSource.xarray_utils.set_delta_beam">set_delta_beam() (in module PyDataSource.xarray_utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.Detector.show_all.html#PyDataSource.Detector.show_all">show_all() (PyDataSource.Detector method)</a>
 </li>
       <li><a href="generated/PyDataSource.Detector.show_info.html#PyDataSource.Detector.show_info">show_info() (PyDataSource.Detector method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.SmdEvents.html#PyDataSource.SmdEvents">SmdEvents (class in PyDataSource)</a>
 </li>
       <li><a href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData">SourceData (class in PyDataSource)</a>
@@ -622,10 +665,12 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="generated/PyDataSource.WaveformCalibData.html#PyDataSource.WaveformCalibData">WaveformCalibData (class in PyDataSource)</a>
+      <li><a href="generated/PyDataSource.beam_stats.wave8_height.html#PyDataSource.beam_stats.wave8_height">wave8_height() (in module PyDataSource.beam_stats)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.WaveformCalibData.html#PyDataSource.WaveformCalibData">WaveformCalibData (class in PyDataSource)</a>
+</li>
       <li><a href="generated/PyDataSource.WaveformData.html#PyDataSource.WaveformData">WaveformData (class in PyDataSource)</a>
 </li>
   </ul></td>

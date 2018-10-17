@@ -115,10 +115,12 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
 </ul>
 
@@ -409,13 +411,13 @@ from the waveforms and calculates the peak amplitudes of the filtered waveforms.
 <span class="go">*Detectors in group 0 are &quot;BLD&quot; data recorded at 120 Hz on event code 40</span>
 <span class="go">*Detectors listed as Controls are controls devices with unknown event code (but likely 40).</span>
 
-<span class="go">Alias                     Group          Rate  Code  Pol. Delay [s]    Width [s]    Source                    </span>
-<span class="gt">------------------------------------------------------------------------------------------------------------------------</span>
-<span class="n">Acqiris</span>                       <span class="mi">1</span> <span class="n">Beam</span> <span class="o">&amp;</span> <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">140</span>   <span class="n">Pos</span> <span class="mf">0.000893000</span>  <span class="mf">0.000001000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">CxiEndstation</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Acqiris</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>      
-<span class="n">EBeam</span>                         <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">EBeam</span><span class="p">)</span>                          
-<span class="n">FEEGasDetEnergy</span>               <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">FEEGasDetEnergy</span><span class="p">)</span>                
-<span class="n">PhaseCavity</span>                   <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">PhaseCavity</span><span class="p">)</span>                    
-<span class="n">Sc2Imp</span>                        <span class="mi">1</span> <span class="n">Beam</span> <span class="o">&amp;</span> <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">140</span>   <span class="n">Pos</span> <span class="mf">0.000800000</span>  <span class="mf">0.000010000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">CxiEndstation</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Imp</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>          
+<span class="go">Alias                Grp   Description Code Pol   Delay [s]   Width [s] Source                        </span>
+<span class="gt">------------------------------------------------------------------------------------------------------</span>
+<span class="n">Acqiris</span>                <span class="mi">1</span>  <span class="n">Beam</span> <span class="o">&amp;</span> <span class="mi">120</span><span class="n">Hz</span>  <span class="mi">140</span> <span class="n">Pos</span> <span class="mf">0.000893000</span> <span class="mf">0.000001000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">CxiEndstation</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Acqiris</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">EBeam</span>                  <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">EBeam</span><span class="p">)</span>                
+<span class="n">FEEGasDetEnergy</span>        <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">FEEGasDetEnergy</span><span class="p">)</span>      
+<span class="n">PhaseCavity</span>            <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">PhaseCavity</span><span class="p">)</span>          
+<span class="n">Sc2Imp</span>                 <span class="mi">1</span>  <span class="n">Beam</span> <span class="o">&amp;</span> <span class="mi">120</span><span class="n">Hz</span>  <span class="mi">140</span> <span class="n">Pos</span> <span class="mf">0.000800000</span> <span class="mf">0.000010000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">CxiEndstation</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Imp</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>
 <span class="o">&lt;</span> <span class="n">ConfigData</span><span class="p">:</span> <span class="n">exp</span><span class="o">=</span><span class="n">cxitut13</span><span class="p">:</span><span class="n">run</span><span class="o">=</span><span class="mi">30</span><span class="p">:</span><span class="n">smd</span> <span class="o">&gt;</span>
 
 <span class="gp">In [4]: </span><span class="n">evt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
@@ -427,8 +429,20 @@ from the waveforms and calculates the peak amplitudes of the filtered waveforms.
 <span class="gt">--------------------------------------------------------------------------------</span>
 <span class="n">waveform</span>           <span class="o">&lt;</span><span class="mf">2.3891e+04</span><span class="o">&gt;</span> <span class="n">V</span>       <span class="n">Waveform</span> <span class="n">array</span>
 <span class="n">wftime</span>                     <span class="nb">list</span> <span class="n">s</span>       <span class="n">Waveform</span> <span class="n">sample</span> <span class="n">time</span>
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">User</span> <span class="n">Defined</span> <span class="n">Parameters</span><span class="p">:</span>
+<span class="gt">------------------</span>
+<span class="nb">filter</span>                    <span class="o">&lt;</span><span class="mf">0.0</span><span class="o">&gt;</span>         
+<span class="n">signal_width</span>                 <span class="mi">10</span>         
+<span class="n">nchannels</span>                     <span class="mi">4</span>         
+<span class="gt">--------------------------------------------------------------------------------</span>
+<span class="n">User</span> <span class="n">Defined</span> <span class="n">Properties</span><span class="p">:</span>
+<span class="gt">------------------</span>
+<span class="n">filtered</span>                <span class="o">&lt;</span><span class="mf">28.33</span><span class="o">&gt;</span>         
+<span class="n">amplitudes</span>         <span class="mf">24.9</span><span class="p">,</span> <span class="mf">30.4</span><span class="p">,</span> <span class="mf">467.0</span><span class="p">,</span> <span class="mf">9327.7</span>         
 
 <span class="gp">In [6]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">module</span><span class="p">(</span><span class="s1">&#39;impbox&#39;</span><span class="p">)</span>
+<span class="go">Using the path /reg/neh/home4/koglin/conda/arch/x86_64-rhel7-gcc48-opt/python/PyDataSource for impbox</span>
 <span class="go">Loading Sc2Imp as &lt;class &#39;impbox.Impbox&#39;&gt; from /reg/neh/home4/koglin/conda/arch/x86_64-rhel7-gcc48-opt/python/PyDataSource</span>
 
 <span class="gp">In [7]: </span><span class="n">evt</span><span class="o">.</span><span class="n">Sc2Imp</span><span class="o">.</span><span class="n">show_info</span><span class="p">()</span>

@@ -113,10 +113,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
 
@@ -225,6 +227,10 @@ it defines the bin edges, including the rightmost edge, allowing
 for non-uniform bin widths. (used with np.histogram)</li>
 <li><strong>bin_size</strong> (<em>float</em><em>, </em><em>optional</em>) – Size of bins for polar coordinate projections.
 Default = pixelsize</li>
+<li><strong>rmin</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum radius for az projection only
+in units of calibData coords (e.g., calibData.coords_x, typically um)</li>
+<li><strong>rmax</strong> (<em>float</em><em>, </em><em>optional</em>) – Maximum radius for az projection only
+in units of calibData coords (e.g., calibData.coords_x, typically um)</li>
 <li><strong>doc</strong> (<em>str</em><em>, </em><em>optional</em>) – Doc string for resulting projection data</li>
 <li><strong>unit</strong> (<em>str</em><em>, </em><em>optional</em>) – Units of roi data [Default assumes same as attr data]</li>
 <li><strong>publish</strong> (<em>bool</em><em>, </em><em>optional</em>) – Make psplot of roi data</li>
