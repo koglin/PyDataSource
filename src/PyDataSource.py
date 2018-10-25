@@ -3282,7 +3282,7 @@ class EvtDetectors(object):
         """
         Master evr from psana evt data.
         
-o       Returns
+        Returns
         self.eventCodes = []
         -------
         EvrData object

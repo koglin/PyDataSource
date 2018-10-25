@@ -10,7 +10,8 @@ Off-by-one_ Timing Error Analysis
 
 A script for automatically detecting timing errors has been created in the psana PyDataSource package.
 The batch job submission script for use in the Automatic Run Processor (or ARP_) web service is located at:
-  - /reg/g/psdm/utils/arp/submit_offbyone
+
+/reg/g/psdm/utils/arp/submit_offbyone
 
 The ARP script is automatically configured for each new experiment in the experiment 
 Workflow / Batch Processing / Definitions tab of the Experiment Data Manager.  e.g.,
