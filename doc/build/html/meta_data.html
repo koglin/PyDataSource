@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Meta Data &mdash; PyDataSource 0.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+        <link rel="next" title="PyDataSource.PyDataSource.get_unit_from_doc" href="generated/PyDataSource.PyDataSource.get_unit_from_doc.html"/>
+        <link rel="prev" title="PyDataSource.ConfigData.ScanData" href="generated/PyDataSource.ConfigData.ScanData.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Meta Data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api">API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.PyDataSource.get_unit_from_doc.html">PyDataSource.PyDataSource.get_unit_from_doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.PyDataSource.get_type_from_doc.html">PyDataSource.PyDataSource.get_type_from_doc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.PyDataSource._get_typ_func_attr.html">PyDataSource.PyDataSource._get_typ_func_attr</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Meta Data</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/meta_data.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="meta-data">
+<span id="id1"></span><h1>Meta Data<a class="headerlink" href="#meta-data" title="Permalink to this headline">¶</a></h1>
+<p>Meta data, including doc strings and units, are automatically parsed from the
+psana using PyDataSource.psana_doc_info methods.
+The doc strings for the data access methods are generally fairly systematic
+since they are automatically generated using boost from the underlying C++ code.
+The first line is purely a from Boost and only provides the data type.</p>
+<p>This information is updated in the psana_doc_info dictionary.</p>
+<p>e.g., for the EBeam Charge</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [1]: </span><span class="kn">import</span> <span class="nn">psana</span>
+
+<span class="gp">In [2]: </span>psana.Bld.BldDataEBeamV7.ebeamCharge<span class="o">?</span>
+<span class="go">Docstring:</span>
+<span class="go">ebeamCharge( (BldDataEBeamV7)arg1) -&gt; float :</span>
+<span class="go">    Beam charge in nC.</span>
+<span class="go">Type:      instancemethod</span>
+
+<span class="gp">In [3]: </span><span class="kn">import</span> <span class="nn">PyDataSource</span>
+
+<span class="gp">In [4]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">get_unit_from_doc</span><span class="p">(</span><span class="n">psana</span><span class="o">.</span><span class="n">Bld</span><span class="o">.</span><span class="n">BldDataEBeamV7</span><span class="o">.</span><span class="n">ebeamCharge</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
+<span class="gh">Out[4]: </span><span class="go">&#39;nC&#39;</span>
+
+<span class="gp">In [5]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">get_type_from_doc</span><span class="p">(</span><span class="n">psana</span><span class="o">.</span><span class="n">Bld</span><span class="o">.</span><span class="n">BldDataEBeamV7</span><span class="o">.</span><span class="n">ebeamCharge</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
+<span class="gh">Out[5]: </span><span class="go">&#39;float&#39;</span>
+
+<span class="gp">In [6]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataEBeamV7&#39;</span><span class="p">][</span><span class="s1">&#39;ebeamCharge&#39;</span><span class="p">]</span>
+<span class="gh">Out[6]: </span><span class="go">{&#39;doc&#39;: &#39;Beam charge in nC.&#39;, &#39;type&#39;: &#39;float&#39;, &#39;unit&#39;: &#39;nC&#39;}</span>
+</pre></div>
+</div>
+<p>In some cases the auto parsing does not work well.
+In this the psana_doc_info dictionary can be corrected in the psana_doc_info.py file.</p>
+<p>e.g., the EBeam charge at the dump</p>
+<div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [7]: </span>psana.Bld.BldDataEBeamV7.ebeamDumpCharge<span class="o">?</span>
+<span class="go">Docstring:</span>
+<span class="go">ebeamDumpCharge( (BldDataEBeamV7)arg1) -&gt; float :</span>
+<span class="go">    Bunch charge at Dump in num. electrons</span>
+<span class="go">Type:      instancemethod</span>
+
+<span class="gp">In [8]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">get_unit_from_doc</span><span class="p">(</span><span class="n">psana</span><span class="o">.</span><span class="n">Bld</span><span class="o">.</span><span class="n">BldDataEBeamV7</span><span class="o">.</span><span class="n">ebeamDumpCharge</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
+<span class="gh">Out[8]: </span><span class="go">&#39;num&#39;</span>
+
+<span class="gp">In [9]: </span><span class="n">PyDataSource</span><span class="o">.</span><span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataEBeamV7&#39;</span><span class="p">][</span><span class="s1">&#39;ebeamDumpCharge&#39;</span><span class="p">]</span>
+<span class="gh">Out[9]:</span>
+<span class="go">{&#39;doc&#39;: &#39;Bunch charge at Dump in num. electrons&#39;,</span>
+<span class="go"> &#39;type&#39;: &#39;float&#39;,</span>
+<span class="go"> &#39;unit&#39;: &#39;e-&#39;}</span>
+</pre></div>
+</div>
+<p>where the PyDataSource/src/psana_doc_info.py file has the doc info updated with
+the following line</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataEBeamV7&#39;</span><span class="p">][</span><span class="s1">&#39;ebeamDumpCharge&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;e-&#39;</span>
+</pre></div>
+</div>
+<p>This information is avaliable throught the PsanaTypeData._attr_info dictionary
+that is generated by the PyDataSource._get_typ_func_attr method.</p>
+<p>Within the _get_typ_func_attr method there are several methods to parse and interpret
+the data, which are primarily used for configuration data.</p>
+<p>e.g., for the CsPad detector the psana_doc_info.py file includes the following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;numAsicsStored&#39;</span><span class="p">][</span><span class="s1">&#39;func_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;asicMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;badAsicMask0&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;badAsicMask1&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;concentratorVersion&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;quadMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bin</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;roiMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_len_hex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;roiMasks&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ElementV2&#39;</span><span class="p">][</span><span class="s1">&#39;common_mode&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;ampIdle&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;biasTuning&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digCount&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;acqDelay&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;acqDelay&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;delay before acquisition (350 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digDelay&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digDelay&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;hold delay before A to D conversion (1000 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digPeriod&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digPeriod&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;digitiztion perios&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;intTime&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;intTime&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;duration of the integration window (5000 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;readClkHold&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 1)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;readClkSet&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 2)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;rowColShiftPer&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 3)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digCount&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(max = 0x3ff)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;CsPadReadOnlyCfg&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+</pre></div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li>func_len is either an integer or an attribute name that specifies that the
+data attribute is a vector of the specified length</li>
+<li>func_method is a method applied to evaluate the data
+(e.g., hex is a python method to convert a number to hexidecimal)</li>
+</ul>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.PyDataSource.get_unit_from_doc.html#PyDataSource.PyDataSource.get_unit_from_doc" title="PyDataSource.PyDataSource.get_unit_from_doc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PyDataSource.PyDataSource.get_unit_from_doc</span></code></a>(doc)</td>
+<td>Parse the unit from the doc string.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.PyDataSource.get_type_from_doc.html#PyDataSource.PyDataSource.get_type_from_doc" title="PyDataSource.PyDataSource.get_type_from_doc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PyDataSource.PyDataSource.get_type_from_doc</span></code></a>(doc)</td>
+<td>Parse the type from the doc string.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.PyDataSource._get_typ_func_attr.html#PyDataSource.PyDataSource._get_typ_func_attr" title="PyDataSource.PyDataSource._get_typ_func_attr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PyDataSource.PyDataSource._get_typ_func_attr</span></code></a>(…)</td>
+<td>Return psana functions as properties.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="generated/PyDataSource.PyDataSource.get_unit_from_doc.html" class="btn btn-neutral float-right" title="PyDataSource.PyDataSource.get_unit_from_doc" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="generated/PyDataSource.ConfigData.ScanData.html" class="btn btn-neutral" title="PyDataSource.ConfigData.ScanData" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

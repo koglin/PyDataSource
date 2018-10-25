@@ -91,6 +91,7 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta_data.html">Meta Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
@@ -99,6 +100,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Updating Releases</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#analysis-environment">Analysis Environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#upgrade-ana-release">Upgrade ana release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#updating-arp-release">Updating ARP release</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sphinx-documentation">Sphinx Documentation</a></li>
 </ul>
 </li>
@@ -224,6 +226,24 @@ scons
 
 git tag -a V00-06-04 -m <span class="s1">&#39;Version V00-06-04&#39;</span>
 git push origin V00-06-04
+</pre></div>
+</div>
+</div>
+<div class="section" id="updating-arp-release">
+<h2>Updating ARP release<a class="headerlink" href="#updating-arp-release" title="Permalink to this headline">¶</a></h2>
+<p>The <a href="#id1"><span class="problematic" id="id2">Off-by-one_</span></a> Automated Run Proccessing (ARP) application release is defined by soft links in the /reg/g/psdm/utils/arp folder.</p>
+<p>There are several other applications from the PyDataSource package also soft linked to a common release.  The soft link to the current psana release must be updated manually, or alternatively a conda development path may be used.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>koglin@psnxserv02 ~ <span class="m">10</span>:06:11<span class="o">]</span> ls -l /reg/g/psdm/utils/arp/
+total <span class="m">9</span>
+drwxrwsr-x  <span class="m">3</span> koglin ps-pcds <span class="m">10</span> Apr <span class="m">20</span>  <span class="m">2018</span> config
+drwxrwsrwx <span class="m">15</span> koglin ps-pcds <span class="m">17</span> Oct <span class="m">24</span> <span class="m">08</span>:07 logs
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">17</span> Oct <span class="m">21</span> <span class="m">12</span>:26 offbyone -&gt; submit_beam_stats
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">63</span> Oct <span class="m">25</span> <span class="m">10</span>:05 release -&gt; /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.71
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">24</span> Oct <span class="m">21</span> <span class="m">12</span>:25 submit_batch -&gt; release/bin/submit_batch
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">29</span> Oct <span class="m">21</span> <span class="m">12</span>:24 submit_beam_stats -&gt; release/bin/submit_beam_stats
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">30</span> Oct <span class="m">21</span> <span class="m">12</span>:24 submit_exp_summary -&gt; release/bin/submit_exp_summary
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">26</span> Oct <span class="m">21</span> <span class="m">12</span>:25 submit_summary -&gt; release/bin/submit_summary
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">26</span> Oct <span class="m">21</span> <span class="m">12</span>:25 submit_to_hdf5 -&gt; release/bin/submit_to_hdf5
 </pre></div>
 </div>
 </div>

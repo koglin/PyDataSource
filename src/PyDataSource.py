@@ -3283,7 +3283,6 @@ class EvtDetectors(object):
         Master evr from psana evt data.
         
         Returns
-        self.eventCodes = []
         -------
         EvrData object
         """
@@ -3636,6 +3635,14 @@ class SourceData(object):
 
 class EvrData(object):
 
+    """
+    Evr eventCode information for current event in DataSource 
+
+    Parameters
+    ----------
+    ds : DataSource object
+
+    """
     _detail_attrs  = ['present', 'timestampHigh', 'timestampLow',
                       '_attr_info', '_src', '_typ', '_info', '_typ_func',
                       'show_info', 'show_table', '_present', '_values', '_all_values']
@@ -3672,10 +3679,16 @@ class EvrData(object):
 
     @ property
     def name(self):
+        """
+        Evr name
+        """
         return self._ds._evr.name
 
     @ property
     def source(self):
+        """
+        Evr source
+        """
         return self._ds._evr.source
 
     @property
@@ -3708,6 +3721,7 @@ class EvrData(object):
         
         return list(sorted(all_attrs))
 
+
 class EvrDataDetails(PsanaTypeData):
     """
     Evr eventCode information for current event in DataSource 
@@ -3728,12 +3742,14 @@ class EvrDataDetails(PsanaTypeData):
     @property
     def _strict_codes(self):
         """
+        Event codes strictly defined for the readout event.
         """
         fiducials = self.EventId.fiducials
         return [code for code, tsh in self.timestampHigh.items() if tsh == fiducials]
 
     def _present(self, eventCode, strict=True):
-        """Return True if the eventCode is present.
+        """
+        Return True if the eventCode is present.
         """
         try:
             if strict:
@@ -3851,7 +3867,7 @@ class EvrDataDetails(PsanaTypeData):
         return eventCodeStr
 
     def __dir__(self):
-        all_attrs =  set(self.__dict__.keys() + dir(EvrData))
+        all_attrs =  set(self.__dict__.keys() + dir(EvrDataDetails))
         
         return list(sorted(all_attrs))
 

@@ -91,6 +91,7 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta_data.html">Meta Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
@@ -125,6 +126,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#event-info">Event Info</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrData.html">PyDataSource.EvrData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrDataDetails.html">PyDataSource.EvrDataDetails</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrNullData.html">PyDataSource.EvrNullData</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EventId.html">PyDataSource.EventId</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html">PyDataSource.L3Ttrue</a></li>
@@ -322,18 +324,21 @@
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EvrData.html#PyDataSource.EvrData" title="PyDataSource.EvrData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrData</span></code></a>(ds)</td>
-<td></td>
+<td>Evr eventCode information for current event in DataSource</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData" title="PyDataSource.EvrNullData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrNullData</span></code></a>(ds)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EvrDataDetails.html#PyDataSource.EvrDataDetails" title="PyDataSource.EvrDataDetails"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrDataDetails</span></code></a>(ds)</td>
+<td>Evr eventCode information for current event in DataSource</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData" title="PyDataSource.EvrNullData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrNullData</span></code></a>(ds)</td>
 <td>Evr data class when no EvrData type is in event keys.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EventId.html#PyDataSource.EventId" title="PyDataSource.EventId"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventId</span></code></a>(evt)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EventId.html#PyDataSource.EventId" title="PyDataSource.EventId"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventId</span></code></a>(evt)</td>
 <td>Time stamp information from psana EventId.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html#PyDataSource.L3Ttrue" title="PyDataSource.L3Ttrue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Ttrue</span></code></a>(ds)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html#PyDataSource.L3Ttrue" title="PyDataSource.L3Ttrue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Ttrue</span></code></a>(ds)</td>
 <td>L3 Trigger default if no L3 Trigger data is in DataSource.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.L3Tdata.html#PyDataSource.L3Tdata" title="PyDataSource.L3Tdata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Tdata</span></code></a>(ds)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.L3Tdata.html#PyDataSource.L3Tdata" title="PyDataSource.L3Tdata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Tdata</span></code></a>(ds)</td>
 <td>L3 Trigger data</td>
 </tr>
 </tbody>

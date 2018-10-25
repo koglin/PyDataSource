@@ -90,6 +90,7 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta_data.html">Meta Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
@@ -214,6 +215,8 @@
 </li>
         <li><a href="generated/PyDataSource.EvrData.html#PyDataSource.EvrData.__init__">(PyDataSource.EvrData method)</a>
 </li>
+        <li><a href="generated/generated/PyDataSource.EvrDataDetails.__init__.html#PyDataSource.EvrDataDetails.__init__">(PyDataSource.EvrDataDetails method)</a>
+</li>
         <li><a href="generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData.__init__">(PyDataSource.EvrNullData method)</a>
 </li>
         <li><a href="generated/PyDataSource.EvtDetectors.html#PyDataSource.EvtDetectors.__init__">(PyDataSource.EvtDetectors method)</a>
@@ -270,6 +273,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.Detector._det_config.html#PyDataSource.Detector._det_config">_det_config (PyDataSource.Detector attribute)</a>
+</li>
+      <li><a href="generated/PyDataSource.PyDataSource._get_typ_func_attr.html#PyDataSource.PyDataSource._get_typ_func_attr">_get_typ_func_attr() (in module PyDataSource.PyDataSource)</a>
 </li>
       <li><a href="generated/PyDataSource.Detector._update_xarray_info.html#PyDataSource.Detector._update_xarray_info">_update_xarray_info() (PyDataSource.Detector method)</a>
 </li>
@@ -413,10 +418,10 @@
       </ul></li>
       <li><a href="generated/PyDataSource.Events.html#PyDataSource.Events">Events (class in PyDataSource)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.EvtDetectors.Evr.html#PyDataSource.EvtDetectors.Evr">Evr (PyDataSource.EvtDetectors attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData.evr_delay">evr_delay (PyDataSource.SourceData attribute)</a>
 </li>
       <li><a href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData.evr_polarity">evr_polarity (PyDataSource.SourceData attribute)</a>
@@ -424,6 +429,8 @@
       <li><a href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData.evr_width">evr_width (PyDataSource.SourceData attribute)</a>
 </li>
       <li><a href="generated/PyDataSource.EvrData.html#PyDataSource.EvrData">EvrData (class in PyDataSource)</a>
+</li>
+      <li><a href="generated/PyDataSource.EvrDataDetails.html#PyDataSource.EvrDataDetails">EvrDataDetails (class in PyDataSource)</a>
 </li>
       <li><a href="generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData">EvrNullData (class in PyDataSource)</a>
 </li>
@@ -457,8 +464,20 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.beam_stats.get_beam_stats.html#PyDataSource.beam_stats.get_beam_stats">get_beam_stats() (in module PyDataSource.beam_stats)</a>
 </li>
+      <li><a href="generated/PyDataSource.get_type_from_doc.html#PyDataSource.get_type_from_doc">get_type_from_doc() (in module PyDataSource)</a>
+
+      <ul>
+        <li><a href="generated/PyDataSource.PyDataSource.get_type_from_doc.html#PyDataSource.PyDataSource.get_type_from_doc">(in module PyDataSource.PyDataSource)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/PyDataSource.get_unit_from_doc.html#PyDataSource.get_unit_from_doc">get_unit_from_doc() (in module PyDataSource)</a>
+
+      <ul>
+        <li><a href="generated/PyDataSource.PyDataSource.get_unit_from_doc.html#PyDataSource.PyDataSource.get_unit_from_doc">(in module PyDataSource.PyDataSource)</a>
+</li>
+      </ul></li>
       <li><a href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData.group">group (PyDataSource.SourceData attribute)</a>
 </li>
   </ul></td>
@@ -555,6 +574,8 @@
 </li>
       <li><a href="generated/PyDataSource.beam_stats.peak_time.html#PyDataSource.beam_stats.peak_time">peak_time() (in module PyDataSource.beam_stats)</a>
 </li>
+      <li><a href="generated/generated/PyDataSource.EvrDataDetails.present.html#PyDataSource.EvrDataDetails.present">present() (PyDataSource.EvrDataDetails method)</a>
+</li>
       <li><a href="generated/PyDataSource.AddOn.projection.html#PyDataSource.AddOn.projection">projection() (PyDataSource.AddOn method)</a>
 </li>
       <li><a href="generated/PyDataSource.AddOn.property.html#PyDataSource.AddOn.property">property() (PyDataSource.AddOn method)</a>
@@ -613,11 +634,17 @@
 </li>
       <li><a href="generated/PyDataSource.xarray_utils.set_delta_beam.html#PyDataSource.xarray_utils.set_delta_beam">set_delta_beam() (in module PyDataSource.xarray_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.Detector.show_all.html#PyDataSource.Detector.show_all">show_all() (PyDataSource.Detector method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/PyDataSource.Detector.show_info.html#PyDataSource.Detector.show_info">show_info() (PyDataSource.Detector method)</a>
+
+      <ul>
+        <li><a href="generated/generated/PyDataSource.EvrDataDetails.show_info.html#PyDataSource.EvrDataDetails.show_info">(PyDataSource.EvrDataDetails method)</a>
+</li>
+      </ul></li>
+      <li><a href="generated/generated/PyDataSource.EvrDataDetails.show_table.html#PyDataSource.EvrDataDetails.show_table">show_table() (PyDataSource.EvrDataDetails method)</a>
 </li>
       <li><a href="generated/PyDataSource.SmdEvents.html#PyDataSource.SmdEvents">SmdEvents (class in PyDataSource)</a>
 </li>

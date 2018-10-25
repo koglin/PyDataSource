@@ -90,6 +90,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../meta_data.html">Meta Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../exp_summary.html">Experiment Summary</a></li>
@@ -482,7 +483,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;__module__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="o">.</span><span class="vm">__module__</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;psana&#39;</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">_get_typ_func_attr</span><span class="p">(</span><span class="n">typ_func</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">nolist</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="_get_typ_func_attr"><a class="viewcode-back" href="../../generated/PyDataSource.PyDataSource._get_typ_func_attr.html#PyDataSource._get_typ_func_attr">[docs]</a><span class="k">def</span> <span class="nf">_get_typ_func_attr</span><span class="p">(</span><span class="n">typ_func</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">nolist</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return psana functions as properties.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">typ_func</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
@@ -575,7 +576,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">info</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
 
-    <span class="k">return</span> <span class="n">info</span>
+    <span class="k">return</span> <span class="n">info</span></div>
 
 <span class="k">def</span> <span class="nf">psmon_publish</span><span class="p">(</span><span class="n">evt</span><span class="p">,</span> <span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -3446,7 +3447,6 @@
 <span class="sd">        Master evr from psana evt data.</span>
 <span class="sd">        </span>
 <span class="sd">        Returns</span>
-<span class="sd">        self.eventCodes = []</span>
 <span class="sd">        -------</span>
 <span class="sd">        EvrData object</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -3799,6 +3799,14 @@
 
 <div class="viewcode-block" id="EvrData"><a class="viewcode-back" href="../../generated/PyDataSource.EvrData.html#PyDataSource.EvrData">[docs]</a><span class="k">class</span> <span class="nc">EvrData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evr eventCode information for current event in DataSource </span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : DataSource object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">_detail_attrs</span>  <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;present&#39;</span><span class="p">,</span> <span class="s1">&#39;timestampHigh&#39;</span><span class="p">,</span> <span class="s1">&#39;timestampLow&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;_attr_info&#39;</span><span class="p">,</span> <span class="s1">&#39;_src&#39;</span><span class="p">,</span> <span class="s1">&#39;_typ&#39;</span><span class="p">,</span> <span class="s1">&#39;_info&#39;</span><span class="p">,</span> <span class="s1">&#39;_typ_func&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;show_info&#39;</span><span class="p">,</span> <span class="s1">&#39;show_table&#39;</span><span class="p">,</span> <span class="s1">&#39;_present&#39;</span><span class="p">,</span> <span class="s1">&#39;_values&#39;</span><span class="p">,</span> <span class="s1">&#39;_all_values&#39;</span><span class="p">]</span>
@@ -3835,10 +3843,16 @@
 
     <span class="o">@</span> <span class="nb">property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evr name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">_evr</span><span class="o">.</span><span class="n">name</span>
 
     <span class="o">@</span> <span class="nb">property</span>
     <span class="k">def</span> <span class="nf">source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evr source</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">_evr</span><span class="o">.</span><span class="n">source</span>
 
     <span class="nd">@property</span>
@@ -3871,7 +3885,8 @@
         
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">all_attrs</span><span class="p">))</span></div>
 
-<span class="k">class</span> <span class="nc">EvrDataDetails</span><span class="p">(</span><span class="n">PsanaTypeData</span><span class="p">):</span>
+
+<div class="viewcode-block" id="EvrDataDetails"><a class="viewcode-back" href="../../generated/PyDataSource.EvrDataDetails.html#PyDataSource.EvrDataDetails">[docs]</a><span class="k">class</span> <span class="nc">EvrDataDetails</span><span class="p">(</span><span class="n">PsanaTypeData</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Evr eventCode information for current event in DataSource </span>
 
@@ -3880,23 +3895,25 @@
 <span class="sd">    ds : DataSource object</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ds</span><span class="p">):</span>
+<div class="viewcode-block" id="EvrDataDetails.__init__"><a class="viewcode-back" href="../../generated/generated/PyDataSource.EvrDataDetails.__init__.html#PyDataSource.EvrDataDetails.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ds</span><span class="p">):</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_typ</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_src</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">_evt_modules</span><span class="p">[</span><span class="s1">&#39;EvrData&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">typ_func</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">_current_evt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_typ</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_src</span><span class="p">)</span>
         <span class="n">PsanaTypeData</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">typ_func</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eventCodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fifoEvents</span><span class="o">.</span><span class="n">eventCode</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span> <span class="o">=</span> <span class="n">ds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ds</span> <span class="o">=</span> <span class="n">ds</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">_strict_codes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Event codes strictly defined for the readout event.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">fiducials</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EventId</span><span class="o">.</span><span class="n">fiducials</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">code</span> <span class="k">for</span> <span class="n">code</span><span class="p">,</span> <span class="n">tsh</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestampHigh</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">tsh</span> <span class="o">==</span> <span class="n">fiducials</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_present</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eventCode</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return True if the eventCode is present.</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return True if the eventCode is present.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">strict</span><span class="p">:</span>
@@ -3926,7 +3943,7 @@
             
         <span class="k">return</span> <span class="kc">False</span>
 
-    <span class="k">def</span> <span class="nf">present</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="EvrDataDetails.present"><a class="viewcode-back" href="../../generated/generated/PyDataSource.EvrDataDetails.present.html#PyDataSource.EvrDataDetails.present">[docs]</a>    <span class="k">def</span> <span class="nf">present</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Check if the event has specified event code.</span>
 <span class="sd">        Multiple event codes can be tested.</span>
@@ -3970,7 +3987,7 @@
             <span class="k">if</span> <span class="p">(</span><span class="n">eventCode</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_present</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">eventCode</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)):</span>
                 <span class="k">return</span> <span class="kc">False</span>
 
-        <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">timestampHigh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3994,7 +4011,7 @@
         <span class="k">return</span> <span class="n">EventId</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ds</span><span class="o">.</span><span class="n">_current_evt</span><span class="p">)</span>
 
 
-    <span class="k">def</span> <span class="nf">show_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="EvrDataDetails.show_table"><a class="viewcode-back" href="../../generated/generated/PyDataSource.EvrDataDetails.show_table.html#PyDataSource.EvrDataDetails.show_table">[docs]</a>    <span class="k">def</span> <span class="nf">show_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Show table of event codes present&#39;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span><span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -4003,7 +4020,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numFifoEvents</span><span class="p">):</span>
             <span class="n">message</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:6}</span><span class="s1"> </span><span class="si">{:8}</span><span class="s1"> </span><span class="si">{:8}</span><span class="s1">   </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">eventCode</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> 
                             <span class="n">ecs</span><span class="o">.</span><span class="n">timestampHigh</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">ecs</span><span class="o">.</span><span class="n">timestampLow</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">present</span><span class="p">(</span><span class="n">ecs</span><span class="o">.</span><span class="n">eventCode</span><span class="p">[</span><span class="n">i</span><span class="p">])))</span>
-        <span class="k">return</span> <span class="n">message</span>
+        <span class="k">return</span> <span class="n">message</span></div>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -4014,9 +4031,9 @@
         <span class="k">return</span> <span class="n">eventCodeStr</span>
 
     <span class="k">def</span> <span class="nf">__dir__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">all_attrs</span> <span class="o">=</span>  <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">+</span> <span class="nb">dir</span><span class="p">(</span><span class="n">EvrData</span><span class="p">))</span>
+        <span class="n">all_attrs</span> <span class="o">=</span>  <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">+</span> <span class="nb">dir</span><span class="p">(</span><span class="n">EvrDataDetails</span><span class="p">))</span>
         
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">all_attrs</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">all_attrs</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="EvrNullData"><a class="viewcode-back" href="../../generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData">[docs]</a><span class="k">class</span> <span class="nc">EvrNullData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>

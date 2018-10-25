@@ -82,6 +82,28 @@ Push package updates to github and add tag so that latest PyDataSource version w
     git push origin V00-06-04
 
 
+Updating ARP release
+--------------------
+
+The Off-by-one_ Automated Run Proccessing (ARP) application release is defined by soft links in the /reg/g/psdm/utils/arp folder.
+
+There are several other applications from the PyDataSource package also soft linked to a common release.  The soft link to the current psana release must be updated manually, or alternatively a conda development path may be used.
+
+.. code-block:: bash
+
+    [koglin@psnxserv02 ~ 10:06:11] ls -l /reg/g/psdm/utils/arp/
+    total 9
+    drwxrwsr-x  3 koglin ps-pcds 10 Apr 20  2018 config
+    drwxrwsrwx 15 koglin ps-pcds 17 Oct 24 08:07 logs
+    lrwxrwxrwx  1 koglin ps-pcds 17 Oct 21 12:26 offbyone -> submit_beam_stats
+    lrwxrwxrwx  1 koglin ps-pcds 63 Oct 25 10:05 release -> /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.71
+    lrwxrwxrwx  1 koglin ps-pcds 24 Oct 21 12:25 submit_batch -> release/bin/submit_batch
+    lrwxrwxrwx  1 koglin ps-pcds 29 Oct 21 12:24 submit_beam_stats -> release/bin/submit_beam_stats
+    lrwxrwxrwx  1 koglin ps-pcds 30 Oct 21 12:24 submit_exp_summary -> release/bin/submit_exp_summary
+    lrwxrwxrwx  1 koglin ps-pcds 26 Oct 21 12:25 submit_summary -> release/bin/submit_summary
+    lrwxrwxrwx  1 koglin ps-pcds 26 Oct 21 12:25 submit_to_hdf5 -> release/bin/submit_to_hdf5
+
+
 Sphinx Documentation
 --------------------
 
