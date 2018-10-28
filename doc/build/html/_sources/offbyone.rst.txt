@@ -70,6 +70,7 @@ in which case it is loaded from an xarray compatible hdf5 file.
 Instrument specific transmission information is then added according to the
 beam_stats._transmission_pvs dictionary.
 
+
 Dropped Shots
 -------------
 
@@ -189,6 +190,16 @@ The above is all executed as in the following example:
     :toctree: generated/
 
     beam_stats.build_beam_stats
+
+
+Detector Timing and Config Error Alerts
+---------------------------------------
+
+Warnings and alerts for timing and config errors are also automatically generated.
+Any detector with an alert or warning is highlighed in the Workflow / Control / Reports
+with a link to the more detailed Report Notes section of that run.
+
+See config_data_ section for details on the Detector Timing and Config Check methods and config files
 
 
 API

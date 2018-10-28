@@ -495,7 +495,15 @@ def get_beam_stats(exp, run, default_modules={},
     except:
         traceback.print_exc()
         print('Could not load transmission pvs')
-
+    
+    try:
+        #Save sources, eventCodes and ScanData xarray datasets
+        ds.configData.save_configData()
+        print('')
+        print('Writing Scan Data')
+        print(ds.configData.ScanData.dataset)
+    except:
+        traceback.print_exc('Cannot write scan information for {:}'.format(ds))
 
     nevents = ds.nevents
     if drop_code not in xsmd or not xsmd[drop_code].values.any():
@@ -906,11 +914,14 @@ def build_beam_stats(exp=None, run=None,
     try:
         from PyDataSource import DataSource
         ds = DataSource(exp=exp,run=run)
+        configData = ds.configData
         config_info = str(ds.configData.show_info(show_codes=False))
         print(config_info)
     except:
+        configData = None
         config_info = None
         traceback.print_exc('Cannot get data source information for {:} Run {:}'.format(exp,run))
+
 
     try:
         from build_html import Build_html
@@ -964,6 +975,22 @@ def build_beam_stats(exp=None, run=None,
             report_notes.append('')
         except:
             pass
+        
+        nsteps = 1 
+        step_attrs = []
+        try:
+            if configData is not None:
+                scanData = configData.ScanData
+                nsteps = scanData.nsteps
+                df_steps = pd.DataFrame(scanData.control_values)
+                scan_attrs = list(df_steps.keys()[df_steps.std() > 0])
+                if nsteps > 1:
+                    report_notes.append('Scan Steps = {:}'.format(nsteps))
+                    report_notes.append('Scan Variables = {:}'.format(scan_attrs))
+                    report_notes.append('')
+            
+        except:
+            traceback.print_exc('Cannot get scan information for {:}'.format(ds))
 
         # Event code flags
         try:
@@ -1130,9 +1157,11 @@ def build_beam_stats(exp=None, run=None,
         except:
             drop_detectors = []
 
+
         try:
             beam_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.beam_corr_detected])))
             if beam_detectors:
+                #beam_detectors = ['<a href={:}#{:}_data>{:}</a>'.format(weblink, a, a) for a in beam_detectors]
                 batch_str = ', '.join([attr for attr in beam_detectors])
                 #batch_str = ', '.join(['<a href={:}#{:}_data>{:}</a>'.format(weblink, attr,attr) \
                 #                        for attr in beam_detectors])
@@ -1158,6 +1187,18 @@ def build_beam_stats(exp=None, run=None,
                     report_notes.append('    + '+a)
         except:
             warning_detectors = []
+
+        try:
+            if nsteps > 1:
+                batch_attr = '<a href={:}#{:}_data>{:}</a>'.format(weblink, "%20Scan", '{:} Scan Steps'.format(nsteps))
+                batch_str = 'Scan Variables = {:}'.format(scan_attrs)
+                batch_counters[batch_attr] = [batch_str, 'purple']
+                try:
+                    b.add_textblock(str(configData.ScanData.show_info()), ' Scan', 'Step Info')
+                except:
+                    traceback.print_exc('Cannot add Scan Data')
+        except:
+            pass
 
         if config_info:
             report_notes.append('')

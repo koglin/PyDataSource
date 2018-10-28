@@ -83,6 +83,87 @@ This information is gathered from the psana.env() configStore objection.  As wit
 makes the configStore keys, get and put methods avilable from the configStore object.  
 
 
+Detector Timing and Config Check
+--------------------------------
+
+The detector timing and configuration can be checked against recommended operating values with 
+the checkConfig methods in configData object.
+
+e.g., the recommended evr width for the 2.3M CsPad detectors is 0.1 ms.  
+In this example the width was set to 3 ms, and only a warning was issued 
+since this is generally not expected to cause an issue with the detector
+readout.
+
+.. sourcecode:: ipython
+
+    In [6]: ds = PyDataSource.DataSource(exp='cxix34517', run=42)
+
+    In [7]: ds.configData.configCheck.show_info()
+    Out[7]: 
+    detector        parameter      level    error                 
+    --------------------------------------------------------------
+    DsdCsPad        evr_width      warning  0.003 > 0.0001        
+
+
+The recommended detector timing settings from confluence:
+
+- https://confluence.slac.stanford.edu/x/kIWhBg
+
+There are two files in json format.
+
+One for the detector configdb information:
+
+- /reg/g/psdm/utils/arp/config/default/config_alert.json
+
+And one for the evr trigger information:
+
+- /reg/g/psdm/utils/arp/config/default/trigger_alert.json
+
+
+The structure is:
+
+- devName (.e.g., Cspad, Opal1000)
+  - alert/warning level (still tbd if emails or log posts are generated with alerts)
+    - attribute (e.g., evr_width, evr_polarity, evr_delay)
+      - value:  either a single value or a list of the valid range [low, high]
+
+For example for the Cspad2x2 (i.e., 140k) detectors, a common readout issue
+is setting the wrong polarity or delay.  
+The line in the default trigger_alert file is specified as
+
+.. code-block:: bash
+
+    "Cspad2x2":{
+        "alert":{"evr_polarity":"Pos","evr_delay":[0.00048,0.00052]},
+        "warning":{"evr_width":[0.00001,0.0001]}
+        },
+
+
+To make things more flexibile for each instrument to put in specific alerts 
+that may conflict with other instruments, there will be folders for each instrument.  
+The intent is that they generally will point to the default 
+unless instrument specific values are desired.  i.e.,
+
+.. code-block:: bash
+
+    ls /reg/g/psdm/utils/arp/config -l
+    total 4
+    lrwxrwxrwx 1 koglin ps-pcds 7 Apr 19  2018 amo -> default
+    lrwxrwxrwx 1 koglin ps-pcds 7 Apr 20  2018 cxi -> default
+    drwxrwsr-x 2 koglin ps-pcds 5 May 18 12:36 default
+    lrwxrwxrwx 1 koglin ps-pcds 7 Apr 19  2018 mec -> default
+    lrwxrwxrwx 1 koglin ps-pcds 7 Apr 19  2018 mfx -> default
+    lrwxrwxrwx 1 koglin ps-pcds 7 Apr 19  2018 sxr -> default
+    lrwxrwxrwx 1 koglin ps-pcds 7 Apr 19  2018 xcs -> default
+    lrwxrwxrwx 1 koglin ps-pcds 7 Apr 19  2018 xpp -> default
+
+
+.. autosummary::
+    :toctree: generated/
+
+    config_check.ConfigCheck
+
+
 ConfigData Class API
 --------------------
 
@@ -90,6 +171,7 @@ ConfigData Class API
     :toctree: generated/
 
     ConfigData
+
 
 Attributes
 ----------

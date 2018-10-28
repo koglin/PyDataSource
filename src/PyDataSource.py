@@ -826,6 +826,7 @@ class DataSource(object):
                 traceback.print_exc()
                 print('Could not load first step in smd data.' )
 
+
     def _get_exp_summary(self, reload=False, build_html=None, **kwargs):
         """
         Load experiment summary
@@ -3127,6 +3128,19 @@ class ConfigData(object):
         """
         return self._arch.search_pvs(pv, do_print=False) != []
 
+    def save_configData(self):
+        """
+        Save sources, eventCodes and ScanData xarray datasets
+        """
+        run = self._ds.data_source.run
+        path = os.path.join(self._ds.data_source.res_dir,'nc')
+        scan_file='{:}/run{:04}_{:}.nc'.format(path, run, 'scan')
+        self.ScanData.dataset.to_netcdf(scan_file, engine='h5netcdf')
+        eventCode_file='{:}/run{:04}_{:}.nc'.format(path, run, 'eventCodes')
+        self.Sources.eventCodes.to_netcdf(eventCode_file, engine='h5netcdf')
+        sources_file='{:}/run{:04}_{:}.nc'.format(path, run, 'sources')
+        self.Sources.sources.to_netcdf(sources_file, engine='h5netcdf')
+
     @property
     def Sources(self):
         """
@@ -3464,6 +3478,36 @@ class ConfigSources(object):
         self._repr = str(configData._ds) 
         self._configData = configData
         self._eventcodes = configData._eventcodes
+
+    @property
+    def sources(self):
+        """
+        xarray of sources
+        """
+        import pandas as pd
+        xsources = pd.DataFrame(self._sources).T.to_xarray().swap_dims({'index': 'alias'}).drop('src').rename({'index': 'src'}).drop('map_key')
+        for attr in xsources.data_vars:
+            xsources[attr].attrs['doc'] = SourceData._doc.get(attr,'')
+            xsources[attr].attrs['unit'] = SourceData._units.get(attr,'')
+            xsources.attrs['experiment'] = self._configData._ds.data_source.exp
+            xsources.attrs['run'] = self._configData._ds.data_source.run
+            xsources.attrs['instrument'] = self._configData._ds.data_source.instrument
+            xsources.attrs['data_source'] = self._configData._ds.data_source.data_source
+
+        return xsources
+
+    @property
+    def eventCodes(self):
+        """
+        xarray of event codes
+        """
+        import pandas as pd
+        xcodes = pd.DataFrame(self._eventcodes).T.to_xarray().swap_dims({'index': 'code'}).drop('index').drop('desc_shape') 
+        xcodes.attrs['experiment'] = self._configData._ds.data_source.exp
+        xcodes.attrs['run'] = self._configData._ds.data_source.run
+        xcodes.attrs['instrument'] = self._configData._ds.data_source.instrument
+        xcodes.attrs['data_source'] = self._configData._ds.data_source.data_source
+        return xcodes
 
     def show_info(self, **kwargs):
         message = Message(quiet=True, **kwargs)
