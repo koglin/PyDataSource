@@ -7,11 +7,12 @@ import traceback
 
 __version__ = '00.00.06'
 
-from AppUtils.AppDataPath import AppDataPath
-
-#html_dir_finder = AppDataPath('RunSummary/html')
-#html_ref_dir = html_dir_finder.path()
-html_ref_dir = '/reg/neh/home/koglin/psana/current/RunSummary/data/html'
+try:
+    # Use release javascript files
+    from AppUtils.AppDataPath import AppDataPath
+    html_ref_dir = AppDataPath('PyDataSource/html').path()
+except:
+    html_ref_dir = '/reg/g/psdm/utils/arp/html'
 
 hutchcolor = {
         'AMO': 'blue',
