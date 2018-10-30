@@ -114,6 +114,30 @@ where:
   (e.g., hex is a python method to convert a number to hexidecimal)
 
 
+Most of the psana data types follow a convention that attributes starting with a capital letter are 
+internal psana methods.  
+Thus, these are generally ignored in the evtData access method. 
+More recently some of the Generic1D.ConfigV0 and Bld.BldDataMeamMonitorV1 data attributes start with
+with a capital.  
+To make sure these are tab accessible in PyDataSource, the auto-generated psana_attrs dictionary 
+is updated with the appropriate data attributes.  i.e.,
+
+.. sourcecode:: python
+
+    psana_attrs['Generic1D']['ConfigV0'] = [
+                                             'Depth',
+                                             'Length',
+                                             'NChannels',
+                                             'Offset',
+                                             'Period',
+                                             'SampleType',
+                                             'data_offset',
+                                           ]
+
+    psana_attrs['Bld']['BldDataBeamMonitorV1'] = ['peakA', 'peakT', 'TotalIntensity', 'X_Position', 'Y_Position']
+
+
+
 API
 ---
 

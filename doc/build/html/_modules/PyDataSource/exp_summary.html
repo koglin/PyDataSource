@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.exp_summary &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.exp_summary &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -940,6 +940,30 @@
 
         <span class="n">subproc</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">bsubproc</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">save_configData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runs</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save configData .</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        runs : list of ints or int or &#39;all&#39;</span>
+<span class="sd">            Runs to save configData - if &#39;all&#39; then submit all that have not already been created</span>
+<span class="sd">            default = &#39;all&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">PyDataSource</span>
+        <span class="k">if</span> <span class="n">runs</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="n">drop_stats_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfruns</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="s1">&#39;drop_stats_files&#39;</span><span class="p">]</span>
+            <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">run</span> <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">runs_with_xtc</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">drop_stats_files</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="p">[])]</span>
+        <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">save_configData</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saved </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ds</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot save configData: &#39;</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
+
+
     <span class="k">def</span> <span class="nf">submit_beam_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runs</span><span class="p">,</span> <span class="n">batchqueue</span><span class="o">=</span><span class="s1">&#39;psanaq&#39;</span><span class="p">,</span> <span class="n">alert</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make beam_stats to check for timing error and drop shots</span>
@@ -1230,7 +1254,7 @@
                         <span class="k">except</span><span class="p">:</span>
                             <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
                             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;cannot get meta for&#39;</span><span class="p">,</span> <span class="n">alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
-                            <span class="k">pass</span>
+                            
                     <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;val&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">dat</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]]</span>
                     <span class="n">doc</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
                     <span class="n">units</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
@@ -1816,7 +1840,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

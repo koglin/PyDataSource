@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.xarray_utils &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.xarray_utils &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -193,7 +193,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
     <span class="n">xattrs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">attrs</span>
-    <span class="n">data_attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">attr</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">x</span><span class="p">}</span>
+    <span class="n">data_attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">attr</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">data_vars</span><span class="p">}</span>
     <span class="k">if</span> <span class="n">cut</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">cut</span><span class="p">])</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
    
@@ -209,17 +209,21 @@
     <span class="n">x</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
     <span class="n">xgroups</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="n">groupby</span><span class="p">:</span>
-        <span class="n">sattrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">if</span> <span class="s1">&#39;stat&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="ow">or</span> <span class="n">groupby</span><span class="o">+</span><span class="s1">&#39;s&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">sattrs</span><span class="p">:</span>
-            <span class="n">xstat</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">sattrs</span><span class="p">]</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="n">groupby</span><span class="o">+</span><span class="s1">&#39;s&#39;</span><span class="p">:</span> <span class="n">groupby</span><span class="p">})</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">sattrs</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span>
-<span class="c1">#        group_vars = [attr for attr in x.keys() if groupby+&#39;s&#39; in x[attr].dims]</span>
-<span class="c1">#        if group_vars:</span>
-<span class="c1">#            xgroups = {attr: x[attr].rename({groupby+&#39;s&#39;: groupby}) for attr in group_vars}</span>
-<span class="c1">#            for attr in group_vars:</span>
-<span class="c1">#                del x[attr]</span>
-        <span class="c1">#x = x.groupby(groupby)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sattrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="s1">&#39;stat&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="ow">or</span> <span class="n">groupby</span><span class="o">+</span><span class="s1">&#39;s&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">sattrs</span><span class="p">:</span>
+                <span class="n">xstat</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">sattrs</span><span class="p">]</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="n">groupby</span><span class="o">+</span><span class="s1">&#39;s&#39;</span><span class="p">:</span> <span class="n">groupby</span><span class="p">})</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">sattrs</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span>
+    <span class="c1">#        group_vars = [attr for attr in x.keys() if groupby+&#39;s&#39; in x[attr].dims]</span>
+    <span class="c1">#        if group_vars:</span>
+    <span class="c1">#            xgroups = {attr: x[attr].rename({groupby+&#39;s&#39;: groupby}) for attr in group_vars}</span>
+    <span class="c1">#            for attr in group_vars:</span>
+    <span class="c1">#                del x[attr]</span>
+            <span class="c1">#x = x.groupby(groupby)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot groupby </span><span class="si">{:}</span><span class="s1"> -- ignoring groupby&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">groupby</span><span class="p">))</span>
+
 
     <span class="n">dsets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">func</span><span class="p">)(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">]</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">dsets</span><span class="p">,</span> <span class="n">stats</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">({</span><span class="s1">&#39;concat_dim&#39;</span><span class="p">:</span> <span class="s1">&#39;stat&#39;</span><span class="p">})</span>
@@ -716,7 +720,7 @@
 <div class="viewcode-block" id="find_beam_correlations"><a class="viewcode-back" href="../../generated/PyDataSource.xarray_utils.find_beam_correlations.html#PyDataSource.find_beam_correlations">[docs]</a><span class="k">def</span> <span class="nf">find_beam_correlations</span><span class="p">(</span><span class="n">xo</span><span class="p">,</span> <span class="n">pvalue</span><span class="o">=</span><span class="mf">1e-20</span><span class="p">,</span> <span class="n">pvalue0_ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">corr_pvalue</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>
             <span class="n">adet_pvalue0_ratio</span><span class="o">=</span><span class="mf">0.33</span><span class="p">,</span> <span class="n">adet_pvalue</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
             <span class="n">groupby</span><span class="o">=</span><span class="s1">&#39;ec162&#39;</span><span class="p">,</span> <span class="n">nearest</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">corr_coord</span><span class="o">=</span><span class="s1">&#39;delta_drop&#39;</span><span class="p">,</span>
-            <span class="n">pulse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">sigma0</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+            <span class="n">pulse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">sigma0</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">sigma_scale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
             <span class="n">percentiles</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">],</span> 
             <span class="n">save_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">cut</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -836,8 +840,15 @@
             
             <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">t_pvalue0</span> <span class="o">=</span> <span class="n">df_stats</span><span class="p">[</span><span class="s1">&#39;t_pvalue&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">((</span><span class="n">xmean</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">xmean</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">xstd</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">&gt;</span> <span class="n">sigma0</span> <span class="ow">or</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">sigma0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">float</span><span class="p">((</span><span class="n">xmean</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">xmean</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">xstd</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">&gt;</span> <span class="n">sigma0</span> \
+                    <span class="ow">or</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">sigma0</span> \
+                    <span class="ow">or</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">xstd</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">sigma_scale</span><span class="p">:</span>
                 <span class="c1"># First check if dropped shot and regular shot mean values differ by &gt; sigma0 </span>
+                <span class="c1"># If drop_shot std (i.e., xstd[1] is &lt; sigma/sigma_scale times other shots then timing is correct</span>
+                <span class="c1">#    e.g., opal_1 from exp=xppls7917:run=98 which has laser on/off</span>
+                <span class="c1">#          and the signal is strong and stable with no X-rays but</span>
+                <span class="c1">#          varies significantly with X-rays because of laser x-ray effects</span>
+                <span class="c1"># If drop_shot std is &lt; sigma0 times other shots then also timing is correct</span>
                 <span class="n">ishot</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">tag_shot_corr</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">else</span><span class="p">:</span>
@@ -1600,7 +1611,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

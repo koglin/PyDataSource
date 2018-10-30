@@ -85,7 +85,7 @@ Push package updates to github and add tag so that latest PyDataSource version w
 Updating ARP release
 --------------------
 
-The Off-by-one_ Automated Run Proccessing (ARP) application release is defined by soft links in the /reg/g/psdm/utils/arp folder.
+The Off-by-one Automated Run Proccessing (ARP) application release is defined by soft links in the /reg/g/psdm/utils/arp folder.
 
 There are several other applications from the PyDataSource package also soft linked to a common release.  The soft link to the current psana release must be updated manually, or alternatively a conda development path may be used.
 

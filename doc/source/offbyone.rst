@@ -199,7 +199,7 @@ Warnings and alerts for timing and config errors are also automatically generate
 Any detector with an alert or warning is highlighed in the Workflow / Control / Reports
 with a link to the more detailed Report Notes section of that run.
 
-See config_data_ section for details on the Detector Timing and Config Check methods and config files
+See Configuration Data section for details on the Detector Timing and Config Check methods and config files
 
 
 API

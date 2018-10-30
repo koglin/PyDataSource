@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.beam_stats.make_small_xarray &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.beam_stats.make_small_xarray &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../index.html"/>
         <link rel="up" title="Off-by-one Timing Error Analysis" href="../offbyone.html"/>
         <link rel="next" title="PyDataSource.xarray_utils.set_delta_beam" href="PyDataSource.xarray_utils.set_delta_beam.html"/>
         <link rel="prev" title="PyDataSource.beam_stats.load_small_xarray" href="PyDataSource.beam_stats.load_small_xarray.html"/> 
@@ -189,7 +189,7 @@
 <h1>PyDataSource.beam_stats.make_small_xarray<a class="headerlink" href="#pydatasource-beam-stats-make-small-xarray" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
 <dt id="PyDataSource.beam_stats.make_small_xarray">
-<code class="descclassname">PyDataSource.beam_stats.</code><code class="descname">make_small_xarray</code><span class="sig-paren">(</span><em>self, auto_update=True, add_dets=True, add_counts=False, add_1d=True, ignore_unused_codes=True, ignore_attrs=['timestamp', 'numChannels', 'digital_in'], drop_code='ec162', drop_attr='delta_drop', path=None, filename=None, save=True, engine='h5netcdf', nevents=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/beam_stats.html#make_small_xarray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.beam_stats.make_small_xarray" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">PyDataSource.beam_stats.</code><code class="descname">make_small_xarray</code><span class="sig-paren">(</span><em>self, auto_update=True, add_dets=True, add_counts=False, add_1d=True, ignore_unused_codes=True, ignore_attrs=['timestamp', 'numChannels', 'digital_in'], drop_code='ec162', drop_attr='delta_drop', path=None, filename=None, save=True, engine='h5netcdf', make_summary=True, nevents=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/PyDataSource/beam_stats.html#make_small_xarray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#PyDataSource.beam_stats.make_small_xarray" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make Small xarray Dataset.
 :param ignore_unused_codes: If true drop unused eventCodes except drop_code [default=True]
 :type ignore_unused_codes: bool</p>
@@ -241,7 +241,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

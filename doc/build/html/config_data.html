@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Configuration Data &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>Configuration Data &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="index.html"/>
         <link rel="next" title="PyDataSource.config_check.ConfigCheck" href="generated/PyDataSource.config_check.ConfigCheck.html"/>
         <link rel="prev" title="PyDataSource.to_summary" href="generated/PyDataSource.to_summary.html"/> 
 
@@ -284,12 +284,22 @@ readout.</p>
 </ul>
 <p>The structure is:</p>
 <ul>
-<li><p class="first">devName (.e.g., Cspad, Opal1000)
-- alert/warning level (still tbd if emails or log posts are generated with alerts)</p>
+<li><p class="first">devName (.e.g., Cspad, Opal1000)</p>
+<blockquote>
+<div><ul>
+<li><p class="first">alert/warning level (still tbd if emails or log posts are generated with alerts)</p>
+<blockquote>
+<div><ul>
+<li><p class="first">attribute (e.g., evr_width, evr_polarity, evr_delay)</p>
 <blockquote>
 <div><ul class="simple">
-<li>attribute (e.g., evr_width, evr_polarity, evr_delay)
-- value:  either a single value or a list of the valid range [low, high]</li>
+<li>value:  either a single value or a list of the valid range [low, high]</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
 </ul>
 </div></blockquote>
 </li>
@@ -408,7 +418,7 @@ lrwxrwxrwx <span class="m">1</span> koglin ps-pcds <span class="m">7</span> Apr 
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

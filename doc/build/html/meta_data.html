@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Meta Data &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>Meta Data &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="index.html"/>
         <link rel="next" title="PyDataSource.PyDataSource.get_unit_from_doc" href="generated/PyDataSource.PyDataSource.get_unit_from_doc.html"/>
         <link rel="prev" title="PyDataSource.ConfigData.ScanData" href="generated/PyDataSource.ConfigData.ScanData.html"/> 
 
@@ -262,6 +262,26 @@ data attribute is a vector of the specified length</li>
 <li>func_method is a method applied to evaluate the data
 (e.g., hex is a python method to convert a number to hexidecimal)</li>
 </ul>
+<p>Most of the psana data types follow a convention that attributes starting with a capital letter are
+internal psana methods.
+Thus, these are generally ignored in the evtData access method.
+More recently some of the Generic1D.ConfigV0 and Bld.BldDataMeamMonitorV1 data attributes start with
+with a capital.
+To make sure these are tab accessible in PyDataSource, the auto-generated psana_attrs dictionary
+is updated with the appropriate data attributes.  i.e.,</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">psana_attrs</span><span class="p">[</span><span class="s1">&#39;Generic1D&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                         <span class="s1">&#39;Depth&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;Length&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;NChannels&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;Offset&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;Period&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;SampleType&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;data_offset&#39;</span><span class="p">,</span>
+                                       <span class="p">]</span>
+
+<span class="n">psana_attrs</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataBeamMonitorV1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;peakA&#39;</span><span class="p">,</span> <span class="s1">&#39;peakT&#39;</span><span class="p">,</span> <span class="s1">&#39;TotalIntensity&#39;</span><span class="p">,</span> <span class="s1">&#39;X_Position&#39;</span><span class="p">,</span> <span class="s1">&#39;Y_Position&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
 <div class="section" id="api">
 <h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="longtable docutils">
@@ -328,7 +348,7 @@ data attribute is a vector of the specified length</li>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

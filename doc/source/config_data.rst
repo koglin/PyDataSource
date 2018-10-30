@@ -122,10 +122,14 @@ And one for the evr trigger information:
 
 The structure is:
 
-- devName (.e.g., Cspad, Opal1000)
-  - alert/warning level (still tbd if emails or log posts are generated with alerts)
-    - attribute (e.g., evr_width, evr_polarity, evr_delay)
-      - value:  either a single value or a list of the valid range [low, high]
+* devName (.e.g., Cspad, Opal1000)
+  
+    * alert/warning level (still tbd if emails or log posts are generated with alerts)
+    
+        * attribute (e.g., evr_width, evr_polarity, evr_delay)
+      
+            * value:  either a single value or a list of the valid range [low, high]
+
 
 For example for the Cspad2x2 (i.e., 140k) detectors, a common readout issue
 is setting the wrong polarity or delay.  
