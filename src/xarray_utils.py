@@ -29,7 +29,7 @@ def to_summary(x, dim='time', groupby='step',
     """
     import xarray as xr
     xattrs = x.attrs
-    data_attrs = {attr: x[attr].attrs for attr in x}
+    data_attrs = {attr: x[attr].attrs for attr in x.data_vars}
     if cut in x:
         x = x.where(x[cut]).dropna(dim)
    
@@ -45,17 +45,21 @@ def to_summary(x, dim='time', groupby='step',
     x.load()
     xgroups = {}
     if groupby:
-        sattrs = [a for a in x if 'stat' in x[a].dims or groupby+'s' in x[a].dims]
-        if sattrs:
-            xstat = x[sattrs].rename({groupby+'s': groupby})
-            x = x.drop(sattrs)
-        x = x.groupby(groupby)
-#        group_vars = [attr for attr in x.keys() if groupby+'s' in x[attr].dims]
-#        if group_vars:
-#            xgroups = {attr: x[attr].rename({groupby+'s': groupby}) for attr in group_vars}
-#            for attr in group_vars:
-#                del x[attr]
-        #x = x.groupby(groupby)
+        try:
+            sattrs = [a for a in x.data_vars if 'stat' in x[a].dims or groupby+'s' in x[a].dims]
+            if sattrs:
+                xstat = x[sattrs].rename({groupby+'s': groupby})
+                x = x.drop(sattrs)
+            x = x.groupby(groupby)
+    #        group_vars = [attr for attr in x.keys() if groupby+'s' in x[attr].dims]
+    #        if group_vars:
+    #            xgroups = {attr: x[attr].rename({groupby+'s': groupby}) for attr in group_vars}
+    #            for attr in group_vars:
+    #                del x[attr]
+            #x = x.groupby(groupby)
+        except:
+            print('Cannot groupby {:} -- ignoring groupby'.format(groupby))
+
 
     dsets = [getattr(x, func)(dim=dim) for func in stats]
     x = xr.concat(dsets, stats).rename({'concat_dim': 'stat'})

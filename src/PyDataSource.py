@@ -541,8 +541,7 @@ class ScanData(object):
         end_datetimes = []
         self._ds._idx_istep = []
         istep = 0
-        if not quiet:
-            'Building ScanData configuration...'
+        print('...Building ScanData configuration...')
         for step in ds.steps:
             okevt = False
             while not okevt:
@@ -550,7 +549,7 @@ class ScanData(object):
                 ttup = (evt.EventId.sec, evt.EventId.nsec, evt.EventId.fiducials)
                 okevt = ttup in ds._idx_times_tuple
                 if not quiet:
-                    print(istep, evt)
+                    print('step:', istep, evt)
 
             ievent = ds._idx_times_tuple.index(ttup)
             ievent_start.append(ievent)
@@ -651,8 +650,12 @@ class ScanData(object):
         xscan['step_istart'] = (('step'), self._scanData['ievent_start']) 
         xscan['step_iend'] = (('step'), self._scanData['ievent_end']) 
         xscan['step_events'] = (('step'), self.nevents) 
-        for alias, value in self.control_values.items():
-            xscan[alias] = (('step'), value)
+        for name, value in self.control_values.items():
+            try:
+                alias = self.pvAliases.get(name,  re.sub('-|:|\.| ','_', name))
+                xscan[alias] = (('step'), value)
+            except:
+                print('Cannot add {:} values to ScanData.dataset'.format(name))
 
         return xscan
 
@@ -1202,6 +1205,7 @@ class DataSource(object):
         self._ievent = -1
         self._istep = -1
         self._irun = -1
+        self._jump_last = False
         if self.data_source.idx:
             self.runs = Runs(self, **kwargs)
             self.events = self.runs.next().events
@@ -1396,6 +1400,15 @@ class DataSource(object):
                     x.coords[alias+'_steps'] =  (('steps'), vals[xsteps]) 
         except:
             print('could not add steps')
+            
+        try:
+            x.attrs['data_source'] = self.data_source.data_source
+            x.attrs['instrument'] = self.instrument
+            x.attrs['run'] = self.data_source.run
+            x.attrs['experiment'] = self.experiment
+            x.attrs['expNum'] = self.expNum
+        except:
+            print('could not add attrs to stats Dataset')
 
         return x
 
@@ -1414,7 +1427,7 @@ class DataSource(object):
         import os
         data_sets = self._get_stats(attrs=attrs, aliases=aliases)
         try:
-            if not data_sets:
+            if data_sets is None:
                 print('No stats to save')
                 return
             elif isinstance(data_sets, list):
@@ -1425,10 +1438,10 @@ class DataSource(object):
             return
 
         if not file_name:
+            run = self.data_source.run
             if not path:
                 instrument = self.data_source.instrument
                 exp = self.data_source.exp
-                run = self.data_source.run
                 path = '/reg/d/psdm/{:}/{:}/{:}/{:}/Run{:04}/'.format(instrument, 
                         exp,h5folder,subfolder,run)
                 if not os.path.isdir(path):
@@ -2266,8 +2279,9 @@ class RunEvents(object):
                 self._ds._current_data = {}
                 self._ds._current_evtData = {}
             
-           # if hasattr(self._ds, '_idx_istep'):
-           #     self._ds._istep = self._ds._idx_istep[self._ds._ievent]
+            #if hasattr(self._ds, '_idx_istep'):
+            #if self._ds._idx_istep:
+            #    self._ds._istep = self._ds._idx_istep[self._ds._ievent]
 
             return EvtDetectors(self._ds, **kwargs)
 
@@ -2381,7 +2395,7 @@ class StepEvents(object):
     def __iter__(self):
         return self
 
-    def next(self, evt_time=None, **kwargs):
+    def next(self, evt_time=None, recover=False, **kwargs):
         """
         Next event in step.  If no evt_time provided, the event loop will
         procede from the last event in the step regardless of which event 
@@ -2396,7 +2410,9 @@ class StepEvents(object):
             same event depending on how the data_source string is corresponding
             keywords to define the data_source is defined and also may differ
             for fast feedback and offline analysis environments.
- 
+        recover : bool
+            recover the last step before a jump
+
         Returns
         -------
         EventDetectors object
@@ -2410,7 +2426,8 @@ class StepEvents(object):
                     self._ds._ievent_last = self._ds._ievent
                     self._ds._istep_last = self._ds._istep
                     self._ds._istep = -1
-                
+                    self._ds._jump_last = True
+
                 if evt_time.__class__.__name__ == 'EventTime':
                     # lookup event index from time tuple
                     ttup = (evt_time.seconds(), evt_time.nanoseconds(), evt_time.fiducial())
@@ -2425,6 +2442,16 @@ class StepEvents(object):
                     self._ds._ievent = evt_time
                     evt_time = self._ds._idx_times[evt_time]
 
+                try:
+                    if self._ds._scanData is not None:
+                        self._ds._istep = self._ds._idx_istep[self._ds._ievent]
+                    else:
+                        #print('Warning -- must load configData.ScanData before steps can be updated when jumping to events')
+                        pass
+                
+                except:
+                    print('Error getting istep')
+
                 #print self._ds._ievent, evt_time.seconds(), evt_time.nanoseconds()
                 evt = self._ds._idx_run.event(evt_time) 
                     
@@ -2438,7 +2465,7 @@ class StepEvents(object):
         
         else:
             try:
-                if self._ds._istep == -1:
+                if self._ds._jump_last == True and recover == True:
                     # recover event and step index after previoiusly jumping to an event 
                     self._ds._ievent = self._ds._ievent_last
                     self._ds._istep = self._ds._istep_last
@@ -2449,6 +2476,7 @@ class StepEvents(object):
                 self._ds._current_evt = evt 
                 self._ds._current_data = {}
                 self._ds._current_evtData = {}
+                self._ds._jump_last = False
             except:
                 raise StopIteration()
 
@@ -3134,12 +3162,25 @@ class ConfigData(object):
         """
         run = self._ds.data_source.run
         path = os.path.join(self._ds.data_source.res_dir,'nc')
-        scan_file='{:}/run{:04}_{:}.nc'.format(path, run, 'scan')
-        self.ScanData.dataset.to_netcdf(scan_file, engine='h5netcdf')
-        eventCode_file='{:}/run{:04}_{:}.nc'.format(path, run, 'eventCodes')
-        self.Sources.eventCodes.to_netcdf(eventCode_file, engine='h5netcdf')
-        sources_file='{:}/run{:04}_{:}.nc'.format(path, run, 'sources')
-        self.Sources.sources.to_netcdf(sources_file, engine='h5netcdf')
+        try:
+            if self.ScanData.dataset.dims.get('step') > 1:
+                scan_file='{:}/run{:04}_{:}.nc'.format(path, run, 'scan')
+                self.ScanData.dataset.to_netcdf(scan_file, engine='h5netcdf')
+        except:
+            print('Cannot save scan config for {:}'.format(self._ds))
+        
+        try:
+            eventCode_file='{:}/run{:04}_{:}.nc'.format(path, run, 'eventCodes')
+            self.Sources.eventCodes.to_netcdf(eventCode_file, engine='h5netcdf')
+        except:
+            print('Cannot save eventCode config for {:}'.format(self._ds))
+            
+        try:
+            eventCode_file='{:}/run{:04}_{:}.nc'.format(path, run, 'eventCodes')
+            sources_file='{:}/run{:04}_{:}.nc'.format(path, run, 'sources')
+            self.Sources.sources.to_netcdf(sources_file, engine='h5netcdf')
+        except:
+            print('Cannot save source config for {:}'.format(self._ds))
 
     @property
     def Sources(self):
@@ -3170,6 +3211,7 @@ class ConfigData(object):
 
         if self._ds._scanData is None:
             self._ds._scanData = ScanData(self._ds)
+            print(self._ds._scanData)
 
         return self._ds._scanData
 
@@ -3493,6 +3535,7 @@ class ConfigSources(object):
             xsources.attrs['run'] = self._configData._ds.data_source.run
             xsources.attrs['instrument'] = self._configData._ds.data_source.instrument
             xsources.attrs['data_source'] = self._configData._ds.data_source.data_source
+            xsources.attrs['expNum'] = self._configData._ds.expNum
 
         return xsources
 
@@ -3507,6 +3550,7 @@ class ConfigSources(object):
         xcodes.attrs['run'] = self._configData._ds.data_source.run
         xcodes.attrs['instrument'] = self._configData._ds.data_source.instrument
         xcodes.attrs['data_source'] = self._configData._ds.data_source.data_source
+        xcodes.attrs['expNum'] = self._configData._ds.expNum
         return xcodes
 
     def show_info(self, **kwargs):

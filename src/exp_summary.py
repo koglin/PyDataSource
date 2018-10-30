@@ -776,6 +776,30 @@ class ExperimentSummary(object):
 
         subproc = subprocess.Popen(bsubproc, stdout=subprocess.PIPE, shell=True)
 
+    def save_configData(self, runs='all'):
+        """
+        Save configData .
+        
+        Parameters
+        ----------
+        runs : list of ints or int or 'all'
+            Runs to save configData - if 'all' then submit all that have not already been created
+            default = 'all'
+        """
+        import PyDataSource
+        if runs == 'all':
+            drop_stats_files = self.dfruns.T['drop_stats_files']
+            runs = [run for run in self.runs_with_xtc if not drop_stats_files.get(run, [])]
+        for run in runs:
+            ds = PyDataSource.DataSource(exp=self.exp, run=run)
+            try:
+                ds.configData.save_configData()
+                print('Saved {:}'.format(ds))
+            except:
+                traceback.print_exc()
+                print('Cannot save configData: ', ds)
+
+
     def submit_beam_stats(self, runs, batchqueue='psanaq', alert='None'):
         """
         Make beam_stats to check for timing error and drop shots
@@ -1066,7 +1090,7 @@ class ExperimentSummary(object):
                         except:
                             traceback.print_exc()
                             print('cannot get meta for', alias, attr)
-                            pass
+                            
                     vals = [item['val'] for item in dat['data']]
                     doc = attrs.get('description','')
                     units = attrs.get('units', '')
