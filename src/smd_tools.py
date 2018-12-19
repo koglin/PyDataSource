@@ -32,7 +32,9 @@ def get_active_dict(files,print_on=False):
         x = xr.open_dataset(files[i], engine='h5netcdf')
         data = x.data_vars.keys()
         for det in x.data_vars:
-            det_alias[det] = str(x[det].attrs.get('alias'))
+            alias = x[det].attrs.get('alias')
+            if alias:
+                det_alias[det] = str(alias)
 
         runs.append(x.attrs['run'])
         for key in data:
@@ -70,6 +72,8 @@ def get_active_table(datadict,runs, det_alias={}):
     runs.sort()
 
     for var in datadict:
+#        if not var.endswith('present'):
+#            continue
         alias = det_alias.get(var)
         if not alias or alias is 'None' or alias in tabledict.keys():
             continue
@@ -127,6 +131,7 @@ def get_damage_table(files, datadict, runs, det_alias={}, print_on=False):
         vardict['events'] = x.dims['time']
         vardict['drop_events'] = tot
         for var in datadict.keys():
+            var = str(var)
             alias = det_alias.get(var)
             if not alias or alias is 'None' or alias in vardict.keys():
                 continue

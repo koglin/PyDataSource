@@ -1,0 +1,424 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>PyDataSource.psana_doc_info &mdash; PyDataSource 0.6.9 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apps.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../offbyone.html">Off-by-one Timing Error Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../batch.html">Submitting Batch Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../conda.html">Updating Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>PyDataSource.psana_doc_info</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for PyDataSource.psana_doc_info</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">psana</span>
+
+<div class="viewcode-block" id="get_unit_from_doc"><a class="viewcode-back" href="../../generated/PyDataSource.get_unit_from_doc.html#PyDataSource.get_unit_from_doc">[docs]</a><span class="k">def</span> <span class="nf">get_unit_from_doc</span><span class="p">(</span><span class="n">doc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse the unit from the doc string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">invalid_units</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;this&#39;</span><span class="p">,</span> <span class="s1">&#39;long&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;setup&#39;</span><span class="p">,</span> <span class="s1">&#39;given&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;the&#39;</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">usplit</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39; in &#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;Value&#39;</span> <span class="ow">in</span> <span class="n">doc</span> <span class="ow">and</span> <span class="s1">&#39;converted to&#39;</span> <span class="ow">in</span> <span class="n">doc</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">doc</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;converted to &#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">usplit</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">usplit</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">unit</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">unit</span> <span class="ow">in</span> <span class="n">invalid_units</span><span class="p">:</span>
+                <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">unit</span></div>
+
+<div class="viewcode-block" id="get_type_from_doc"><a class="viewcode-back" href="../../generated/PyDataSource.get_type_from_doc.html#PyDataSource.get_type_from_doc">[docs]</a><span class="k">def</span> <span class="nf">get_type_from_doc</span><span class="p">(</span><span class="n">doc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parse the type from the doc string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span>  <span class="n">doc</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span><span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&gt; &#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<span class="c1"># create dictionary of psana method doc and unit information</span>
+<span class="n">psana_omit_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;logging&#39;</span><span class="p">,</span> <span class="s1">&#39;os&#39;</span><span class="p">,</span> <span class="s1">&#39;setConfigFile&#39;</span><span class="p">,</span> <span class="s1">&#39;setOption&#39;</span><span class="p">,</span> <span class="s1">&#39;setOptions&#39;</span><span class="p">]</span>
+<span class="n">psana_doc_info</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">psana</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> \
+              <span class="ow">and</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ndarray&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">psana_omit_list</span><span class="p">}</span>
+<span class="n">psana_attrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">psana</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> \
+              <span class="ow">and</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ndarray&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">psana_omit_list</span><span class="p">}</span>
+
+<span class="k">for</span> <span class="n">mod_name</span> <span class="ow">in</span> <span class="n">psana_doc_info</span><span class="p">:</span>
+    <span class="n">mod</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">psana</span><span class="p">,</span><span class="n">mod_name</span><span class="p">)</span>
+    <span class="n">psana_doc_info</span><span class="p">[</span><span class="n">mod_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">typ_name</span> <span class="ow">in</span> <span class="n">psana_doc_info</span><span class="p">[</span><span class="n">mod_name</span><span class="p">]:</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">typ_name</span><span class="p">)</span>
+        <span class="n">psana_doc_info</span><span class="p">[</span><span class="n">mod_name</span><span class="p">][</span><span class="n">typ_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">typ</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="p">}</span>
+        <span class="c1"># Default convention is that attributes have lower case.  </span>
+        <span class="c1"># Configure exceptions below (e.g. Generic1D)</span>
+        <span class="n">psana_attrs</span><span class="p">[</span><span class="n">mod_name</span><span class="p">][</span><span class="n">typ_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">typ</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isupper</span><span class="p">()</span> <span class="p">]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">psana_doc_info</span><span class="p">[</span><span class="n">mod_name</span><span class="p">][</span><span class="n">typ_name</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;TypeId&#39;</span><span class="p">,</span><span class="s1">&#39;Version&#39;</span><span class="p">]:</span>
+                <span class="n">info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;doc&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">typ</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+                <span class="n">doc</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span>
+                <span class="k">if</span> <span class="n">doc</span><span class="p">:</span>
+                    <span class="n">doc</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">doc</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">attr</span><span class="p">):</span>
+                        <span class="n">doc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+                <span class="n">info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;doc&#39;</span><span class="p">:</span> <span class="n">doc</span><span class="p">,</span> 
+                        <span class="s1">&#39;unit&#39;</span><span class="p">:</span> <span class="n">get_unit_from_doc</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">),</span> 
+                        <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">get_type_from_doc</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)}</span>
+            
+            <span class="n">psana_doc_info</span><span class="p">[</span><span class="n">mod_name</span><span class="p">][</span><span class="n">typ_name</span><span class="p">][</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span> 
+
+<span class="c1"># Updates to psana_doc_info info</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataEBeamV7&#39;</span><span class="p">][</span><span class="s1">&#39;ebeamDumpCharge&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;e-&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataFEEGasDetEnergyV1&#39;</span><span class="p">][</span><span class="s1">&#39;f_11_ENRC&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;mJ&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataFEEGasDetEnergyV1&#39;</span><span class="p">][</span><span class="s1">&#39;f_12_ENRC&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;mJ&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataFEEGasDetEnergyV1&#39;</span><span class="p">][</span><span class="s1">&#39;f_21_ENRC&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;mJ&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataFEEGasDetEnergyV1&#39;</span><span class="p">][</span><span class="s1">&#39;f_22_ENRC&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;mJ&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataFEEGasDetEnergyV1&#39;</span><span class="p">][</span><span class="s1">&#39;f_63_ENRC&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;mJ&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataFEEGasDetEnergyV1&#39;</span><span class="p">][</span><span class="s1">&#39;f_64_ENRC&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;mJ&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Acqiris&#39;</span><span class="p">][</span><span class="s1">&#39;DataDescV1Elem&#39;</span><span class="p">][</span><span class="s1">&#39;nbrSamplesInSeg&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Acqiris&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;channelMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bin</span> 
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Acqiris&#39;</span><span class="p">][</span><span class="s1">&#39;HorizV1&#39;</span><span class="p">][</span><span class="s1">&#39;sampInterval&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sec&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Acqiris&#39;</span><span class="p">][</span><span class="s1">&#39;HorizV1&#39;</span><span class="p">][</span><span class="s1">&#39;delayTime&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sec&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Camera&#39;</span><span class="p">][</span><span class="s1">&#39;FrameFexConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;threshold&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Quartz&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2&#39;</span><span class="p">][</span><span class="s1">&#39;gain_percent&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Quartz&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2&#39;</span><span class="p">][</span><span class="s1">&#39;max_taps&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Quartz&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2&#39;</span><span class="p">][</span><span class="s1">&#39;output_resolution&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Generic1D&#39;</span><span class="p">][</span><span class="s1">&#39;DataV0&#39;</span><span class="p">][</span><span class="s1">&#39;data_u16&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Generic1D&#39;</span><span class="p">][</span><span class="s1">&#39;DataV0&#39;</span><span class="p">][</span><span class="s1">&#39;data_u32&#39;</span><span class="p">][</span><span class="s1">&#39;func0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span>     <span class="c1"># offset</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Generic1D&#39;</span><span class="p">][</span><span class="s1">&#39;DataV0&#39;</span><span class="p">][</span><span class="s1">&#39;data_u32&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Generic1D&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV0&#39;</span><span class="p">][</span><span class="s1">&#39;Depth&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Generic1D&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV0&#39;</span><span class="p">][</span><span class="s1">&#39;data_offset&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16</span>
+
+<span class="n">psana_attrs</span><span class="p">[</span><span class="s1">&#39;Generic1D&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                         <span class="s1">&#39;Depth&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;Length&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;NChannels&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;Offset&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;Period&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;SampleType&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;data_offset&#39;</span><span class="p">,</span>
+                                       <span class="p">]</span>
+
+<span class="n">psana_attrs</span><span class="p">[</span><span class="s1">&#39;Bld&#39;</span><span class="p">][</span><span class="s1">&#39;BldDataBeamMonitorV1&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;peakA&#39;</span><span class="p">,</span> <span class="s1">&#39;peakT&#39;</span><span class="p">,</span> <span class="s1">&#39;TotalIntensity&#39;</span><span class="p">,</span> <span class="s1">&#39;X_Position&#39;</span><span class="p">,</span> <span class="s1">&#39;Y_Position&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># Common mode not applicable?</span>
+<span class="c1">#psana_doc_info[&#39;CsPad&#39;][&#39;ElementV2&#39;][&#39;common_mode&#39;][&#39;func_quads&#39;] = &#39;quads_shape&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Acqiris&#39;</span><span class="p">][</span><span class="s1">&#39;DataDescV1Elem&#39;</span><span class="p">][</span><span class="s1">&#39;timestamp&#39;</span><span class="p">][</span><span class="s1">&#39;func_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;nbrSegments&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Acqiris&#39;</span><span class="p">][</span><span class="s1">&#39;DataDescV1&#39;</span><span class="p">][</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;data_shape&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Acqiris&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;vert&#39;</span><span class="p">][</span><span class="s1">&#39;list_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;nbrChannels&#39;</span>
+
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;DataV1&#39;</span><span class="p">][</span><span class="s1">&#39;quads&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;quads_shape&#39;</span>
+<span class="c1">#psana_doc_info[&#39;CsPad&#39;][&#39;DataV1&#39;][&#39;quads&#39;][&#39;func_dict_len&#39;] = &#39;quads_shape&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;DataV2&#39;</span><span class="p">][</span><span class="s1">&#39;quads&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;quads_shape&#39;</span>
+<span class="c1">#psana_doc_info[&#39;CsPad&#39;][&#39;DataV2&#39;][&#39;quads&#39;][&#39;func_dict_len&#39;] = &#39;quads_shape&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3&#39;</span><span class="p">][</span><span class="s1">&#39;quads&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;quads_shape&#39;</span>
+<span class="c1">#psana_doc_info[&#39;CsPad&#39;][&#39;ConfigV3&#39;][&#39;quads&#39;][&#39;func_dict_len&#39;] = &#39;quads_shape&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3&#39;</span><span class="p">][</span><span class="s1">&#39;numAsicsStored&#39;</span><span class="p">][</span><span class="s1">&#39;func_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3&#39;</span><span class="p">][</span><span class="s1">&#39;roiMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_len_hex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3&#39;</span><span class="p">][</span><span class="s1">&#39;roiMasks&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV4&#39;</span><span class="p">][</span><span class="s1">&#39;quads&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;quads_shape&#39;</span>
+<span class="c1">#psana_doc_info[&#39;CsPad&#39;][&#39;ConfigV4&#39;][&#39;quads&#39;][&#39;func_dict_len&#39;] = &#39;quads_shape&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV4&#39;</span><span class="p">][</span><span class="s1">&#39;numAsicsStored&#39;</span><span class="p">][</span><span class="s1">&#39;func_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV4&#39;</span><span class="p">][</span><span class="s1">&#39;roiMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_len_hex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV4&#39;</span><span class="p">][</span><span class="s1">&#39;roiMasks&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;quads&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;quads_shape&#39;</span>
+<span class="c1">#psana_doc_info[&#39;CsPad&#39;][&#39;ConfigV5&#39;][&#39;quads&#39;][&#39;func_dict_len&#39;] = &#39;quads_shape&#39;</span>
+
+<span class="c1"># see https://confluence.slac.stanford.edu/display/PCDS/Discussion+of+timing+the+cspad+variants</span>
+
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;numAsicsStored&#39;</span><span class="p">][</span><span class="s1">&#39;func_len&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;asicMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;badAsicMask0&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;badAsicMask1&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;concentratorVersion&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;quadMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">bin</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;roiMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_len_hex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;numQuads&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV5&#39;</span><span class="p">][</span><span class="s1">&#39;roiMasks&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ElementV2&#39;</span><span class="p">][</span><span class="s1">&#39;common_mode&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;ampIdle&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;biasTuning&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digCount&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;acqDelay&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;acqDelay&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;delay before acquisition (350 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digDelay&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digDelay&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;hold delay before A to D conversion (1000 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digPeriod&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digPeriod&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;digitiztion perios&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;intTime&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;intTime&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;duration of the integration window (5000 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;readClkHold&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 1)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;readClkSet&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 2)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;rowColShiftPer&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 3)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digCount&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(max = 0x3ff)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad&#39;</span><span class="p">][</span><span class="s1">&#39;CsPadReadOnlyCfg&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Jungfrau&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV3&#39;</span><span class="p">][</span><span class="s1">&#39;moduleConfig&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;moduleConfig_shape&#39;</span>
+    <span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Jungfrau&#39;</span><span class="p">][</span><span class="s1">&#39;ModuleConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;firmwareVersion&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span> 
+    <span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Jungfrau&#39;</span><span class="p">][</span><span class="s1">&#39;ModuleConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;moduleVersion&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+    <span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Jungfrau&#39;</span><span class="p">][</span><span class="s1">&#39;ModuleConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;serialNumber&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2&#39;</span><span class="p">][</span><span class="s1">&#39;concentratorVersion&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2&#39;</span><span class="p">][</span><span class="s1">&#39;asicMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2&#39;</span><span class="p">][</span><span class="s1">&#39;badAsicMask&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;pdpmndnmBalance&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;2 bits per nibble, bit order pd00pm00nd00nm&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;pdpmndnmBalance&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;acqDelay&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;acqDelay&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;delay before acquisition (280 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digDelay&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digDelay&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;hold delay before A to D conversion (960 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digPeriod&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digPeriod&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;digitiztion perios&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;intTime&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;x8ns&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;intTime&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;duration of the integration window (5000 typical)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;readClkHold&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 1)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;readClkSet&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 1)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;rowColShiftPer&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(should be 3)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digCount&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(max = 0x3ff)&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;ampIdle&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;biasTuning&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2QuadReg&#39;</span><span class="p">][</span><span class="s1">&#39;digCount&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;CsPad2x2ReadOnlyCfg&#39;</span><span class="p">][</span><span class="s1">&#39;version&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;CsPad2x2ReadOnlyCfg&#39;</span><span class="p">][</span><span class="s1">&#39;shiftTest&#39;</span><span class="p">][</span><span class="s1">&#39;func_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hex</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;CsPad2x2&#39;</span><span class="p">][</span><span class="s1">&#39;ElementV1&#39;</span><span class="p">][</span><span class="s1">&#39;common_mode&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;UsdUsb&#39;</span><span class="p">][</span><span class="s1">&#39;FexConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">][</span><span class="s1">&#39;func_shape&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Gsc16ai&#39;</span><span class="p">][</span><span class="s1">&#39;DataV1&#39;</span><span class="p">][</span><span class="s1">&#39;channelValue&#39;</span><span class="p">][</span><span class="s1">&#39;doc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Triggered analog input values&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Gsc16ai&#39;</span><span class="p">][</span><span class="s1">&#39;DataV1&#39;</span><span class="p">][</span><span class="s1">&#39;channelValue&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;V&#39;</span>
+
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Ipimb&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV1&#39;</span><span class="p">][</span><span class="s1">&#39;capacitorValue&#39;</span><span class="p">][</span><span class="s1">&#39;func_index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;capacitorValues&#39;</span>
+<span class="n">psana_doc_info</span><span class="p">[</span><span class="s1">&#39;Ipimb&#39;</span><span class="p">][</span><span class="s1">&#39;ConfigV2&#39;</span><span class="p">][</span><span class="s1">&#39;capacitorValue&#39;</span><span class="p">][</span><span class="s1">&#39;func_index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;capacitorValues&#39;</span>
+<span class="c1">#Need to understand the diode scale and base arrays.</span>
+<span class="c1">#psana_doc_info[&#39;Ipimb&#39;][&#39;ConfigV2&#39;][&#39;diode&#39;][&#39;func_len&#39;] = 4</span>
+
+
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.6.9',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

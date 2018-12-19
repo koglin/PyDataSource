@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.DataSource &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.DataSource &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../index.html"/>
         <link rel="up" title="PyDatSource API" href="../api.html"/>
         <link rel="next" title="PyDataSource.SourceData" href="PyDataSource.SourceData.html"/>
         <link rel="prev" title="PyDatSource API" href="../api.html"/> 
@@ -92,10 +92,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conda.html">Updating Releases</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">PyDatSource API</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#data-source">Data Source</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">PyDataSource.DataSource</a></li>
@@ -207,25 +210,55 @@ directly as data_source string.</p>
 <dl class="attribute">
 <dt id="PyDataSource.DataSource.data_source">
 <code class="descname">data_source</code><a class="headerlink" href="#PyDataSource.DataSource.data_source" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>object</em> – DataSourceInfo object</p>
+<dd><p>DataSourceInfo object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">object</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.DataSource.steps">
 <code class="descname">steps</code><a class="headerlink" href="#PyDataSource.DataSource.steps" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>object</em> – Steps object</p>
+<dd><p>Steps object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">object</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.DataSource.epicsData">
 <code class="descname">epicsData</code><a class="headerlink" href="#PyDataSource.DataSource.epicsData" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>object</em></p>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">object</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="PyDataSource.DataSource.configData">
 <code class="descname">configData</code><a class="headerlink" href="#PyDataSource.DataSource.configData" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>object</em></p>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type:</th><td class="field-body">object</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -330,7 +363,7 @@ directly as data_source string.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

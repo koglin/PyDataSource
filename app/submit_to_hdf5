@@ -74,7 +74,12 @@ PYOPT='mpi'
 echo Processing $EXP Run $RUN
 
 # Add job to overall arp jobs log
-LOGSUM=/reg/g/psdm/utils/arp/logs/arp_to_hdf5_jobs.log
+LOGDIR=/reg/g/psdm/utils/arp/logs/"$EXP"
+if [[ ! -a $LOGDIR ]];  then
+    mkdir -p $LOGDIR
+fi
+LOGSUM="$LOGDIR"/hdf5_batch_jobs.log
+
 echo '--------------------------------' >> $LOGSUM
 date >> $LOGSUM
 echo Processing $EXP Run $RUN >> $LOGSUM

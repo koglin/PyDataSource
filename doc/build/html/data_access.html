@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Data Access Overview &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>Data Access Overview &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="index.html"/>
         <link rel="next" title="Data Processing" href="data_processing.html"/>
         <link rel="prev" title="Welcome to PyDataSource’s documentation!" href="index.html"/> 
 
@@ -104,10 +104,13 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
 </ul>
 
@@ -195,17 +198,17 @@ ipython --pylab
 <span class="go">*Detectors in group 0 are &quot;BLD&quot; data recorded at 120 Hz on event code 40</span>
 <span class="go">*Detectors listed as Controls are controls devices with unknown event code (but likely 40).</span>
 
-<span class="go">Alias                     Group          Rate  Code  Pol. Delay [s]    Width [s]    Source                    </span>
-<span class="gt">------------------------------------------------------------------------------------------------------------------------</span>
-<span class="n">EBeam</span>                         <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">EBeam</span><span class="p">)</span>                          
-<span class="n">FEEGasDetEnergy</span>               <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">FEEGasDetEnergy</span><span class="p">)</span>                
-<span class="n">PhaseCavity</span>                   <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">PhaseCavity</span><span class="p">)</span>                    
-<span class="n">XppEnds_Ipm0</span>                  <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppEnds_Ipm0</span><span class="p">)</span>                   
-<span class="n">XppSb2_Ipm</span>                    <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb2_Ipm</span><span class="p">)</span>                     
-<span class="n">XppSb3_Ipm</span>                    <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>                                 <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb3_Ipm</span><span class="p">)</span>                     
-<span class="n">cspad</span>                         <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>   <span class="n">Pos</span> <span class="mf">0.000549832</span>  <span class="mf">0.000010000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppGon</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Cspad</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>               
-<span class="n">yag2</span>                          <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>   <span class="n">Pos</span> <span class="mf">0.000690739</span>  <span class="mf">0.000300000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppSb3Pim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span>           
-<span class="n">yag_lom</span>                       <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>    <span class="mi">40</span>   <span class="n">Pos</span> <span class="mf">0.000690739</span>  <span class="mf">0.000300000</span>  <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppMonPim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span>           
+<span class="go">Alias                Grp   Description Code Pol   Delay [s]   Width [s] Source                        </span>
+<span class="gt">------------------------------------------------------------------------------------------------------</span>
+<span class="n">EBeam</span>                  <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">EBeam</span><span class="p">)</span>                
+<span class="n">FEEGasDetEnergy</span>        <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">FEEGasDetEnergy</span><span class="p">)</span>      
+<span class="n">PhaseCavity</span>            <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">PhaseCavity</span><span class="p">)</span>          
+<span class="n">XppEnds_Ipm0</span>           <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppEnds_Ipm0</span><span class="p">)</span>         
+<span class="n">XppSb2_Ipm</span>             <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb2_Ipm</span><span class="p">)</span>           
+<span class="n">XppSb3_Ipm</span>             <span class="mi">0</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span>                             <span class="n">BldInfo</span><span class="p">(</span><span class="n">XppSb3_Ipm</span><span class="p">)</span>           
+<span class="n">cspad</span>                  <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span> <span class="n">Pos</span> <span class="mf">0.000549832</span> <span class="mf">0.000010000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppGon</span><span class="o">.</span><span class="mi">0</span><span class="p">:</span><span class="n">Cspad</span><span class="o">.</span><span class="mi">0</span><span class="p">)</span>     
+<span class="n">yag2</span>                   <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span> <span class="n">Pos</span> <span class="mf">0.000690739</span> <span class="mf">0.000300000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppSb3Pim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span> 
+<span class="n">yag_lom</span>                <span class="mi">1</span>        <span class="mi">120</span> <span class="n">Hz</span>   <span class="mi">40</span> <span class="n">Pos</span> <span class="mf">0.000690739</span> <span class="mf">0.000300000</span> <span class="n">DetInfo</span><span class="p">(</span><span class="n">XppMonPim</span><span class="o">.</span><span class="mi">1</span><span class="p">:</span><span class="n">Tm6740</span><span class="o">.</span><span class="mi">1</span><span class="p">)</span> 
 <span class="o">&lt;</span> <span class="n">ConfigData</span><span class="p">:</span> <span class="n">exp</span><span class="o">=</span><span class="n">xpptut15</span><span class="p">:</span><span class="n">run</span><span class="o">=</span><span class="mi">54</span><span class="p">:</span><span class="n">smd</span> <span class="o">&gt;</span>
 </pre></div>
 </div>
@@ -527,7 +530,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
 </div>
 <p>If nothing is passed in the next method, then the next event goes to the next event before we started jumping to specific events.</p>
 <div class="highlight-ipython notranslate"><div class="highlight"><pre><span></span><span class="gp">In [29]: </span><span class="n">evt</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
-<span class="gh">Out[29]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step 0, Event 3, 15:11:48.5849, [41, 40] &gt;</span>
+<span class="gh">Out[29]: </span><span class="go">&lt; EvtDetectors: xpptut15, Run 59, Step -1, Event 201, 15:11:48.5849, [41, 40] &gt;</span>
 </pre></div>
 </div>
 </div>
@@ -577,7 +580,7 @@ Use strict=False keyword to check if code occurred with any timestamp since last
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

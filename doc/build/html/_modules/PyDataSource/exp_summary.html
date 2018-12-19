@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.exp_summary &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.exp_summary &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -90,10 +90,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">PyDatSource API</a></li>
 </ul>
 
@@ -261,7 +264,6 @@
     <span class="k">if</span> <span class="n">xpvs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">auto_load</span><span class="p">:</span>
             <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">es</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
             <span class="n">xpvs</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">xpvs</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">{}</span> 
@@ -292,7 +294,6 @@
     <span class="k">if</span> <span class="n">xscan</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">auto_load</span><span class="p">:</span>
             <span class="n">es</span> <span class="o">=</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">es</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
             <span class="n">xscan</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">xscan</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
@@ -348,16 +349,20 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
 
-<span class="k">def</span> <span class="nf">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">get_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">reload</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Use scratch for now since results unreliable</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">es</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">reload</span><span class="p">:</span>
         <span class="n">es</span> <span class="o">=</span> <span class="n">read_exp_summary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">es</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">es</span>
     
-    <span class="k">return</span> <span class="n">ExperimentSummary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">es</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">save</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">save</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">es</span> <span class="o">=</span> <span class="n">ExperimentSummary</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">es</span>
 
 <span class="k">def</span> <span class="nf">epicsArch_dict</span><span class="p">(</span><span class="n">archfile_name</span><span class="p">,</span><span class="n">file_dir</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -685,12 +690,13 @@
                 <span class="k">if</span> <span class="n">aunits</span><span class="p">[</span><span class="n">attr</span><span class="p">]:</span>
                     <span class="n">lab</span> <span class="o">+=</span> <span class="s1">&#39; [</span><span class="si">{:}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">aunits</span><span class="p">[</span><span class="n">attr</span><span class="p">])</span>
                 
-                <span class="n">df</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s1">&#39;time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s1">&#39;UTC&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">tz_convert</span><span class="p">(</span><span class="s1">&#39;US/Pacific&#39;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">style</span><span class="p">:</span>
                     <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">df</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">drawstyle</span><span class="o">=</span><span class="s1">&#39;steps&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="n">linewidth</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
                 
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time (US Pacific)&#39;</span><span class="p">)</span>
             <span class="n">legend</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_epics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run_max</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -860,6 +866,38 @@
         <span class="n">legend</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">,</span>  <span class="n">bbox_to_anchor</span><span class="o">=</span><span class="n">box_to_anchor</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ax</span>
 
+    <span class="k">def</span> <span class="nf">_add_run_details</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add experiment run details to xrun xarray Dataset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xruns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xruns</span>
+        <span class="n">flist</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;drop_stats_files&#39;</span><span class="p">,</span> <span class="s1">&#39;xtc_files&#39;</span><span class="p">,</span> <span class="s1">&#39;stats_files&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">ftyp</span> <span class="ow">in</span> <span class="n">flist</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfruns</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">ftyp</span><span class="p">]</span>
+                <span class="n">xruns</span><span class="p">[</span><span class="n">ftyp</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;run&#39;</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">run</span><span class="p">])</span> <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="n">dlist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ddict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">xruns</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="n">dets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detectors</span><span class="p">(</span><span class="n">run</span><span class="p">)</span>
+            <span class="n">ddict</span><span class="p">[</span><span class="n">run</span><span class="p">]</span> <span class="o">=</span> <span class="n">dets</span>
+            <span class="n">dlist</span> <span class="o">+=</span> <span class="n">dets</span>
+
+        <span class="n">aliases</span> <span class="o">=</span> <span class="p">{</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;-|:|\.| |\|&#39;</span><span class="p">,</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">dlist</span><span class="p">)}</span>
+        <span class="k">for</span> <span class="n">alias</span><span class="p">,</span> <span class="n">det</span> <span class="ow">in</span> <span class="n">aliases</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">xruns</span><span class="p">[</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;run&#39;</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">det</span> <span class="ow">in</span> <span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ddict</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="n">xruns</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;dets&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="n">xruns</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;detectors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">aliases</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">xruns</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">runs_with_xtc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -901,6 +939,30 @@
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;-&gt; &#39;</span><span class="p">,</span><span class="n">bsubproc</span><span class="p">)</span>
 
         <span class="n">subproc</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">bsubproc</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">save_configData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runs</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save configData .</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        runs : list of ints or int or &#39;all&#39;</span>
+<span class="sd">            Runs to save configData - if &#39;all&#39; then submit all that have not already been created</span>
+<span class="sd">            default = &#39;all&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">PyDataSource</span>
+        <span class="k">if</span> <span class="n">runs</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="n">drop_stats_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dfruns</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="s1">&#39;drop_stats_files&#39;</span><span class="p">]</span>
+            <span class="n">runs</span> <span class="o">=</span> <span class="p">[</span><span class="n">run</span> <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">runs_with_xtc</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">drop_stats_files</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="p">[])]</span>
+        <span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">PyDataSource</span><span class="o">.</span><span class="n">DataSource</span><span class="p">(</span><span class="n">exp</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="p">,</span> <span class="n">run</span><span class="o">=</span><span class="n">run</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ds</span><span class="o">.</span><span class="n">configData</span><span class="o">.</span><span class="n">save_configData</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Saved </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ds</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot save configData: &#39;</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
+
 
     <span class="k">def</span> <span class="nf">submit_beam_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runs</span><span class="p">,</span> <span class="n">batchqueue</span><span class="o">=</span><span class="s1">&#39;psanaq&#39;</span><span class="p">,</span> <span class="n">alert</span><span class="o">=</span><span class="s1">&#39;None&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1192,7 +1254,7 @@
                         <span class="k">except</span><span class="p">:</span>
                             <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
                             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;cannot get meta for&#39;</span><span class="p">,</span> <span class="n">alias</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
-                            <span class="k">pass</span>
+                            
                     <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;val&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">dat</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]]</span>
                     <span class="n">doc</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
                     <span class="n">units</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;units&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
@@ -1778,7 +1840,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

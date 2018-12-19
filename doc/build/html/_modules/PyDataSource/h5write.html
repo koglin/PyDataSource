@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.h5write &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.h5write &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -90,10 +90,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">PyDatSource API</a></li>
 </ul>
 
@@ -575,10 +578,10 @@
                             <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">xmean</span><span class="o">/</span><span class="n">xvar</span><span class="o">+</span><span class="n">smean</span><span class="o">/</span><span class="n">svar</span><span class="p">)</span><span class="o">*</span><span class="n">sxvar</span>
                             <span class="n">item</span><span class="p">[</span><span class="n">istats</span><span class="p">[</span><span class="s1">&#39;std&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">sxvar</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">xdata</span> <span class="ow">is</span> <span class="p">{}:</span>
-        <span class="k">return</span> <span class="kc">None</span>
-
-    <span class="n">x</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">dim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">xdata</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">xdata</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">dim</span><span class="p">)</span>
     
     <span class="k">return</span> <span class="n">x</span>
 
@@ -820,6 +823,9 @@
     <span class="n">nevents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nevents</span>
     <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="nb">print</span> <span class="s1">&#39;*** Total time </span><span class="si">{:8.1f}</span><span class="s1"> sec for </span><span class="si">{:}</span><span class="s1"> events -- </span><span class="si">{:8.1f}</span><span class="s1"> events/sec using </span><span class="si">{:}</span><span class="s1"> cores ***&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">total_time</span><span class="p">,</span> <span class="n">nevents</span><span class="p">,</span> <span class="n">nevents</span><span class="o">/</span><span class="n">total_time</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> 
 
 <div class="viewcode-block" id="to_hdf5"><a class="viewcode-back" href="../../generated/PyDataSource.to_hdf5.html#PyDataSource.to_hdf5">[docs]</a><span class="k">def</span> <span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cleanup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -969,12 +975,14 @@
     <span class="n">comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
     <span class="n">rank</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">rank</span>  <span class="c1"># The process ID (integer 0-3 for 4-process run)</span>
     <span class="n">size</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
-
     <span class="n">exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_source</span><span class="o">.</span><span class="n">exp</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span> <span class="ow">and</span> <span class="n">ichunk</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ichunk</span><span class="o">=</span><span class="n">rank</span>
    
+    <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">nchunks</span> <span class="o">=</span> <span class="n">size</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">reload</span><span class="p">()</span>
     <span class="n">evt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">next</span><span class="p">(</span><span class="n">publish</span><span class="o">=</span><span class="n">publish</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">publish</span><span class="p">)</span>
     <span class="n">dtime</span> <span class="o">=</span> <span class="n">evt</span><span class="o">.</span><span class="n">EventId</span>
@@ -1239,12 +1247,17 @@
             <span class="c1">#    src_info[&#39;src&#39;] = str(src_info[&#39;src&#39;])</span>
  
             <span class="k">if</span> <span class="ow">not</span> <span class="n">no_events</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">mpio</span><span class="p">:</span>
-                    <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
-                    <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;mpio&#39;</span><span class="p">,</span> <span class="n">comm</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">ichunk</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
-                    <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">mpio</span><span class="p">:</span>
+                        <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
+                        <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;mpio&#39;</span><span class="p">,</span> <span class="n">comm</span><span class="o">=</span><span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">{:}</span><span class="s1">_C</span><span class="si">{:02}</span><span class="s1">_</span><span class="si">{:}</span><span class="s1">.nc&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_base</span><span class="p">,</span><span class="n">ichunk</span><span class="p">,</span><span class="n">det</span><span class="p">))</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Setting </span><span class="si">{:}</span><span class="s1"> file_name = </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">det</span><span class="p">,</span> <span class="n">file_name</span><span class="p">))</span>
+                        <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span> <span class="o">=</span> <span class="n">h5netcdf</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">invalid_netcdf</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error setting file for&#39;</span><span class="p">,</span><span class="n">det</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+                    <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
             
             <span class="n">axdat</span><span class="p">[</span><span class="n">det</span><span class="p">]</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntime</span>
             
@@ -1850,27 +1863,37 @@
 <span class="c1">#        p.set_title(title)</span>
 <span class="c1">#        if desc:</span>
 <span class="c1">#            plt.text(-.1,-.2, desc, transform=p.transAxes, wrap=True)   </span>
-<span class="c1">#</span>
+
 <span class="c1">#        return p </span>
 <span class="c1">#    else:</span>
 <span class="c1">#        print &#39;Too many dims to plot&#39;</span>
 
-<span class="k">def</span> <span class="nf">make_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel</span><span class="o">=.</span><span class="mi">11</span><span class="p">,</span> <span class="n">ix0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">iy0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">make_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pixel</span><span class="o">=.</span><span class="mi">11</span><span class="p">,</span> <span class="n">ix0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">iy0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+        <span class="n">indexes_x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">indexes_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ximage</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">yimage</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return image from 3-dim detector DataArray.&quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
     <span class="kn">import</span> <span class="nn">xarray</span> <span class="k">as</span> <span class="nn">xr</span>
     <span class="n">base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">xx</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">base</span><span class="o">+</span><span class="s1">&#39;_indexes_x&#39;</span><span class="p">]</span>
-        <span class="n">yy</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">base</span><span class="o">+</span><span class="s1">&#39;_indexes_y&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">indexes_x</span><span class="p">:</span>
+            <span class="n">indexes_x</span> <span class="o">=</span> <span class="n">base</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">index_base</span><span class="o">+</span><span class="s1">&#39;_x&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">indexes_y</span><span class="p">:</span>
+            <span class="n">indexes_y</span> <span class="o">=</span> <span class="n">base</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">index_base</span><span class="o">+</span><span class="s1">&#39;_y&#39;</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">indexes_x</span><span class="p">]</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">indexes_y</span><span class="p">]</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">xx</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">yy</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
 
-        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base</span><span class="o">+</span><span class="s1">&#39;_ximage&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ximage</span><span class="p">:</span>
+            <span class="n">ximage</span> <span class="o">=</span> <span class="n">base</span><span class="o">+</span><span class="s1">&#39;_ximage&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">yimage</span><span class="p">:</span>
+            <span class="n">yimage</span> <span class="o">=</span> <span class="n">base</span><span class="o">+</span><span class="s1">&#39;_yimage&#39;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ximage</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ix0</span><span class="p">:</span>
                 <span class="n">ix0</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="mf">2.</span>
             <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">-</span><span class="n">ix0</span><span class="p">)</span><span class="o">*</span><span class="n">pixel</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base</span><span class="o">+</span><span class="s1">&#39;_yimage&#39;</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">yimage</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">iy0</span><span class="p">:</span>
                 <span class="n">iy0</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mf">2.</span>
@@ -2030,7 +2053,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDatSource API &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDatSource API &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,9 +33,9 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="index.html"/>
         <link rel="next" title="PyDataSource.DataSource" href="generated/PyDataSource.DataSource.html"/>
-        <link rel="prev" title="Conda Release System" href="conda.html"/> 
+        <link rel="prev" title="Updating Releases" href="conda.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -91,10 +91,13 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">PyDatSource API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#data-source">Data Source</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.DataSource.html">PyDataSource.DataSource</a></li>
@@ -123,6 +126,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#event-info">Event Info</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrData.html">PyDataSource.EvrData</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrDataDetails.html">PyDataSource.EvrDataDetails</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EvrNullData.html">PyDataSource.EvrNullData</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.EventId.html">PyDataSource.EventId</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html">PyDataSource.L3Ttrue</a></li>
@@ -238,7 +242,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.html#PyDataSource.DataSource" title="PyDataSource.DataSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataSource</span></code></a>([data_source])</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.DataSource.html#PyDataSource.DataSource" title="PyDataSource.DataSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataSource</span></code></a>([data_source,&nbsp;default_modules])</td>
 <td>Python version of psana.DataSource with support for event and config data as well as PyDetector functions to access calibrated data.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.SourceData.html#PyDataSource.SourceData" title="PyDataSource.SourceData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SourceData</span></code></a>(source)</td>
@@ -322,16 +326,19 @@
 <tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EvrData.html#PyDataSource.EvrData" title="PyDataSource.EvrData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrData</span></code></a>(ds)</td>
 <td>Evr eventCode information for current event in DataSource</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData" title="PyDataSource.EvrNullData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrNullData</span></code></a>(ds)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EvrDataDetails.html#PyDataSource.EvrDataDetails" title="PyDataSource.EvrDataDetails"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrDataDetails</span></code></a>(ds)</td>
+<td>Evr eventCode information for current event in DataSource</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EvrNullData.html#PyDataSource.EvrNullData" title="PyDataSource.EvrNullData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EvrNullData</span></code></a>(ds)</td>
 <td>Evr data class when no EvrData type is in event keys.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.EventId.html#PyDataSource.EventId" title="PyDataSource.EventId"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventId</span></code></a>(evt)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.EventId.html#PyDataSource.EventId" title="PyDataSource.EventId"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EventId</span></code></a>(evt)</td>
 <td>Time stamp information from psana EventId.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html#PyDataSource.L3Ttrue" title="PyDataSource.L3Ttrue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Ttrue</span></code></a>(ds)</td>
+<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.L3Ttrue.html#PyDataSource.L3Ttrue" title="PyDataSource.L3Ttrue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Ttrue</span></code></a>(ds)</td>
 <td>L3 Trigger default if no L3 Trigger data is in DataSource.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.L3Tdata.html#PyDataSource.L3Tdata" title="PyDataSource.L3Tdata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Tdata</span></code></a>(ds)</td>
+<tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.L3Tdata.html#PyDataSource.L3Tdata" title="PyDataSource.L3Tdata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">L3Tdata</span></code></a>(ds)</td>
 <td>L3 Trigger data</td>
 </tr>
 </tbody>
@@ -355,7 +362,7 @@
 <td>Tab accessibile dictified psana.Detector object.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="generated/PyDataSource.WaveformCalibData.html#PyDataSource.WaveformCalibData" title="PyDataSource.WaveformCalibData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">WaveformCalibData</span></code></a>(det,&nbsp;evt)</td>
-<td>Calibration data using psana.Detector access.</td>
+<td>Waveform Calibration data using psana.Detector access.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="generated/PyDataSource.IpimbData.html#PyDataSource.IpimbData" title="PyDataSource.IpimbData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IpimbData</span></code></a>(det,&nbsp;evt)</td>
 <td>Tab accessibile dictified psana.Detector object.</td>
@@ -464,7 +471,7 @@
         <a href="generated/PyDataSource.DataSource.html" class="btn btn-neutral float-right" title="PyDataSource.DataSource" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="conda.html" class="btn btn-neutral" title="Conda Release System" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="conda.html" class="btn btn-neutral" title="Updating Releases" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -495,7 +502,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

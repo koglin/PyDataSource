@@ -2820,7 +2820,7 @@ class Build_html(object):
 
         elif self.nsteps > 1:
             if self.nsteps < max_columns**2:
-                ncolumns = int(sqrt(self.nsteps))
+                ncolumns = int(np.sqrt(self.nsteps))
             else:
                 ncolumns = int(min([self.nsteps,max_columns]))
                 

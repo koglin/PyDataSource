@@ -1,0 +1,327 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>&lt;no title&gt; &mdash; PyDataSource 0.6.9 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> PyDataSource
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="data_access.html">Data Access Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_processing.html">Data Processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conda.html">Updating Releases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyDataSource</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>&lt;no title&gt;</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/expert.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <p># to create stats folders run as</p>
+<p>sit_setup  dm-current</p>
+<p>dm-create-folders –dirs stats  –mkdir cxij8816</p>
+<p># make idx and smd files</p>
+<p>#makeSmallData -e xppf1615 -r 40
+#makeSmallData -e xppf1615 -r 41
+#makeSmallData -e xppf1615 -r 42</p>
+<p>XppMon_Pim1 off -1
+display /reg/neh/home/cpo/ana-0.13.12/offbyone/exp=xppf1615:run=42.pdf</p>
+<p>#sudo su psdatmgr
+#cd /reg/d/psdm/xpp/xppf1615/
+#mv ftc/<em>.smd.xtc xtc/smalldata
+#</em></p>
+<p>#  764  cp /reg/d/psdm/xpp/xpptut15/results/littleData/xppmodules/scripts/makeSmallData ~koglin/conda/PyDataSource/app/
+#  765  cp /reg/d/psdm/xpp/xpptut15/results/littleData/xppmodules/scripts/makeSmallData ~koglin/conda/PyDataSource/app/.
+#  766  cd
+#  767  cd conda/PyDataSource/
+#  768  cd app/
+#  769  vim makeSmallData
+#  770  ./makeSmallData -e cxig0715 -r 172
+#  771  bjobs
+#  772  bjobs -wa
+#  773  ls /reg/d/psdm/cxi/cxig0715/ftc
+#  774  ls /reg/d/psdm/cxi/cxig0715/ftc -l
+#  775  ls /reg/d/psdm/cxi/cxig0715/ftc -la
+#  776  ls /reg/d/psdm/cxi/cxig0715/ftc/ -la
+#  777  ls /reg/d/psdm/cxi/cxig0715/ftc/ -lah
+#  778  bjobs
+#  779  bjobs -a
+#  780  ./makeSmallData -e cxig0715 -r 86
+#  781  ls /reg/d/psdm/cxi/cxig0715/xtc/
+#  782  ls /reg/d/psdm/cxi/cxig0715/xtc/ -l
+#  783  ./makeSmallData -e cxig0715 -r 200
+#  784  ./makeSmallData -e cxig0715 -r 201
+#  785  bjobs
+#  786  ./makeSmallData -e cxig0715 -r 172
+#  787  ./makeSmallData -e cxig0715 -r 171
+#  788  bjobs
+#  789  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/ -l
+#  790  ls /reg/d/psdm/cxi/cxig0715/ftc/smalldata/ -l
+#  791  ls /reg/d/psdm/cxi/cxig0715/ftc/
+#  792  ls /reg/d/psdm/cxi/cxig0715/ftc/ -l
+#  793  ./makeSmallData -e cxig0715 -r 59
+#  794  bjobs
+#  795  bjobs -w
+#  796  ./makeSmallData -e cxig0715 -r 202
+#  797  bjobs -w
+#  798  ls /reg/d/psdm/cxi/cxig0715/ftc/ -l
+#  799  bjobs -w
+#  800  ls
+#  801  ls /reg/d/psdm/cxi/cxig0715/ftc/ -l
+#  802  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/ -l
+#  803  ls /reg/d/psdm/cxi/cxig0715/ftc/ -l
+#  804  mv -r /reg/d/psdm/cxi/cxig0715/ftc/* /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  805  mv /reg/d/psdm/cxi/cxig0715/ftc/* /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  806  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  807  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>s00-c00</em>
+#  808  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>s00-c00</em> -l
+#  809  ls /reg/d/psdm/cxi/cxig0715/ftc/ -l
+#  810  mv /reg/d/psdm/cxi/cxig0715/ftc/* /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  811  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0200-s00-c00.smd.xtc
+#  812  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>s00-c00</em> -l
+#  813  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>s00-c00</em> -la
+#  814  ls /reg/d/psdm/cxi/cxig0715/ftc/<em>201</em> -l
+#  815  mv /reg/d/psdm/cxi/cxig0715/ftc/<em>201</em> /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  816  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0201-s00-c00.smd.xtc
+#  817  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0201-s00*
+#  818  mv /reg/d/psdm/cxi/cxig0715/ftc/<em>201</em> /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  819  mv /reg/d/psdm/cxi/cxig0715/ftc/e553-r0201* /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  820  mv /reg/d/psdm/cxi/cxig0715/ftc/e553-r0201-s00-c00.smd.xtc /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  821  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  822  cp /reg/d/psdm/cxi/cxig0715/ftc/e553-r0201-s00-c00.smd.xtc /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  823  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/ -l
+#  824  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/md5 -l
+#  825  whoami
+#  826  cp /reg/d/psdm/cxi/cxig0715/ftc/e553-r0201-s00-c00.smd.xtc /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  827  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0201-s00-c00.smd.xtc
+#  828  cp /reg/d/psdm/cxi/cxig0715/ftc/e553-r0201-s00-c00.smd.xtc /reg/d/psdm/cxi/cxig0715/xtc/smalldata/.
+#  829  rm /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0201-s00-c00.smd.xtc
+#  830  ls /reg/d/psdm/cxi/cxig0715/xtc/<em>86</em>
+#  831  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>86</em>
+#  832  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>0086</em>
+#  833  bjobs -wa
+#  834  ls /reg/d/psdm/cxi/cxig0715/xtc/<em>86</em>
+#  835  ls /reg/d/psdm/cxi/cxig0715/xtc/<em>0086</em>
+#  836  bjobs -wa | grep r0086
+#  837  ls /reg/d/psdm/cxi/cxig0715/ftc/e553-r0086-s02-c00.smd.xtc
+#  838  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>0086</em>
+#  839  mv /reg/d/psdm/cxi/cxig0715/ftc/e553-r0086* reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  840  mv /reg/d/psdm/cxi/cxig0715/ftc/e553-r0086* reg/d/psdm/cxi/cxig0715/xtc/smalldata
+#  841  mv /reg/d/psdm/cxi/cxig0715/ftc/e553-r0086* /reg/d/psdm/cxi/cxig0715/xtc/smalldata
+#  842  ls /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0086-s00-c00.smd.xtc
+#  843  touch /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0086-s00-c00.smd.xtc
+#  844  ls -la /reg/d/psdm/cxi/cxig0715/xtc/smalldata/e553-r0086-s00-c00.smd.xtc
+#  845  ls -la /reg/d/psdm/cxi/cxig0715/xtc/smalldata/
+#  846  sudo su psdatmgr
+#  847  ls -la /reg/d/psdm/cxi/cxig0715/xtc/smalldata/<em>s00-c00</em>
+#  848  ls -la /reg/d/psdm/cxi/cxig0715/xtc/<em>s00-c00</em>
+#  849  ls /reg/d/psdm/cxi/cxig0715/ -la</p>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, SLAC National Accelerator Laboratory.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.6.9',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -29,7 +29,7 @@ def to_summary(x, dim='time', groupby='step',
     """
     import xarray as xr
     xattrs = x.attrs
-    data_attrs = {attr: x[attr].attrs for attr in x}
+    data_attrs = {attr: x[attr].attrs for attr in x.data_vars}
     if cut in x:
         x = x.where(x[cut]).dropna(dim)
    
@@ -45,17 +45,21 @@ def to_summary(x, dim='time', groupby='step',
     x.load()
     xgroups = {}
     if groupby:
-        sattrs = [a for a in x if 'stat' in x[a].dims or groupby+'s' in x[a].dims]
-        if sattrs:
-            xstat = x[sattrs].rename({groupby+'s': groupby})
-            x = x.drop(sattrs)
-        x = x.groupby(groupby)
-#        group_vars = [attr for attr in x.keys() if groupby+'s' in x[attr].dims]
-#        if group_vars:
-#            xgroups = {attr: x[attr].rename({groupby+'s': groupby}) for attr in group_vars}
-#            for attr in group_vars:
-#                del x[attr]
-        #x = x.groupby(groupby)
+        try:
+            sattrs = [a for a in x.data_vars if 'stat' in x[a].dims or groupby+'s' in x[a].dims]
+            if sattrs:
+                xstat = x[sattrs].rename({groupby+'s': groupby})
+                x = x.drop(sattrs)
+            x = x.groupby(groupby)
+    #        group_vars = [attr for attr in x.keys() if groupby+'s' in x[attr].dims]
+    #        if group_vars:
+    #            xgroups = {attr: x[attr].rename({groupby+'s': groupby}) for attr in group_vars}
+    #            for attr in group_vars:
+    #                del x[attr]
+            #x = x.groupby(groupby)
+        except:
+            print('Cannot groupby {:} -- ignoring groupby'.format(groupby))
+
 
     dsets = [getattr(x, func)(dim=dim) for func in stats]
     x = xr.concat(dsets, stats).rename({'concat_dim': 'stat'})
@@ -552,7 +556,7 @@ def set_delta_beam(x, code='ec162', attr='delta_drop'):
 def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.0001,
             adet_pvalue0_ratio=0.33, adet_pvalue=1e-5,
             groupby='ec162', nearest=5, corr_coord='delta_drop',
-            pulse=None, confidence=0.1, sigma0=5,
+            pulse=None, confidence=0.1, sigma0=5, sigma_scale=2,
             percentiles=[0.5], 
             save_file=None,
             cut=None, verbose=False, **kwargs):
@@ -672,8 +676,15 @@ def find_beam_correlations(xo, pvalue=1e-20, pvalue0_ratio=0.1, corr_pvalue=0.00
             
             tag_shot_corr = False
             t_pvalue0 = df_stats['t_pvalue'][0]
-            if abs(float((xmean[1]-xmean[0])/xstd[0])) > sigma0 or xstd[1] > xstd[0]*sigma0:
+            if abs(float((xmean[1]-xmean[0])/xstd[0])) > sigma0 \
+                    or xstd[1] > xstd[0]*sigma0 \
+                    or xstd[0] > xstd[1]*sigma_scale:
                 # First check if dropped shot and regular shot mean values differ by > sigma0 
+                # If drop_shot std (i.e., xstd[1] is < sigma/sigma_scale times other shots then timing is correct
+                #    e.g., opal_1 from exp=xppls7917:run=98 which has laser on/off
+                #          and the signal is strong and stable with no X-rays but
+                #          varies significantly with X-rays because of laser x-ray effects
+                # If drop_shot std is < sigma0 times other shots then also timing is correct
                 ishot = 0
                 tag_shot_corr = True
             else:

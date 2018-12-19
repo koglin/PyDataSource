@@ -104,7 +104,12 @@ CONFIG='auto'
 echo Processing $EXP Run $RUN
 #echo '##' bsub -q "$QUEUEREQ" -J "$JOBNAME" -o $OUTLOG/%J.log python "$RUNFILE" "$PYOPT" --exp="$EXP" --run=$RUN --max_size="$MAX_SIZE" --config="$CONFIG"
 
-LOGSUM=/reg/neh/home/koglin/logs/"$EXP"/batch_jobs.log
+LOGDIR=/reg/g/psdm/utils/arp/logs/"$EXP"
+if [[ ! -a $LOGDIR ]];  then
+    mkdir -p $LOGDIR
+fi
+LOGSUM="$LOGDIR"/summary_batch_jobs.log
+
 echo '--------------------------------' >> $LOGSUM
 date >> $LOGSUM
 echo Processing $EXP Run $RUN >> $LOGSUM

@@ -70,6 +70,7 @@ if __name__ == "__main__":
                     detector._update_xarray_info()
                 except:
                     pass
+                
                 if detector._pydet.__module__ == 'Detector.AreaDetector':
                     if not attr:
                         attr = 'image'
@@ -79,6 +80,7 @@ if __name__ == "__main__":
                         print('Cannot make {:} {:} plot -- trying raw data'.format(alias, attr))
                         attr = 'raw'
                         detector.add.psplot(attr)
+                
                 elif detector._pydet.__module__ in ['Detector.WFDetector','Detector.GenericWFDetector']:
                     try:
                         if not attr:
@@ -86,20 +88,24 @@ if __name__ == "__main__":
                                 attr = 'filtered'
                             else:
                                 attr = 'waveform'
+                        
                         nwfs = detector.waveform.shape[0]
                         for sensor in range(nwfs):
                             detector.add.roi(attr,sensor=sensor,name='{:}_Ch{:}'.format(attr,sensor+1),publish=True)
                     except:
                         print('Cannot make {:} waveform plot'.format(alias))
+                
                 else:
                     print('No plot available for {:} {:}'.format(alias, detector._pydet.__module__))
 
             except:
                 print('Cannot make {:} plot for {:}'.format(alias, detector._pydet.__module__))
+        
         if args.nevents:
             nevents = args.nevents
         else:
             nevents = -1
+        
         time.sleep(2)
         
         if nevents > 0:
@@ -114,6 +120,7 @@ if __name__ == "__main__":
                 if get_int:
                     nevents = get_int
                     get_new = "y"
+        
         else:
             evt.monitor(nevents)
             get_new = raw_input("Run Finished - Reload ?\n".format(nevents))

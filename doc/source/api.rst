@@ -49,6 +49,7 @@ Event Info
     :toctree: generated/
 
     EvrData
+    EvrDataDetails
     EvrNullData
     EventId
     L3Ttrue

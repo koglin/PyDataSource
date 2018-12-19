@@ -104,6 +104,11 @@ def main():
     """
     time0 = time.time()
     args = initArgs()
+    if not args.exp:
+        from PyDataSource import psutils
+        args.exp = psutils.active_experiment()
+        print('No exp provided -- {:} is the active experiment'.format(args.exp))
+ 
     ds = PyDataSource.DataSource(**vars(args))
     setattr(sys.modules['__main__'], args.base, ds)
 

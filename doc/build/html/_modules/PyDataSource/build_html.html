@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.build_html &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.build_html &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../../genindex.html"/>
         <link rel="search" title="Search" href="../../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -90,10 +90,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">PyDatSource API</a></li>
 </ul>
 
@@ -268,11 +271,89 @@
         <span class="kn">from</span> <span class="nn">exp_summary</span> <span class="k">import</span> <span class="n">get_exp_summary</span>
         <span class="k">return</span> <span class="n">get_exp_summary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">add_smd_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">make_plots</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">print_on</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Creates the table of active detectors</span>
+<span class="sd">        and the table of percentage of valid data</span>
+<span class="sd">        (both as documented in their respective functions),</span>
+<span class="sd">        then exports them.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str, optional</span>
+<span class="sd">            Path to the files (for glob.glob() function, so uses the *-syntax)</span>
+<span class="sd">        print_on : bool, optional</span>
+<span class="sd">            Decides if the progress is printed</span>
+<span class="sd">        make_plots : bool, optional</span>
+<span class="sd">            Make individual detector damabe plots [default=False]</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        activetable : DataFrame</span>
+<span class="sd">            Table of 1s and 0s for each variable in each run</span>
+<span class="sd">        detectortable : DataFrame</span>
+<span class="sd">            Table of percentages for each variable in each run</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="kn">import</span> <span class="nn">glob</span>
+        <span class="kn">from</span> <span class="nn">smd_tools</span> <span class="k">import</span> <span class="n">get_active_dict</span><span class="p">,</span> <span class="n">get_active_table</span><span class="p">,</span> <span class="n">get_damage_table</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">res_dir</span><span class="p">,</span><span class="s1">&#39;nc&#39;</span><span class="p">)</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s1">&#39;/*drop_stats.nc&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;No files found&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">print_on</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">{}</span><span class="s2"> files.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)))</span>
+        <span class="n">files</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+        <span class="n">datadict</span><span class="p">,</span> <span class="n">runs</span><span class="p">,</span> <span class="n">det_alias</span> <span class="o">=</span> <span class="n">get_active_dict</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">print_on</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Dictionary made&#39;</span><span class="p">)</span>
+        <span class="n">activetable</span> <span class="o">=</span> <span class="n">get_active_table</span><span class="p">(</span><span class="n">datadict</span><span class="p">,</span><span class="n">runs</span><span class="p">,</span> <span class="n">det_alias</span><span class="o">=</span><span class="n">det_alias</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">print_on</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;1st table made&#39;</span><span class="p">)</span>
+        <span class="n">detectortable</span> <span class="o">=</span> <span class="n">get_damage_table</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">datadict</span><span class="p">,</span> <span class="n">runs</span><span class="p">,</span> <span class="n">det_alias</span><span class="o">=</span><span class="n">det_alias</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">print_on</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Both tables ready&#39;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_table</span><span class="p">(</span><span class="n">activetable</span><span class="p">,</span> <span class="n">catagory</span><span class="o">=</span><span class="s1">&#39;Detectors&#39;</span><span class="p">,</span> 
+                <span class="n">tbl_type</span> <span class="o">=</span> <span class="s1">&#39;Active Summary&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Summary&#39;</span><span class="p">,</span> 
+                <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Summary of Active Detectors&#39;</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_table</span><span class="p">(</span><span class="n">detectortable</span><span class="p">,</span> <span class="n">catagory</span><span class="o">=</span><span class="s1">&#39;Detectors&#39;</span><span class="p">,</span> 
+                <span class="n">tbl_type</span><span class="o">=</span><span class="s1">&#39;Damage Summary&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Summary&#39;</span><span class="p">,</span> 
+                <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Summary of Detectors &amp; Damages&#39;</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># draws plots </span>
+        <span class="k">if</span> <span class="n">make_plots</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">detectortable</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">var</span><span class="o">==</span><span class="s1">&#39;events&#39;</span> <span class="ow">or</span> <span class="n">var</span><span class="o">==</span><span class="s1">&#39;drop_events&#39;</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">ax</span> <span class="o">=</span> <span class="n">detectortable</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="s1">&#39;Run&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s1">&#39;Damaged&#39;</span><span class="p">)</span> 
+<span class="c1">#                        ylim = (-1, 101), yticks = (0,10,20,30,40,50,60,70,80,90,100))</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Run&#39;</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Damaged [%]&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_plot</span><span class="p">(</span><span class="s1">&#39;Detectors&#39;</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datadict</span> <span class="o">=</span> <span class="n">datadict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df_active</span> <span class="o">=</span> <span class="n">activetable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df_damage</span> <span class="o">=</span> <span class="n">detectortable</span>
+
+        <span class="k">return</span> <span class="n">activetable</span><span class="p">,</span> <span class="n">detectortable</span>
+ 
 <div class="viewcode-block" id="Build_experiment.add_defaults"><a class="viewcode-back" href="../../generated/PyDataSource.build_html.Build_experiment.add_defaults.html#PyDataSource.Build_experiment.add_defaults">[docs]</a>    <span class="k">def</span> <span class="nf">add_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">run_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add defaults.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding defaults&#39;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_smd_summary</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+        
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">add_scans</span><span class="p">()</span>
         <span class="k">except</span><span class="p">:</span>
@@ -1197,7 +1278,7 @@
                     <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Cannot add detector summary for </span><span class="si">{:}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alias</span><span class="p">))</span>
 
-        <span class="n">dfattrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,)]</span>
+        <span class="n">dfattrs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">variables</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="n">a</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,)]</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">dfattrs</span><span class="p">]</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
         <span class="n">df_nearest</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">delta_drop</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">nearest</span><span class="p">]</span>
 
@@ -1464,6 +1545,7 @@
                            <span class="n">plot_errors</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> 
                            <span class="n">max_steps</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                           <span class="n">max_scatter</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> 
                            <span class="n">plt_style</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
                            <span class="n">cut</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
                            <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -1515,6 +1597,9 @@
 <span class="sd">        max_steps : int</span>
 <span class="sd">            Max steps in scatter plot to be color coded</span>
 
+<span class="sd">        max_scatter : int</span>
+<span class="sd">            Max attributes to make scatter plot [Default=8]</span>
+<span class="sd">        </span>
 <span class="sd">        robust_attrs : list</span>
 <span class="sd">            List of attibutes to cut on outliers in making scatter plots. </span>
 
@@ -1870,7 +1955,7 @@
                         <span class="k">if</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">dfcut</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">attr</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">scat_attrs</span><span class="p">:</span>
                             <span class="n">scat_attrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
 
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">scat_attrs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">scat_attrs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_scatter</span><span class="p">:</span>
                         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Too many parameters to make scatter plots:&#39;</span><span class="p">,</span> <span class="n">scat_attrs</span><span class="p">)</span>
                     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">scat_attrs</span><span class="p">)</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">groupby</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                         <span class="k">try</span><span class="p">:</span>
@@ -2899,7 +2984,7 @@
 
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span> <span class="o">&lt;</span> <span class="n">max_columns</span><span class="o">**</span><span class="mi">2</span><span class="p">:</span>
-                <span class="n">ncolumns</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">))</span>
+                <span class="n">ncolumns</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">ncolumns</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span><span class="n">max_columns</span><span class="p">]))</span>
                 
@@ -3612,7 +3697,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

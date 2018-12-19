@@ -17,8 +17,11 @@ Table of Contents
    xarray.rst
    data_summary.rst
    config_data.rst
+   meta_data.rst
+   apps.rst
    build_html.rst
    exp_summary.rst
+   offbyone.rst
    batch.rst
    conda.rst
    api.rst

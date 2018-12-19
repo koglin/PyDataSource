@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>PyDataSource.exp_summary &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>PyDataSource.exp_summary &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="../genindex.html"/>
         <link rel="search" title="Search" href="../search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="../index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="../index.html"/>
         <link rel="up" title="Experiment Summary" href="../exp_summary.html"/>
         <link rel="next" title="PyDataSource.ExperimentSummary" href="PyDataSource.ExperimentSummary.html"/>
         <link rel="prev" title="Experiment Summary" href="../exp_summary.html"/> 
@@ -92,6 +92,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../exp_summary.html">Experiment Summary</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../exp_summary.html#id1">Experiment Summary</a><ul class="current">
@@ -101,8 +103,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../exp_summary.html#experiment-summary-api">Experiment Summary API</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../conda.html">Conda Release System</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../conda.html">Updating Releases</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">PyDatSource API</a></li>
 </ul>
 
@@ -181,7 +184,7 @@
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">epicsArch_dict</span></code>(archfile_name,&nbsp;file_dir)</td>
 <td>Load text file containing aliases and pvs with daq epicsArch convention.</td>
 </tr>
-<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_exp_summary</span></code>(exp[,&nbsp;reload,&nbsp;path])</td>
+<tr class="row-even"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_exp_summary</span></code>(exp[,&nbsp;reload,&nbsp;path,&nbsp;save])</td>
 <td>Use scratch for now since results unreliable</td>
 </tr>
 <tr class="row-odd"><td><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_pv_attrs</span></code>(exp[,&nbsp;auto_load])</td>
@@ -259,7 +262,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

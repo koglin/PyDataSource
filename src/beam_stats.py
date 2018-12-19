@@ -330,6 +330,7 @@ def get_beam_stats(exp, run, default_modules={},
         pulse=None, gasdetcut_mJ=None,
         report_name=None, path=None, engine='h5netcdf', 
         wait=None, timeout=False,
+        add_stats=False,
         pvdict={},
         **kwargs):
     """
@@ -490,14 +491,36 @@ def get_beam_stats(exp, run, default_modules={},
             xdata['trans'] = (('time'), da.prod(dim='variable'))
             xdata['trans'].attrs['doc'] = 'Total transmission: '+'*'.join(trans_pvs)
 
+        print(xdata)
+        print(xsmd)
+
         xdata = merge_fill(xsmd, xdata)
+        print(xdata)
 
     except:
         traceback.print_exc()
         print('Could not load transmission pvs')
-
+    
+    try:
+        #Save sources, eventCodes and ScanData xarray datasets
+        ds.configData.save_configData()
+        print('')
+        print('Writing Scan Data')
+        print(ds.configData.ScanData.dataset)
+    except:
+        traceback.print_exc('Cannot write scan information for {:}'.format(ds))
 
     nevents = ds.nevents
+    try:
+        _seq_evtCodes = range(67,99)+range(167,199)+range(201,217)
+        code_stats = [int(a.lstrip('ec')) for a in xsmd.coords if a.startswith('ec') \
+                and int(a.lstrip('ec')) in _seq_evtCodes \
+                and xsmd[a].sum()<nevents]
+        code_stats.append(162)
+        code_stats.append(-162)
+    except:
+        code_stats = []
+    
     if drop_code not in xsmd or not xsmd[drop_code].values.any():
         logger.info('Skipping beam stats analysis for {:}'.format(ds))
         logger.info('  -- No {:} present in data'.format(drop_code))
@@ -632,7 +655,7 @@ def get_beam_stats(exp, run, default_modules={},
                 devName = srcname.split(':')[1].split('.')[0]
                 # for not just use rawsum for 'Epix10ka' and  'Jungfrau' until full
                 # development of gain switching in Detector module
-                if devName.startswith('Opal') or devName in ['Epix10ka']:
+                if devName.startswith('Opal'):
                     method = 'rawsum'
                     name = '_'.join([det, method])
                     methods[name] = method
@@ -641,6 +664,25 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['unit'] = 'ADU'
                     xdrop[name].attrs['alias'] = det
                     area_dets.append(name)
+                    if add_stats:
+                        detector.next()
+                        ok_stats = detector.add.stats('raw', eventCodes=code_stats)
+                        print('Adding stats for', name, ok_stats)
+                
+                elif devName in ['Epix10ka']:
+                    method = 'rawsum'
+                    name = '_'.join([det, method])
+                    methods[name] = method
+                    xdrop[name] = (('time'), np.zeros([ntimes]))
+                    xdrop[name].attrs['doc'] = '{:} sum of raw data'.format(det)
+                    xdrop[name].attrs['unit'] = 'ADU'
+                    xdrop[name].attrs['alias'] = det
+                    area_dets.append(name)
+                    if add_stats:
+                        detector.next()
+                        ok_stats = detector.add.stats('calib', eventCodes=code_stats)
+                        print('Adding stats for', name, ok_stats)
+                
                 elif devName in ['Jungfrau']:
                     nch = detector.configData.numberOfModules
                     if nch > 1:
@@ -659,6 +701,11 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['doc'] = '{:} sum of raw data'.format(det)
                     xdrop[name].attrs['unit'] = 'ADU'
                     xdrop[name].attrs['alias'] = det
+                    if add_stats:
+                        detector.next()
+                        ok_stats = detector.add.stats('calib', eventCodes=code_stats)
+                        print('Adding stats for', name, ok_stats)
+                
                 else:
                     method = 'count'
                     name = '_'.join([det, method])
@@ -668,6 +715,10 @@ def get_beam_stats(exp, run, default_modules={},
                     xdrop[name].attrs['unit'] = 'ADU'
                     xdrop[name].attrs['alias'] = det
                     area_dets.append(name)
+                    if add_stats:
+                        detector.next()
+                        ok_stats = detector.add.stats('corr', eventCodes=code_stats)
+                        print('Adding stats for', name, ok_stats)
 
             elif detector._pydet.__module__ == 'Detector.GenericWFDetector':
                 srcstr = detector._srcstr 
@@ -762,6 +813,7 @@ def get_beam_stats(exp, run, default_modules={},
     print(dets)
     print('-'*80)
     ds.reload()
+
     times = zip(xdrop.sec.values,xdrop.nsec.values,xdrop.fiducials.values)
     nupdate = 100
     time_last = time0
@@ -825,6 +877,12 @@ def get_beam_stats(exp, run, default_modules={},
 
     if not os.path.isdir(path):
         os.mkdir(path)
+
+    if add_stats:
+        try:
+            ds.save_stats(path=path)
+        except:
+            traceback.print_exc('Cannot save stats for {:}'.format(ds))
 
     if not report_name:
         report_name = 'run{:04}_drop_stats'.format(ds.data_source.run)
@@ -906,11 +964,14 @@ def build_beam_stats(exp=None, run=None,
     try:
         from PyDataSource import DataSource
         ds = DataSource(exp=exp,run=run)
+        configData = ds.configData
         config_info = str(ds.configData.show_info(show_codes=False))
         print(config_info)
     except:
+        configData = None
         config_info = None
         traceback.print_exc('Cannot get data source information for {:} Run {:}'.format(exp,run))
+
 
     try:
         from build_html import Build_html
@@ -964,6 +1025,22 @@ def build_beam_stats(exp=None, run=None,
             report_notes.append('')
         except:
             pass
+        
+        nsteps = 1 
+        step_attrs = []
+        try:
+            if configData is not None:
+                scanData = configData.ScanData
+                nsteps = scanData.nsteps
+                df_steps = pd.DataFrame(scanData.control_values)
+                scan_attrs = list(df_steps.keys()[df_steps.std() > 0])
+                if nsteps > 1:
+                    report_notes.append('Scan Steps = {:}'.format(nsteps))
+                    report_notes.append('Scan Variables = {:}'.format(scan_attrs))
+                    report_notes.append('')
+            
+        except:
+            traceback.print_exc('Cannot get scan information for {:}'.format(ds))
 
         # Event code flags
         try:
@@ -1130,9 +1207,11 @@ def build_beam_stats(exp=None, run=None,
         except:
             drop_detectors = []
 
+
         try:
             beam_detectors = list(sorted(set([str(xdrop[a].attrs.get('alias')) for a in xdrop.beam_corr_detected])))
             if beam_detectors:
+                #beam_detectors = ['<a href={:}#{:}_data>{:}</a>'.format(weblink, a, a) for a in beam_detectors]
                 batch_str = ', '.join([attr for attr in beam_detectors])
                 #batch_str = ', '.join(['<a href={:}#{:}_data>{:}</a>'.format(weblink, attr,attr) \
                 #                        for attr in beam_detectors])
@@ -1158,6 +1237,18 @@ def build_beam_stats(exp=None, run=None,
                     report_notes.append('    + '+a)
         except:
             warning_detectors = []
+
+        try:
+            if nsteps > 1:
+                batch_attr = '<a href={:}#{:}_data>{:}</a>'.format(weblink, "%20Scan", '{:} Scan Steps'.format(nsteps))
+                batch_str = 'Scan Variables = {:}'.format(scan_attrs)
+                batch_counters[batch_attr] = [batch_str, 'purple']
+                try:
+                    b.add_textblock(str(configData.ScanData.show_info()), ' Scan', 'Step Info')
+                except:
+                    traceback.print_exc('Cannot add Scan Data')
+        except:
+            pass
 
         if config_info:
             report_notes.append('')
@@ -1275,6 +1366,7 @@ def make_small_xarray(self, auto_update=True,
         ignore_attrs=['timestamp','numChannels','digital_in'],
         drop_code='ec162', drop_attr='delta_drop', 
         path=None, filename=None, save=True, engine='h5netcdf', 
+        make_summary=True,
         nevents=None):
     """Make Small xarray Dataset.
     Parameters
@@ -1284,6 +1376,7 @@ def make_small_xarray(self, auto_update=True,
     """
     from xarray_utils import set_delta_beam
     from xarray_utils import clean_dataset
+    from xarray_utils import to_summary
     import numpy as np
     import pandas as pd
     import time
@@ -1303,6 +1396,7 @@ def make_small_xarray(self, auto_update=True,
         traceback.print_exc('Cannot add drop_code = '.format(code))
     data = {cnames[code]: np.zeros(nevents, dtype=bool) for code in cnames}
     #data = {cnames[code]: np.zeros(nevents, dtype=bool) for code in self.configData._eventcodes}
+    data['step'] = np.zeros(nevents, dtype=int)
     data1d = {}
     dets1d = {}
     coords = ['fiducials', 'sec', 'nsec']
@@ -1422,6 +1516,12 @@ def make_small_xarray(self, auto_update=True,
                     nevents, time_next-time0, nupdate/dtime))
             time_last = time_next 
 
+        # add step
+        istep = self._istep
+        data['step'][i] = istep
+        if i % nupdate == nupdate-1:
+            print(istep, evt)
+
         # add eventCodes
         for code in evt.Evr.eventCodes_strict:
             if code in cnames:
@@ -1454,6 +1554,7 @@ def make_small_xarray(self, auto_update=True,
                                 data[name][i] = np.nan
                                 
         i += 1
+
 
     df = pd.DataFrame(data)
     x = df.to_xarray()
@@ -1571,6 +1672,13 @@ def make_small_xarray(self, auto_update=True,
             self.x.to_netcdf(os.path.join(path,filename), engine='h5netcdf')
         except:
             traceback.print_exc('Cannot save to {:}/{:}'.format(path,filename))
+
+        try:
+            xsum = to_summary(x)
+            fsumname = os.path.join(path, '_sum.'.join(filename.split('.', 1)))
+            xsum.to_netcdf(fsumname, engine='h5netcdf')
+        except:
+            traceback.print_exc('Cannot make smd sum file')
 
     return self.x
 

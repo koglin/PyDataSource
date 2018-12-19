@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Conda Release System &mdash; PyDataSource 0.0.0 documentation</title>
+  <title>Updating Releases &mdash; PyDataSource 0.6.9 documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="PyDataSource 0.0.0 documentation" href="index.html"/>
+    <link rel="top" title="PyDataSource 0.6.9 documentation" href="index.html"/>
         <link rel="next" title="PyDatSource API" href="api.html"/>
         <link rel="prev" title="Submitting Batch Jobs" href="batch.html"/> 
 
@@ -91,11 +91,17 @@
 <li class="toctree-l1"><a class="reference internal" href="xarray.html">Data Structures</a></li>
 <li class="toctree-l1"><a class="reference internal" href="data_summary.html">Summarizing Data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="config_data.html">Configuration Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="meta_data.html">Meta Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apps.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="build_html.html">Run Summary Reports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="exp_summary.html">Experiment Summary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="offbyone.html">Off-by-one Timing Error Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="batch.html">Submitting Batch Jobs</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Conda Release System</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Updating Releases</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#analysis-environment">Analysis Environment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#upgrade-ana-release">Upgrade ana release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#updating-arp-release">Updating ARP release</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sphinx-documentation">Sphinx Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">PyDatSource API</a></li>
@@ -143,7 +149,7 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Conda Release System</li>
+      <li>Updating Releases</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -162,8 +168,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="id1">
-<h1>Conda Release System<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="updating-releases">
+<h1>Updating Releases<a class="headerlink" href="#updating-releases" title="Permalink to this headline">¶</a></h1>
 <p>For more details on the LCLS conda release system for psana, see:</p>
 <p><a class="reference external" href="https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System">https://confluence.slac.stanford.edu/display/PSDMInternal/Conda+Release+System</a></p>
 <div class="section" id="analysis-environment">
@@ -204,6 +210,99 @@ scons
 </pre></div>
 </div>
 <p>If you chose to modify any ot the PyDataSource code then execute scons again.</p>
+</div>
+<div class="section" id="upgrade-ana-release">
+<h2>Upgrade ana release<a class="headerlink" href="#upgrade-ana-release" title="Permalink to this headline">¶</a></h2>
+<p>To update the analysis release.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda activate ana-1.3.63
+condarel --chenv
+<span class="nb">source</span> conda_setup
+scons -c
+scons
+</pre></div>
+</div>
+<p>Push package updates to github and add tag so that latest PyDataSource version will go in next ana release</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git push -u origin master
+
+git tag -a V00-06-04 -m <span class="s1">&#39;Version V00-06-04&#39;</span>
+git push origin V00-06-04
+</pre></div>
+</div>
+</div>
+<div class="section" id="updating-arp-release">
+<h2>Updating ARP release<a class="headerlink" href="#updating-arp-release" title="Permalink to this headline">¶</a></h2>
+<p>The Off-by-one Automated Run Proccessing (ARP) application release is defined by soft links in the /reg/g/psdm/utils/arp folder.</p>
+<p>There are several other applications from the PyDataSource package also soft linked to a common release.  The soft link to the current psana release must be updated manually, or alternatively a conda development path may be used.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">[</span>koglin@psnxserv02 ~ <span class="m">10</span>:06:11<span class="o">]</span> ls -l /reg/g/psdm/utils/arp/
+total <span class="m">9</span>
+drwxrwsr-x  <span class="m">3</span> koglin ps-pcds <span class="m">10</span> Apr <span class="m">20</span>  <span class="m">2018</span> config
+drwxrwsrwx <span class="m">15</span> koglin ps-pcds <span class="m">17</span> Oct <span class="m">24</span> <span class="m">08</span>:07 logs
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">17</span> Oct <span class="m">21</span> <span class="m">12</span>:26 offbyone -&gt; submit_beam_stats
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">63</span> Oct <span class="m">25</span> <span class="m">10</span>:05 release -&gt; /reg/g/psdm/sw/conda/inst/miniconda2-prod-rhel7/envs/ana-1.3.71
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">24</span> Oct <span class="m">21</span> <span class="m">12</span>:25 submit_batch -&gt; release/bin/submit_batch
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">29</span> Oct <span class="m">21</span> <span class="m">12</span>:24 submit_beam_stats -&gt; release/bin/submit_beam_stats
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">30</span> Oct <span class="m">21</span> <span class="m">12</span>:24 submit_exp_summary -&gt; release/bin/submit_exp_summary
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">26</span> Oct <span class="m">21</span> <span class="m">12</span>:25 submit_summary -&gt; release/bin/submit_summary
+lrwxrwxrwx  <span class="m">1</span> koglin ps-pcds <span class="m">26</span> Oct <span class="m">21</span> <span class="m">12</span>:25 submit_to_hdf5 -&gt; release/bin/submit_to_hdf5
+</pre></div>
+</div>
+</div>
+<div class="section" id="sphinx-documentation">
+<h2>Sphinx Documentation<a class="headerlink" href="#sphinx-documentation" title="Permalink to this headline">¶</a></h2>
+<p>Within conda env, build sphinx documentation in package doc folder.</p>
+<p>After updating any rst files in the source folder, use the ‘make html’ command to rebuild
+the html sphinx documenation</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>ana-1.3.70<span class="o">)</span> *tr* <span class="o">[</span>koglin@psanaphi101 doc <span class="m">10</span>:47:54<span class="o">]</span> <span class="nb">pwd</span>
+/reg/neh/home/koglin/conda/PyDataSource/doc
+
+<span class="o">(</span>ana-1.3.70<span class="o">)</span> *tr* <span class="o">[</span>koglin@psanaphi101 doc <span class="m">10</span>:48:01<span class="o">]</span> ls
+build  ChangeLog  make.bat  Makefile  <span class="nb">source</span>
+
+<span class="o">(</span>ana-1.3.70<span class="o">)</span> *tr* <span class="o">[</span>koglin@psanaphi101 doc <span class="m">10</span>:48:03<span class="o">]</span> ls <span class="nb">source</span>
+api.rst         conda.rst        data_processing.rst  exp_summary.rst  offbyone.rst  _static
+apps.rst        config_data.rst  data_summary.rst     generated        pyplots       _templates
+batch.rst       conf.py          examples             images           savefig       xarray.rst
+build_html.rst  data_access.rst  expert.rst           index.rst        sphinxext
+
+<span class="o">(</span>ana-1.3.70<span class="o">)</span> *tr* <span class="o">[</span>koglin@psanaphi101 doc <span class="m">10</span>:48:05<span class="o">]</span> make html
+</pre></div>
+</div>
+<p>To make html documenation availible on through the pswww web service,
+copy  PyDataSource/doc/source/build/html folder to the swdoc releases folder
+for PyDataSource (requires sudo as psreldev). e.g.,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> /reg/g/psdm/sw/conda/web/PyDataSource-tags/
+
+cp -r ~koglin/conda/PyDataSource/doc/build/html PyDataSource-V00-06-04
+
+ls -l
+total <span class="m">14</span>
+drwxr-xr-x <span class="m">10</span> psreldev xs <span class="m">29</span> Aug <span class="m">16</span>  <span class="m">2017</span> PyDataSource-V00-02-03
+drwxr-xr-x <span class="m">10</span> psreldev xs <span class="m">27</span> Aug <span class="m">17</span>  <span class="m">2017</span> PyDataSource-V00-02-04
+drwxr-xr-x  <span class="m">9</span> psreldev xs <span class="m">25</span> Sep  <span class="m">1</span>  <span class="m">2017</span> PyDataSource-V00-02-06
+drwxr-xr-x  <span class="m">9</span> psreldev xs <span class="m">30</span> Oct <span class="m">17</span> <span class="m">12</span>:02 PyDataSource-V00-06-04
+</pre></div>
+</div>
+<p>Then make soft link to web/ana/PyDataSource.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> /reg/g/psdm/sw/conda/web/ana
+
+rm PyDataSource
+
+ln -s ../PyDataSource-tags/PyDataSource-V00-06-04 PyDataSource
+
+ls /reg/g/psdm/sw/conda/web/ana/PyDataSource -l
+lrwxrwxrwx <span class="m">1</span> psreldev xs <span class="m">43</span> Oct <span class="m">17</span> <span class="m">12</span>:05 /reg/g/psdm/sw/conda/web/ana/PyDataSource -&gt; ../PyDataSource-tags/PyDataSource-V00-06-04
+
+ls /reg/g/psdm/sw/conda/web/ana/PyDataSource
+api.html         config_data.html      examples          _images        py-modindex.html  xarray.html
+apps.html        data_access.html      expert.html       index.html     search.html
+batch.html       data_processing.html  exp_summary.html  _modules       searchindex.js
+build_html.html  data_summary.html     generated         objects.inv    _sources
+conda.html       _downloads            genindex.html     offbyone.html  _static
+</pre></div>
+</div>
+<p>Then the html documentation will show up in:</p>
+<blockquote>
+<div><a class="reference external" href="https://pswww.slac.stanford.edu/swdoc/ana/PyDataSource">https://pswww.slac.stanford.edu/swdoc/ana/PyDataSource</a></div></blockquote>
 </div>
 </div>
 
@@ -251,7 +350,7 @@ scons
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0',
+            VERSION:'0.6.9',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
